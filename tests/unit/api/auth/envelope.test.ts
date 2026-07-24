@@ -11,7 +11,7 @@ describe("validateAuthVersion", () => {
 
   it("throws a stable ApiError for an unsupported or deprecated version", () => {
     const config = { activeVersions: new Set(["STEALTH-AUTH-V2"]) };
-    
+
     try {
       validateAuthVersion("STEALTH-AUTH-V1", config);
       expect.fail("Expected validateAuthVersion to throw");
@@ -34,7 +34,7 @@ describe("validateAuthVersion", () => {
     // After migration, v1 is deprecated
     const postMigrationConfig = { activeVersions: new Set(["STEALTH-AUTH-V2"]) };
     expect(() => validateAuthVersion("STEALTH-AUTH-V1", postMigrationConfig)).toThrowError(
-      ApiError
+      ApiError,
     );
     expect(() => validateAuthVersion("STEALTH-AUTH-V2", postMigrationConfig)).not.toThrow();
   });
