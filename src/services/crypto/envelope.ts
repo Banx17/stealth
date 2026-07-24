@@ -44,6 +44,8 @@ export interface EnvelopePayload {
   encryption_metadata: EncryptionMetadata;
   content_commitment: string;
   attachments: EnvelopeAttachment[];
+  critical?: string[];
+  [key: string]: unknown;
 }
 
 export interface SealedEnvelope {
@@ -66,6 +68,7 @@ export interface SealEnvelopeInput {
   signal?: AbortSignal;
   recipientKeyId?: string;
   senderKeyId?: string;
+  critical?: string[];
 }
 
 const GCM_TAG_BYTES = 16;
@@ -296,6 +299,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
       },
       content_commitment: contentCommitment,
       attachments,
+      ...(input.critical ? { critical: input.critical } : {}),
     };
 
     return { payload, ciphertext: ciphertextBase64 };
