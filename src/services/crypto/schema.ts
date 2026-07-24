@@ -79,7 +79,7 @@ export const envelopePayloadSchema = z
     } catch (err: any) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: err?.message ?? "Critical fields validation failed",
+        message: err?.details ?? err?.message ?? "Critical fields validation failed",
         path: ["critical"],
       });
     }
