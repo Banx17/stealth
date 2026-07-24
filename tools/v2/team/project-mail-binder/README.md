@@ -175,3 +175,16 @@ Do not wire this tool into the main app, routing, inbox architecture, wallet cor
 ## Follow-Up
 
 > **Suggested follow-up issue**: Mount `ProjectMailBinder` in the app shell (add route, nav entry, and wire to real mail data via the existing mail service).
+
+## Contributor Notes
+
+This repository issue focuses on testing and documentation only.
+
+Reviewers should verify that:
+
+- all implementation remains isolated to `tools/v2/team/project-mail-binder/`
+- existing tests continue to pass
+- documentation reflects the current behavior of the tool
+- no integration with the main application has been introduced
+
+Future integration with routing, mailbox services, authentication, or shared application state should be handled in a separate issue.
