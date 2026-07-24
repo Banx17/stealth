@@ -78,7 +78,6 @@
               "method_not_allowed",
               "not_found",
               "unauthorized",
-              "unsupported_auth_version",
               "validation_error",
               "too_many_requests",
               "dependency_unavailable",
@@ -266,7 +265,6 @@
                   "method_not_allowed",
                   "not_found",
                   "unauthorized",
-                  "unsupported_auth_version",
                   "validation_error",
                   "too_many_requests",
                   "dependency_unavailable",
@@ -364,12 +362,6 @@
             "message": "Authentication is required",
             "retryable": false,
             "description": "Valid authentication credentials were not provided."
-          },
-          "unsupported_auth_version": {
-            "status": 401,
-            "message": "Unsupported authentication version",
-            "retryable": false,
-            "description": "The provided authentication envelope version is unsupported or deprecated."
           },
           "validation_error": {
             "status": 422,

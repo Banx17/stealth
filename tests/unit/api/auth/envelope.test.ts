@@ -18,7 +18,7 @@ describe("validateAuthVersion", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError);
       const apiError = error as ApiError;
-      expect(apiError.code).toBe("unsupported_auth_version");
+      expect(apiError.code).toBe("unauthorized");
       expect(apiError.status).toBe(401);
       expect(apiError.retryable).toBe(false);
       expect(apiError.details).toEqual({ version: "STEALTH-AUTH-V1" });

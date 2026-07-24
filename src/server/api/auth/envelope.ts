@@ -16,10 +16,10 @@ export interface AuthVerifierConfig {
 
 /**
  * Validates the authentication envelope version against the configured active versions.
- * Throws a stable 'unsupported_auth_version' error if the version is deprecated or unrecognized.
+ * Throws a stable 'unauthorized' error if the version is deprecated or unrecognized.
  */
 export function validateAuthVersion(version: string, config: AuthVerifierConfig): void {
   if (!config.activeVersions.has(version)) {
-    throw new ApiError("unsupported_auth_version", { version });
+    throw new ApiError("unauthorized", { version });
   }
 }

@@ -51,12 +51,6 @@ export const API_ERROR_REGISTRY = {
     retryable: false,
     description: "Valid authentication credentials were not provided.",
   },
-  unsupported_auth_version: {
-    status: 401,
-    message: "Unsupported authentication version",
-    retryable: false,
-    description: "The provided authentication envelope version is unsupported or deprecated.",
-  },
   validation_error: {
     status: 422,
     message: "Request validation failed",
