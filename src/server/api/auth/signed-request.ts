@@ -12,6 +12,8 @@ export const SIGNED_REQUEST_HEADERS = [
 ] as const;
 
 export interface SignedRequestInput {
+  /** The explicit protocol version (e.g., "STEALTH-AUTH-V1") */
+  version: string;
   method: string;
   url: string;
   headers: Record<string, string>;
@@ -34,7 +36,7 @@ function canonicalQuery(url: URL): string {
     .join("&");
 }
 
-/** Canonical wire representation signed by v1 clients. */
+/** Canonical wire representation signed by clients. */
 export function canonicalizeSignedRequest(input: SignedRequestInput): string {
   const url = new URL(input.url);
   const path = url.pathname || "/";
@@ -45,7 +47,7 @@ export function canonicalizeSignedRequest(input: SignedRequestInput): string {
   const bodyHash = createHash("sha256").update(input.body, "utf8").digest("hex");
 
   return [
-    SIGNED_REQUEST_VERSION,
+    input.version,
     input.method.toUpperCase(),
     target,
     signedHeaders,
