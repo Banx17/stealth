@@ -17,6 +17,11 @@ import { createCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 import { getDefaultSuite, getDefaultVersion } from "./suites";
+import {
+  wrapContentKeyForRecipients,
+  type WrappedKeyEntry,
+  importRecipientPublicKey,
+} from "./key-wrap";
 
 export interface EnvelopeAttachment {
   filename: string;
@@ -44,8 +49,7 @@ export interface EnvelopePayload {
   encryption_metadata: EncryptionMetadata;
   content_commitment: string;
   attachments: EnvelopeAttachment[];
-  critical?: string[];
-  [key: string]: unknown;
+  wrapped_keys?: WrappedKeyEntry[];
 }
 
 export interface SealedEnvelope {
@@ -68,7 +72,8 @@ export interface SealEnvelopeInput {
   signal?: AbortSignal;
   recipientKeyId?: string;
   senderKeyId?: string;
-  critical?: string[];
+  /** Base64-encoded SPKI public keys of recipients for key wrapping. If provided, wrapped keys will be included in the envelope. */
+  recipientPublicKeys?: string[];
 }
 
 const GCM_TAG_BYTES = 16;
@@ -285,6 +290,26 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     clearSecret(ciphertext);
     sharedPool.release(ivBuf);
 
+    // --- Key wrapping (if recipient public keys provided) ---
+    let wrappedKeys: WrappedKeyEntry[] | undefined;
+    if (input.recipientPublicKeys && input.recipientPublicKeys.length > 0) {
+      throwIfAborted();
+      try {
+        // Import recipient public keys
+        const recipientKeys = await Promise.all(
+          input.recipientPublicKeys.map((pkBase64) => importRecipientPublicKey(pkBase64)),
+        );
+
+        // Wrap the content key for all recipients
+        wrappedKeys = await wrapContentKeyForRecipients(key, recipientKeys);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          throw new Error(`Key wrapping failed: ${error.message}`);
+        }
+        throw new Error("Key wrapping failed");
+      }
+    }
+
     const payload: EnvelopePayload = {
       version: getDefaultVersion() as "v1",
       sender: input.sender,
@@ -299,7 +324,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
       },
       content_commitment: contentCommitment,
       attachments,
-      ...(input.critical ? { critical: input.critical } : {}),
+      ...(wrappedKeys && wrappedKeys.length > 0 ? { wrapped_keys: wrappedKeys } : {}),
     };
 
     return { payload, ciphertext: ciphertextBase64 };
