@@ -62,6 +62,18 @@ function copyBytes(u: Uint8Array): Uint8Array {
   return out;
 }
 
+/**
+ * Copy bytes into a fresh ArrayBuffer. Web Crypto expects a BufferSource, and
+ * an ArrayBuffer is unconditionally assignable to it; a bare Uint8Array is not,
+ * because the DOM lib types allow it to be backed by a SharedArrayBuffer. Every
+ * byte argument handed to crypto.subtle is therefore funneled through this.
+ */
+function toBuffer(u: Uint8Array): ArrayBuffer {
+  const out = new ArrayBuffer(u.byteLength);
+  new Uint8Array(out).set(u);
+  return out;
+}
+
 function toBase64(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) {
@@ -138,15 +150,15 @@ export function normalizeRecipients(recipients: readonly RecipientKey[]): Recipi
 }
 
 async function deriveWrappingKey(keyMaterial: Uint8Array, recipientId: string): Promise<CryptoKey> {
-  const ikm = await crypto.subtle.importKey("raw", copyBytes(keyMaterial), "HKDF", false, [
+  const ikm = await crypto.subtle.importKey("raw", toBuffer(keyMaterial), "HKDF", false, [
     "deriveKey",
   ]);
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",
       hash: "SHA-256",
-      salt: new TextEncoder().encode(recipientId),
-      info: new TextEncoder().encode(WRAP_INFO),
+      salt: toBuffer(new TextEncoder().encode(recipientId)),
+      info: toBuffer(new TextEncoder().encode(WRAP_INFO)),
     },
     ikm,
     { name: "AES-GCM", length: 256 },
@@ -171,7 +183,7 @@ export async function sealMultiRecipient(
   const cekBytes = crypto.getRandomValues(new Uint8Array(CEK_BYTES));
   const cek = await crypto.subtle.importKey(
     "raw",
-    copyBytes(cekBytes),
+    toBuffer(cekBytes),
     { name: "AES-GCM", length: 256 },
     false,
     ["encrypt"],
@@ -179,11 +191,7 @@ export async function sealMultiRecipient(
 
   const bodyNonce = crypto.getRandomValues(new Uint8Array(GCM_NONCE_BYTES));
   const bodyCipher = new Uint8Array(
-    await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: copyBytes(bodyNonce) },
-      cek,
-      copyBytes(body),
-    ),
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv: toBuffer(bodyNonce) }, cek, toBuffer(body)),
   );
 
   const entries: WrappedKeyEntry[] = [];
@@ -192,9 +200,9 @@ export async function sealMultiRecipient(
     const wrapNonce = crypto.getRandomValues(new Uint8Array(GCM_NONCE_BYTES));
     const wrapped = new Uint8Array(
       await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: copyBytes(wrapNonce) },
+        { name: "AES-GCM", iv: toBuffer(wrapNonce) },
         wrappingKey,
-        copyBytes(cekBytes),
+        toBuffer(cekBytes),
       ),
     );
     entries.push({
@@ -244,9 +252,9 @@ export async function openMultiRecipient(
   try {
     cekBytes = new Uint8Array(
       await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: fromBase64(entry.nonce) },
+        { name: "AES-GCM", iv: toBuffer(fromBase64(entry.nonce)) },
         wrappingKey,
-        fromBase64(entry.wrappedKey),
+        toBuffer(fromBase64(entry.wrappedKey)),
       ),
     );
   } catch {
@@ -258,7 +266,7 @@ export async function openMultiRecipient(
 
   const cek = await crypto.subtle.importKey(
     "raw",
-    copyBytes(cekBytes),
+    toBuffer(cekBytes),
     { name: "AES-GCM", length: 256 },
     false,
     ["decrypt"],
@@ -267,9 +275,9 @@ export async function openMultiRecipient(
 
   try {
     const plaintext = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: fromBase64(envelope.body.nonce) },
+      { name: "AES-GCM", iv: toBuffer(fromBase64(envelope.body.nonce)) },
       cek,
-      fromBase64(envelope.body.ciphertext),
+      toBuffer(fromBase64(envelope.body.ciphertext)),
     );
     return new Uint8Array(plaintext);
   } catch {
