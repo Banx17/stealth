@@ -45,7 +45,10 @@ export function TemplateCard({ template, onSelect, isSelected = false }: Templat
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-base font-semibold text-slate-950" id={`template-${template.id}-name`}>
+            <h3
+              className="text-base font-semibold text-slate-950"
+              id={`template-${template.id}-name`}
+            >
               {template.name}
             </h3>
             {template.categoryId && (
