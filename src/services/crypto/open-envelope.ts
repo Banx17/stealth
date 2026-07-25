@@ -18,6 +18,7 @@ import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suites";
 import { unwrapContentKey, importRecipientPrivateKey, type WrappedKeyEntry } from "./key-wrap";
+import { sealedEnvelopeSchema } from "./schema";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {

@@ -7,6 +7,7 @@ The key-wrap module implements recipient-decryptable envelope key wrapping, addr
 ## Problem Statement
 
 Prior to this implementation:
+
 - `envelope.ts` generated a fresh extractable AES-256-GCM key for each message
 - The key was used to encrypt the message body and attachments
 - **The key was never exported, wrapped, or transmitted to the recipient**
@@ -103,6 +104,7 @@ The implementation reuses the audited `recipient-privacy.ts` scheme:
 Wrap a content-encryption key for a single recipient.
 
 **Parameters:**
+
 - `contentKey: CryptoKey` - AES-256-GCM key (must be extractable)
 - `recipientPublicKey: CryptoKey` - P-256 ECDH public key
 
@@ -111,11 +113,12 @@ Wrap a content-encryption key for a single recipient.
 **Throws:** `KeyWrapError` if key is not extractable or wrapping fails
 
 **Example:**
+
 ```typescript
 const contentKey = await crypto.subtle.generateKey(
   { name: "AES-GCM", length: 256 },
-  true,  // extractable
-  ["encrypt", "decrypt"]
+  true, // extractable
+  ["encrypt", "decrypt"],
 );
 
 const recipientKey = await importRecipientPublicKey(recipientPublicKeyBase64);
@@ -127,6 +130,7 @@ const wrapped = await wrapContentKey(contentKey, recipientKey);
 Wrap a content-encryption key for multiple recipients.
 
 **Parameters:**
+
 - `contentKey: CryptoKey` - AES-256-GCM key (must be extractable)
 - `recipientPublicKeys: CryptoKey[]` - Array of P-256 ECDH public keys
 
@@ -135,6 +139,7 @@ Wrap a content-encryption key for multiple recipients.
 **Throws:** `KeyWrapError` if key is not extractable or wrapping fails
 
 **Example:**
+
 ```typescript
 const wrapped = await wrapContentKeyForRecipients(contentKey, [
   recipientKey1,
@@ -149,27 +154,26 @@ const wrapped = await wrapContentKeyForRecipients(contentKey, [
 Unwrap a content-encryption key from wrapped entries.
 
 **Parameters:**
+
 - `recipientPrivateKey: CryptoKey` - P-256 ECDH private key
 - `wrappedEntries: WrappedKeyEntry[]` - Array of wrapped key entries from envelope
 
 **Returns:** `Promise<CryptoKey | null>`
+
 - Returns unwrapped AES-256-GCM key if a matching entry is found
 - Returns `null` if no matching entry exists
 
 **Throws:** `KeyWrapError` if private key is invalid
 
 **Example:**
+
 ```typescript
 const privateKey = await importRecipientPrivateKey(privateKeyBase64);
 const contentKey = await unwrapContentKey(privateKey, wrappedEntries);
 
 if (contentKey) {
   // Decrypt message with content key
-  const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    contentKey,
-    ciphertext
-  );
+  const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, contentKey, ciphertext);
 }
 ```
 
@@ -211,16 +215,12 @@ async function sealEnvelopeWithKeyWrap(input) {
   // 1. Generate content key
   const contentKey = await crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
-    true,  // MUST be extractable for wrapping
-    ["encrypt", "decrypt"]
+    true, // MUST be extractable for wrapping
+    ["encrypt", "decrypt"],
   );
 
   // 2. Encrypt body with content key
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    contentKey,
-    plaintext
-  );
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, contentKey, plaintext);
 
   // 3. Wrap content key for recipient
   const recipientKey = await importRecipientPublicKey(recipientPublicKeyBase64);
@@ -242,12 +242,14 @@ async function sealEnvelopeWithKeyWrap(input) {
 The implementation includes comprehensive tests covering:
 
 ### Round-trip Tests
+
 - ✅ Single recipient wrap/unwrap
 - ✅ Multiple recipients wrap/unwrap
 - ✅ No matching entry returns null
 - ✅ Empty wrapped entries array returns null
 
 ### Wrong Key Scenarios
+
 - ✅ Wrong private key cannot unwrap
 - ✅ Non-extractable content key fails wrapping
 - ✅ Non-secret key fails wrapping
@@ -255,21 +257,25 @@ The implementation includes comprehensive tests covering:
 - ✅ Empty recipients array fails
 
 ### Tampering Detection
+
 - ✅ Tampered wrapped key ciphertext fails
 - ✅ Tampered nonce fails
 - ✅ Tampered blinded recipient ID fails
 
 ### Import/Export
+
 - ✅ Public key import/export round-trip
 - ✅ Private key import/export round-trip
 - ✅ Invalid key formats fail
 
 ### Key Isolation
+
 - ✅ Unique ephemeral keys per wrap operation
 - ✅ Unique nonces per wrap operation
 - ✅ Unique blinded IDs per message
 
 ### Complete Flow
+
 - ✅ End-to-end sender-to-recipient encryption/decryption
 
 ## Security Considerations
@@ -277,6 +283,7 @@ The implementation includes comprehensive tests covering:
 ### Raw Content Key Handling
 
 **CRITICAL:** The raw content key is never:
+
 - Serialized to JSON
 - Logged to console or telemetry
 - Returned from public APIs (except as opaque CryptoKey)
@@ -291,6 +298,7 @@ The implementation includes comprehensive tests covering:
 ### Fail-Closed Behavior
 
 All error conditions fail safely:
+
 - Invalid keys → `KeyWrapError` with stable code
 - Tampered data → Decryption fails, returns `null`
 - Wrong recipient → No match, returns `null`
@@ -299,12 +307,14 @@ All error conditions fail safely:
 ## Performance
 
 ### Memory Profile
+
 - Ephemeral key generation: ~0 bytes (opaque CryptoKey)
 - ECDH derivation: ~32 bytes (shared secret, zeroed after use)
 - Key wrapping: ~32 bytes (raw content key, zeroed after wrap)
 - Result size: ~200 bytes per recipient (base64 overhead)
 
 ### Time Complexity
+
 - Wrap single recipient: ~5-10ms (ECDH + HKDF + AES-GCM)
 - Wrap N recipients: ~5N-10N ms (parallelizable)
 - Unwrap from M entries: O(M) sequential scan, ~5-10ms per attempt
@@ -312,12 +322,14 @@ All error conditions fail safely:
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. **Batch wrapping optimization**: Reuse ECDH ephemeral key for multiple recipients
 2. **Key rotation**: Support periodic content key rotation within long sessions
 3. **Hardware key support**: Integration with WebAuthn/TPM for private key storage
 4. **Post-quantum algorithms**: Prepare for quantum-resistant key encapsulation
 
 ### Integration Points
+
 - **Device registry**: Already compatible with `device-keys.ts` multi-device support
 - **Key resolver**: Can integrate with `key-resolver.ts` for public key discovery
 - **Relay transport**: Wrapped keys fit in existing envelope wire format
