@@ -17,13 +17,13 @@ Stealth v1 envelopes use **AES-256-GCM** (Advanced Encryption Standard, 256-bit 
 
 #### Parameters
 
-| Parameter | Value | Format |
-|-----------|-------|--------|
-| Algorithm | `AES-256-GCM` | String literal in `encryption_metadata.algorithm` |
-| Key Size | 256 bits | 32 bytes |
-| Nonce Size | 96 bits | 12 bytes (24 hex characters) |
-| Authentication Tag | 128 bits | 16 bytes (32 hex characters) |
-| Mode | GCM (Galois/Counter Mode) | Provides AEAD properties |
+| Parameter          | Value                     | Format                                            |
+| ------------------ | ------------------------- | ------------------------------------------------- |
+| Algorithm          | `AES-256-GCM`             | String literal in `encryption_metadata.algorithm` |
+| Key Size           | 256 bits                  | 32 bytes                                          |
+| Nonce Size         | 96 bits                   | 12 bytes (24 hex characters)                      |
+| Authentication Tag | 128 bits                  | 16 bytes (32 hex characters)                      |
+| Mode               | GCM (Galois/Counter Mode) | Provides AEAD properties                          |
 
 #### Metadata Fields
 
@@ -38,6 +38,7 @@ Every v1 envelope MUST include the following `encryption_metadata` fields:
 ```
 
 Optional fields:
+
 - `recipient_key_id`: Identifier for the recipient's key (for key rotation scenarios)
 - `sender_key_id`: Identifier for the sender's key
 - `ephemeral_public_key`: Reserved for future public-key encryption suites (not used in v1)
@@ -59,6 +60,7 @@ Every envelope includes a SHA-256 content commitment:
 - **Purpose**: Provides a reproducible hash for on-chain registration without revealing plaintext
 
 Example:
+
 ```
 v1:sha256:hex:5b40cf39e4a86e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202
 ```
