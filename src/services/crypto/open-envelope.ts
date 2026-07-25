@@ -17,6 +17,7 @@ import { verifyCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
 import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suites";
+import { unwrapContentKey, importRecipientPrivateKey, type WrappedKeyEntry } from "./key-wrap";
 
 /** Minimal non-secret error carrying a stable code (no key/plaintext leakage). */
 export class OpenEnvelopeError extends Error {
@@ -41,7 +42,49 @@ export class OpenEnvelopeError extends Error {
 
 /** Supplies the recipient's AES-GCM key for decryption (integration-owned). */
 export interface KeyProvider {
-  resolveKey(recipient: string, recipientKeyId?: string): Promise<CryptoKey>;
+  /**
+   * Resolve the content-encryption key for the recipient.
+   * If wrapped_keys are provided, the provider should use the recipient's private key to unwrap.
+   * Otherwise, it should resolve the key via legacy key resolution.
+   */
+  resolveKey(
+    recipient: string,
+    recipientKeyId?: string,
+    wrappedKeys?: WrappedKeyEntry[],
+  ): Promise<CryptoKey>;
+}
+
+/**
+ * Key provider that uses wrapped keys if available, with recipient private key.
+ * This is a helper for direct unwrapping without legacy key resolution.
+ */
+export class WrappedKeyProvider implements KeyProvider {
+  constructor(private recipientPrivateKeyPkcs8Base64: string) {}
+
+  async resolveKey(
+    _recipient: string,
+    _recipientKeyId?: string,
+    wrappedKeys?: WrappedKeyEntry[],
+  ): Promise<CryptoKey> {
+    if (!wrappedKeys || wrappedKeys.length === 0) {
+      throw new OpenEnvelopeError(
+        "no wrapped keys available and no legacy key resolution",
+        "crypto_decryption_error",
+      );
+    }
+
+    const privateKey = await importRecipientPrivateKey(this.recipientPrivateKeyPkcs8Base64);
+    const unwrapped = await unwrapContentKey(privateKey, wrappedKeys);
+
+    if (!unwrapped) {
+      throw new OpenEnvelopeError(
+        "no matching wrapped key entry found for recipient",
+        "crypto_decryption_error",
+      );
+    }
+
+    return unwrapped;
+  }
 }
 
 const GCM_TAG_BYTES = 16;
@@ -78,6 +121,7 @@ interface RawPayload {
   };
   content_commitment?: unknown;
   attachments?: unknown;
+  wrapped_keys?: unknown;
 }
 
 function fromHex(hex: string): Uint8Array<ArrayBuffer> {
@@ -234,9 +278,41 @@ export async function openEnvelope(
       typeof meta.recipient_key_id === "string" ? meta.recipient_key_id : undefined;
     const senderKeyId = typeof meta.sender_key_id === "string" ? meta.sender_key_id : undefined;
 
+    // Parse wrapped keys if present
+    let wrappedKeys: WrappedKeyEntry[] | undefined;
+    if (Array.isArray(payload.wrapped_keys)) {
+      try {
+        wrappedKeys = payload.wrapped_keys.map((entry) => {
+          if (!entry || typeof entry !== "object") {
+            throw new Error("invalid wrapped key entry");
+          }
+          return {
+            ephemeralPublicKey: str(
+              (entry as { ephemeralPublicKey?: unknown }).ephemeralPublicKey,
+              "wrapped_key.ephemeralPublicKey",
+            ),
+            blindedRecipientId: str(
+              (entry as { blindedRecipientId?: unknown }).blindedRecipientId,
+              "wrapped_key.blindedRecipientId",
+            ),
+            wrappedKey: str(
+              (entry as { wrappedKey?: unknown }).wrappedKey,
+              "wrapped_key.wrappedKey",
+            ),
+            nonce: str((entry as { nonce?: unknown }).nonce, "wrapped_key.nonce"),
+          };
+        });
+      } catch (err) {
+        if (err instanceof OpenEnvelopeError) {
+          throw err;
+        }
+        throw new OpenEnvelopeError("invalid wrapped_keys format", "crypto_validation_error");
+      }
+    }
+
     let key: CryptoKey;
     try {
-      key = await keys.resolveKey(recipient, recipientKeyId);
+      key = await keys.resolveKey(recipient, recipientKeyId, wrappedKeys);
     } catch {
       throw new OpenEnvelopeError("recipient key unavailable", "crypto_decryption_error");
     }
