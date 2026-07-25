@@ -120,6 +120,15 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
   const defaultSuite = getDefaultSuite();
 
   try {
+    // Validate that the default suite is one we can actually encrypt with.
+    // This is a fail-fast check to prevent silent algorithm mismatches.
+    if (defaultSuite.name !== "AES-256-GCM") {
+      throw new Error(
+        `Internal error: default suite ${defaultSuite.name} is not implemented. ` +
+          `Only AES-256-GCM is supported for v1 envelopes.`,
+      );
+    }
+
     const body = input.body ?? "";
     if (!body.trim()) {
       throw new Error("Cannot seal an empty message body");
