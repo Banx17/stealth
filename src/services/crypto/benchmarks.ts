@@ -169,8 +169,6 @@ async function benchmarkKeyWrapping(): Promise<BenchmarkResult[]> {
     generateRecipientKeyPair().then((p) => p.publicKey),
   ]);
   const singleKey = [recipientKeys[0]];
-
-  const wrappedKeyEntry: Awaited<ReturnType<typeof wrapContentKeyForRecipients>> = [];
   let wrappedSingle: Awaited<ReturnType<typeof wrapContentKeyForRecipients>> = [];
 
   const suite: BenchSuite[] = [
