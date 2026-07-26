@@ -50,7 +50,12 @@ type ResultsRow = Record<string, string>;
 /*  Timing helpers                                                     */
 /* ------------------------------------------------------------------ */
 
-async function measure(operation: string, payload: string, iterations: number, fn: () => Promise<void>): Promise<BenchmarkResult> {
+async function measure(
+  operation: string,
+  payload: string,
+  iterations: number,
+  fn: () => Promise<void>,
+): Promise<BenchmarkResult> {
   const warmupIters = Math.max(1, Math.floor(iterations / 5));
   const timings: number[] = [];
 
@@ -102,7 +107,8 @@ function makePayload(depth: number): unknown {
       nonce: "aabbccddeeff001122334455",
       mac: "aabbccddeeff00112233445566778899",
     },
-    content_commitment: "v1:sha256:hex:a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
+    content_commitment:
+      "v1:sha256:hex:a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
     attachments: Array.from({ length: depth }, (_, i) => ({
       filename: `file-${i}.pdf`,
       content_type: "application/pdf",
@@ -122,7 +128,9 @@ async function benchmarkKeyGeneration(): Promise<BenchmarkResult[]> {
       operation: "generateRecipientKeyPair",
       payload: "ECDH P-256",
       iterations: 50,
-      fn: async () => { await generateRecipientKeyPair(); },
+      fn: async () => {
+        await generateRecipientKeyPair();
+      },
     },
     {
       operation: "createSealingKey",
@@ -150,11 +158,10 @@ async function benchmarkKeyGeneration(): Promise<BenchmarkResult[]> {
 }
 
 async function benchmarkKeyWrapping(): Promise<BenchmarkResult[]> {
-  const contentKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
+  const contentKey = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
   const pair = await generateRecipientKeyPair();
   const recipientKeys = await Promise.all([
     generateRecipientKeyPair().then((p) => p.publicKey),
@@ -171,13 +178,17 @@ async function benchmarkKeyWrapping(): Promise<BenchmarkResult[]> {
       operation: "wrapContentKey",
       payload: "1 recipient",
       iterations: 50,
-      fn: async () => { await wrapContentKey(contentKey, recipientKeys[0]); },
+      fn: async () => {
+        await wrapContentKey(contentKey, recipientKeys[0]);
+      },
     },
     {
       operation: "wrapContentKeyForRecipients",
       payload: "3 recipients",
       iterations: 30,
-      fn: async () => { await wrapContentKeyForRecipients(contentKey, recipientKeys); },
+      fn: async () => {
+        await wrapContentKeyForRecipients(contentKey, recipientKeys);
+      },
     },
     {
       operation: "unwrapContentKey",
@@ -206,13 +217,17 @@ async function benchmarkHashing(): Promise<BenchmarkResult[]> {
       operation: "createCommitment",
       payload: "1 KB",
       iterations: 200,
-      fn: async () => { await createCommitment(smallData); },
+      fn: async () => {
+        await createCommitment(smallData);
+      },
     },
     {
       operation: "createCommitment",
       payload: "64 KB",
       iterations: 200,
-      fn: async () => { await createCommitment(largeData); },
+      fn: async () => {
+        await createCommitment(largeData);
+      },
     },
   ];
 
@@ -228,13 +243,17 @@ async function benchmarkCanonicalization(): Promise<BenchmarkResult[]> {
       operation: "canonicalize",
       payload: "small (no attachments)",
       iterations: 500,
-      fn: () => { canonicalize(smallPayload); },
+      fn: () => {
+        canonicalize(smallPayload);
+      },
     },
     {
       operation: "canonicalize",
       payload: "large (16 attachments)",
       iterations: 500,
-      fn: () => { canonicalize(largePayload); },
+      fn: () => {
+        canonicalize(largePayload);
+      },
     },
   ];
 
@@ -390,22 +409,22 @@ async function runBenchmarks(): Promise<void> {
   const allResults: BenchmarkResult[] = [];
 
   console.log("[1/6] Key generation...");
-  allResults.push(...await benchmarkKeyGeneration());
+  allResults.push(...(await benchmarkKeyGeneration()));
 
   console.log("[2/6] Key wrapping...");
-  allResults.push(...await benchmarkKeyWrapping());
+  allResults.push(...(await benchmarkKeyWrapping()));
 
   console.log("[3/6] Hashing...");
-  allResults.push(...await benchmarkHashing());
+  allResults.push(...(await benchmarkHashing()));
 
   console.log("[4/6] Canonicalization...");
-  allResults.push(...await benchmarkCanonicalization());
+  allResults.push(...(await benchmarkCanonicalization()));
 
   console.log("[5/6] Message sealing...");
-  allResults.push(...await benchmarkSealing());
+  allResults.push(...(await benchmarkSealing()));
 
   console.log("[6/6] Message opening...");
-  allResults.push(...await benchmarkOpening());
+  allResults.push(...(await benchmarkOpening()));
 
   console.log("\n");
   printResults(allResults);
