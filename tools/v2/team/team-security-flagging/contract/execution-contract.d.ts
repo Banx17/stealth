@@ -55,9 +55,7 @@ export type SecurityFlaggingExecutionState =
   | { status: "success"; result: Extract<SecurityFlaggingOutput, { ok: true }> }
   | { status: "error"; result: Extract<SecurityFlaggingOutput, { ok: false }> };
 
-export type SecurityFlaggingStateObserver = (
-  state: SecurityFlaggingExecutionState,
-) => void;
+export type SecurityFlaggingStateObserver = (state: SecurityFlaggingExecutionState) => void;
 
 /** I/O and environmental behavior supplied by the backend caller. */
 export interface SecurityFlaggingDependencies {

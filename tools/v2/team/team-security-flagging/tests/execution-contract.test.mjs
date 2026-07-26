@@ -73,9 +73,13 @@ test("missing dependencies are rejected during construction", () => {
 
 test("stateful entry point reports loading then the terminal success state", async () => {
   const states = [];
-  const result = await executeSecurityFlaggingWithState(cases.success.input, dependencies(), (state) => {
-    states.push(state);
-  });
+  const result = await executeSecurityFlaggingWithState(
+    cases.success.input,
+    dependencies(),
+    (state) => {
+      states.push(state);
+    },
+  );
 
   assert.equal(result.ok, true);
   assert.deepEqual(states, [
