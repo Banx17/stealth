@@ -4,25 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useChangelog } from "./useChangelog";
-
-const CATEGORY_CONFIG: Record<string, { label: string; styles: string }> = {
-  ui: {
-    label: "UI",
-    styles: "bg-sky-400/15 text-sky-300 border-sky-400/20 hover:bg-sky-400/20",
-  },
-  api: {
-    label: "API",
-    styles: "bg-violet-400/15 text-violet-300 border-violet-400/20 hover:bg-violet-400/20",
-  },
-  protocol: {
-    label: "Protocol",
-    styles: "bg-amber-400/15 text-amber-300 border-amber-400/20 hover:bg-amber-400/20",
-  },
-  security: {
-    label: "Security",
-    styles: "bg-rose-400/15 text-rose-300 border-rose-400/20 hover:bg-rose-400/20",
-  },
-};
+import { CATEGORY_CONFIG, groupEntriesByRelease } from "./helpers";
 
 function CategoryBadge({ category }: { category: string }) {
   const config = CATEGORY_CONFIG[category];
@@ -146,15 +128,7 @@ export function ChangelogPanel() {
     markAllSeen();
   }, [markAllSeen]);
 
-  const grouped = useMemo(
-    () =>
-      entries.reduce<Record<string, typeof entries>>((acc, entry) => {
-        const key = `${entry.version}|${entry.date}`;
-        (acc[key] ??= []).push(entry);
-        return acc;
-      }, {}),
-    [entries],
-  );
+  const grouped = useMemo(() => groupEntriesByRelease(entries), [entries]);
 
   const isEmpty = entries.length === 0;
 
