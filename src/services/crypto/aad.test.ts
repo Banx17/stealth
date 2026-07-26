@@ -157,7 +157,7 @@ describe("AAD integration — field-by-field tampering", () => {
       recipientPublicKeys: [recipient.publicKeySpkiBase64],
     });
 
-    (sealed.payload as Record<string, unknown>).version = "v999";
+    (sealed.payload as unknown as Record<string, unknown>).version = "v999";
 
     const keyProvider = new WrappedKeyProvider(recipient.privateKeyPkcs8Base64);
     await expect(
