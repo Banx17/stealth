@@ -2,46 +2,34 @@
 
 ## Purpose
 
-This contribution improves the contributor documentation for the Escalation Tool while keeping all work isolated to the tool workspace.
+This contribution defines a typed, presentation-independent execution contract for the Escalation Tool while keeping all work completely isolated inside the tool workspace.
 
 ## Scope
 
-All modified files are contained within:
+All modified and created files are contained within:
 
 ```text
 tools/v2/team/escalation-tool/
 ```
 
-No application routing, authentication, inbox workflow, database, wallet, Stellar integration, or shared UI components were modified.
+No application routing, authentication, inbox workflow, database, wallet, Stellar integration, shared UI components, styling, or layout files were modified.
 
 ## How to Review
 
-1. Read `README.md` for an overview of the tool.
-2. Review `specs.md` for ownership boundaries and scope.
-3. Read `docs/TEST_PLAN.md`.
-4. Confirm the documentation clearly explains setup, intended usage, review expectations, and known limitations.
-5. Verify all modified files remain inside:
-
-```text
-tools/v2/team/escalation-tool/
-```
+1. Read `README.md` and `CONTRACT.md` for an overview of the execution contract.
+2. Review `types/contract.ts` for typed inputs, outputs, and error codes.
+3. Inspect `services/execution.service.ts` for the non-UI service entry point.
+4. Inspect `fixtures/execution.fixtures.ts` for success and failure fixtures.
+5. Run the isolated test suite:
+   ```bash
+   npx vitest run --config tools/v2/team/escalation-tool/vitest.config.ts
+   ```
+6. Verify all files remain inside `tools/v2/team/escalation-tool/`.
 
 ## Expected Result
 
-- Documentation is complete and contributor friendly.
-- Review guidance is clear and easy to follow.
+- Non-UI service entry point is exported (`escalationToolService`, `createEscalationToolService`).
+- Typed input and output contract is documented in `CONTRACT.md`.
+- Success and failure fixtures are exported from `fixtures/execution.fixtures.ts`.
+- Unit tests pass with zero errors.
 - The workspace remains fully isolated.
-- Future implementation can proceed without modifying the main application.
-
-## Out of Scope
-
-The following are intentionally excluded from this issue:
-
-- Application routing
-- Inbox integration
-- Authentication
-- Database changes
-- Wallet integration
-- Stellar integration
-- Shared design system
-- External services
