@@ -95,7 +95,7 @@ Failures use the standard JSON API error envelope and do not echo signatures or 
 | ----------------------------------------------------------------------------- | ---: | ------------------- | --------------------------------------------------- |
 | Missing/malformed header, unknown version, invalid account, invalid signature |  401 | `unauthorized`      | Obtain a new challenge and sign again.              |
 | Timestamp or challenge expired                                                |  422 | `expired_challenge` | Obtain a new challenge.                             |
-| Timestamp too far in the future                                               |  422 | `validation_error`  | Correct the clock, then sign a fresh challenge.     |
+| Timestamp too far in the future                                               |  422 | `challenge_not_yet_valid` | Correct the clock, then sign a fresh challenge. |
 | Nonce already consumed (replay)                                               |  409 | `conflict`          | Never retry the signed request; obtain a new nonce. |
 | Verified actor lacks endpoint permission                                      |  403 | `forbidden`         | Do not retry unchanged.                             |
 | Authentication rate limit exceeded                                            |  429 | `too_many_requests` | Honor `Retry-After`.                                |
