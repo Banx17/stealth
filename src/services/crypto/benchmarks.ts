@@ -243,7 +243,7 @@ async function benchmarkCanonicalization(): Promise<BenchmarkResult[]> {
       operation: "canonicalize",
       payload: "small (no attachments)",
       iterations: 500,
-      fn: () => {
+      fn: async () => {
         canonicalize(smallPayload);
       },
     },
@@ -251,7 +251,7 @@ async function benchmarkCanonicalization(): Promise<BenchmarkResult[]> {
       operation: "canonicalize",
       payload: "large (16 attachments)",
       iterations: 500,
-      fn: () => {
+      fn: async () => {
         canonicalize(largePayload);
       },
     },
