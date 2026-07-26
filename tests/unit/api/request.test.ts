@@ -379,7 +379,11 @@ describe("parseSearchParams — query encoding fuzzing", () => {
     { query: "?q=%C3%A9", params: { q: "é" }, desc: "UTF-8 encoded é" },
     { query: "?q=%EF%BB%BF", params: { q: "\uFEFF" }, desc: "BOM prefix in value" },
     { query: "?q=%E2%80%8E", params: { q: "\u200E" }, desc: "right-to-left override in value" },
-    { query: "?q=%FF%FE", params: { q: "\uFFFD\uFFFD" }, desc: "invalid UTF-8 sequence becomes replacement characters" },
+    {
+      query: "?q=%FF%FE",
+      params: { q: "\uFFFD\uFFFD" },
+      desc: "invalid UTF-8 sequence becomes replacement characters",
+    },
   ])("gracefully handles $desc", ({ query, params }) => {
     const request = new Request(`https://stealth.test/api${query}`);
     expect(parseSearchParams(request, passthrough)).toEqual(params);
@@ -446,9 +450,7 @@ describe("error envelope contract — all fuzz failures", () => {
     { query: "?cursor=%00", desc: "null byte in value" },
   ])("returns full envelope for $desc", ({ query }) => {
     const request = new Request(`https://stealth.test/api${query}`);
-    const error = captureError(() =>
-      parseSearchParams(request, z.object({}).catchall(z.string())),
-    );
+    const error = captureError(() => parseSearchParams(request, z.object({}).catchall(z.string())));
 
     expect(error).toHaveProperty("status");
     expect(typeof error.status).toBe("number");
