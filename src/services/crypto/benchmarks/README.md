@@ -22,16 +22,16 @@ No build step is required. The script uses Node.js's built-in Web Crypto API
 
 Results are printed as a console table with columns:
 
-| Column | Description |
-|--------|-------------|
-| Operation | Crypto function name |
-| Payload | Input size or parameter description |
-| Iterations | Number of measured runs |
-| Warmup (ms) | Total time for warm-up iterations |
-| Avg (ms) | Mean time per iteration |
-| Min (ms) | Fastest iteration |
-| Max (ms) | Slowest iteration |
-| Total (ms) | Wall-clock sum of measured iterations |
+| Column      | Description                           |
+| ----------- | ------------------------------------- |
+| Operation   | Crypto function name                  |
+| Payload     | Input size or parameter description   |
+| Iterations  | Number of measured runs               |
+| Warmup (ms) | Total time for warm-up iterations     |
+| Avg (ms)    | Mean time per iteration               |
+| Min (ms)    | Fastest iteration                     |
+| Max (ms)    | Slowest iteration                     |
+| Total (ms)  | Wall-clock sum of measured iterations |
 
 No plaintext, keys, or secrets are logged.
 
@@ -73,18 +73,18 @@ than dedicated hardware due to:
 
 ### Expected ranges (reference — local Node.js 20 on x86_64)
 
-| Operation | Payload | Expected Avg |
-|-----------|---------|--------------|
-| generateRecipientKeyPair | ECDH P-256 | 5–15 ms |
-| createSealingKey | AES-256-GCM | <1 ms |
-| wrapContentKey | 1 recipient | 5–15 ms |
-| wrapContentKeyForRecipients | 3 recipients | 15–45 ms |
-| sealEnvelope | 1 KB body | 10–30 ms |
-| sealEnvelope | 64 KB body | 15–40 ms |
-| openEnvelope | 1 KB body | 10–30 ms |
-| openEnvelope | 64 KB body | 15–40 ms |
-| createCommitment | 64 KB | <1 ms |
-| canonicalize | large (16 attachments) | <2 ms |
+| Operation                   | Payload                | Expected Avg |
+| --------------------------- | ---------------------- | ------------ |
+| generateRecipientKeyPair    | ECDH P-256             | 5–15 ms      |
+| createSealingKey            | AES-256-GCM            | <1 ms        |
+| wrapContentKey              | 1 recipient            | 5–15 ms      |
+| wrapContentKeyForRecipients | 3 recipients           | 15–45 ms     |
+| sealEnvelope                | 1 KB body              | 10–30 ms     |
+| sealEnvelope                | 64 KB body             | 15–40 ms     |
+| openEnvelope                | 1 KB body              | 10–30 ms     |
+| openEnvelope                | 64 KB body             | 15–40 ms     |
+| createCommitment            | 64 KB                  | <1 ms        |
+| canonicalize                | large (16 attachments) | <2 ms        |
 
 **These are approximate.** Always measure on your target hardware.
 

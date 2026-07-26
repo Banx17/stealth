@@ -63,12 +63,18 @@ describe("encodeAad field sensitivity", () => {
   });
 
   it("differs when sender changes", () => {
-    const modified = { ...BASE_HEADER, sender: "GDIFFERENTADDRESS1234567890123456789012345678901234567890123" };
+    const modified = {
+      ...BASE_HEADER,
+      sender: "GDIFFERENTADDRESS1234567890123456789012345678901234567890123",
+    };
     expect(bytesEqual(encodeAad(BASE_HEADER), encodeAad(modified))).toBe(false);
   });
 
   it("differs when recipient changes", () => {
-    const modified = { ...BASE_HEADER, recipient: "GDIFFERENTADDRESS1234567890123456789012345678901234567890123" };
+    const modified = {
+      ...BASE_HEADER,
+      recipient: "GDIFFERENTADDRESS1234567890123456789012345678901234567890123",
+    };
     expect(bytesEqual(encodeAad(BASE_HEADER), encodeAad(modified))).toBe(false);
   });
 

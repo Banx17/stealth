@@ -19,12 +19,14 @@ function makeBody(sizeBytes: number): string {
   return "x".repeat(sizeBytes);
 }
 
-function makeAttachment(overrides: Partial<{
-  filename: string;
-  content_type: string;
-  size_bytes: number;
-  data: ArrayBuffer;
-}> = {}) {
+function makeAttachment(
+  overrides: Partial<{
+    filename: string;
+    content_type: string;
+    size_bytes: number;
+    data: ArrayBuffer;
+  }> = {},
+) {
   return {
     filename: "report.pdf",
     content_type: "application/pdf",
@@ -197,23 +199,25 @@ describe("validateEnvelopeInput", () => {
 
   it("rejects attachments exceeding MAX_ATTACHMENTS", () => {
     const attachments = Array.from({ length: MAX_ATTACHMENTS + 1 }, () => makeAttachment());
-    expect(() =>
-      validateEnvelopeInput(makeBaseInput({ attachments })),
-    ).toThrow(CryptoError);
+    expect(() => validateEnvelopeInput(makeBaseInput({ attachments }))).toThrow(CryptoError);
   });
 
   it("rejects oversized recipient key count", () => {
-    const recipientPublicKeys = Array.from({ length: MAX_RECIPIENT_KEYS + 1 }, () => "spki-base64-data");
-    expect(() =>
-      validateEnvelopeInput(makeBaseInput({ recipientPublicKeys })),
-    ).toThrow(CryptoError);
+    const recipientPublicKeys = Array.from(
+      { length: MAX_RECIPIENT_KEYS + 1 },
+      () => "spki-base64-data",
+    );
+    expect(() => validateEnvelopeInput(makeBaseInput({ recipientPublicKeys }))).toThrow(
+      CryptoError,
+    );
   });
 
   it("accepts recipient keys at exact MAX_RECIPIENT_KEYS", () => {
-    const recipientPublicKeys = Array.from({ length: MAX_RECIPIENT_KEYS }, () => "spki-base64-data");
-    expect(() =>
-      validateEnvelopeInput(makeBaseInput({ recipientPublicKeys })),
-    ).not.toThrow();
+    const recipientPublicKeys = Array.from(
+      { length: MAX_RECIPIENT_KEYS },
+      () => "spki-base64-data",
+    );
+    expect(() => validateEnvelopeInput(makeBaseInput({ recipientPublicKeys }))).not.toThrow();
   });
 
   it("produces safe error messages without leaking input", () => {

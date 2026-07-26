@@ -127,9 +127,7 @@ export function validateAttachment(attachment: {
  * Validate the full attachments array.
  * @throws CryptoError if the count exceeds MAX_ATTACHMENTS or any individual attachment is invalid.
  */
-export function validateAttachments(
-  attachments: SealEnvelopeInput["attachments"],
-): void {
+export function validateAttachments(attachments: SealEnvelopeInput["attachments"]): void {
   if (!attachments || attachments.length === 0) return;
 
   if (attachments.length > MAX_ATTACHMENTS) {
