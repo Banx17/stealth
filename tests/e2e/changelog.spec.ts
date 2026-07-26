@@ -11,7 +11,7 @@ test.describe("changelog panel", () => {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
     // Navigate to "What's new" tab
-    await page.getByRole("button", { name: "What's new" }).click();
+    await page.getByRole("tab", { name: "What's new" }).click();
 
     // Assert main header and subheader
     await expect(page.getByRole("heading", { name: "Release notes" })).toBeVisible();
@@ -30,7 +30,7 @@ test.describe("changelog panel", () => {
 
   test("marks all releases as read upon viewing panel", async ({ page }) => {
     await page.getByRole("button", { name: "Settings" }).click();
-    await page.getByRole("button", { name: "What's new" }).click();
+    await page.getByRole("tab", { name: "What's new" }).click();
 
     // Viewing the panel triggers markAllSeen(), showing "All read" badge
     await expect(page.getByLabel("All release notes read")).toBeVisible();
