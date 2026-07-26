@@ -12,6 +12,7 @@
  */
 
 import { clearSecret, digestHex, sharedPool, toBase64, toHex } from "./memory";
+import { validateEnvelopeInput } from "./limits";
 import { getCryptoTestVectors } from "./testing";
 import { createCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
@@ -130,6 +131,11 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     }
 
     const body = input.body ?? "";
+
+    // Enforce cryptographic payload and attachment size limits before
+    // allocating any key material or performing expensive operations.
+    validateEnvelopeInput(input);
+
     if (!body.trim()) {
       throw new Error("Cannot seal an empty message body");
     }
