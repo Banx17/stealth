@@ -15,10 +15,13 @@ Every paginated repository method declares an ordering specification with
 `declareOrdering()` in [`src/server/api/repository.ts`](../../src/server/api/repository.ts):
 
 ```ts
-export const listReceiptsOrdering = declareOrdering<Receipt>(
-  [{ field: "createdAt", direction: "desc" }],
-  "messageId",
-);
+export const PAGINATED_QUERY_ORDERINGS = {
+  listPostage: declareOrdering<Postage>([{ field: "createdAt", direction: "desc" }], "messageId"),
+  listReceipts: declareOrdering<Receipt>(
+    [{ field: "deliveredAt", direction: "desc" }],
+    "messageId",
+  ),
+} as const;
 ```
 
 `declareOrdering` takes the primary sort keys, most significant first, and a **tie-breaker field**
@@ -34,9 +37,9 @@ startup rather than silently producing a non-deterministic query.
 The tie-breaker inherits the direction of the last primary key, so a descending primary sort yields
 `ORDER BY primary_field DESC, id DESC` and a page walk never reverses direction mid-key.
 
-Declared orderings are registered in `PAGINATED_QUERY_ORDERINGS`, keyed by repository method name.
-`assertEveryPaginatedMethodDeclaresOrdering()` fails if a paginated method has no declared ordering,
-so a new list method cannot ship without one.
+Orderings are registered in `PAGINATED_QUERY_ORDERINGS`, keyed by repository method name. A
+paginated method resolves its ordering with `orderingForPaginatedMethod(name)`, which throws when
+the method has no declared ordering — so a new list method cannot ship without one.
 
 ## Continuation keys
 
