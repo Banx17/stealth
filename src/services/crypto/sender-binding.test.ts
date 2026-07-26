@@ -15,7 +15,9 @@ describe("verifySenderBinding", () => {
 
   it("should throw SenderBindingError when signer does not match sender", () => {
     expect(() => verifySenderBinding(DELEGATE, SENDER)).toThrow(SenderBindingError);
-    expect(() => verifySenderBinding(DELEGATE, SENDER)).toThrow("Wallet signer identity does not match the envelope sender.");
+    expect(() => verifySenderBinding(DELEGATE, SENDER)).toThrow(
+      "Wallet signer identity does not match the envelope sender.",
+    );
   });
 
   describe("with delegation", () => {
@@ -24,7 +26,7 @@ describe("verifySenderBinding", () => {
         verifySenderBinding(DELEGATE, SENDER, {
           delegate: DELEGATE,
           sender: SENDER,
-        })
+        }),
       ).not.toThrow();
     });
 
@@ -33,7 +35,7 @@ describe("verifySenderBinding", () => {
         verifySenderBinding(DELEGATE, "GOTHER...", {
           delegate: DELEGATE,
           sender: SENDER,
-        })
+        }),
       ).toThrow(SenderBindingError);
     });
 
@@ -42,7 +44,7 @@ describe("verifySenderBinding", () => {
         verifySenderBinding("GUNAUTHORIZED...", SENDER, {
           delegate: DELEGATE,
           sender: SENDER,
-        })
+        }),
       ).toThrow(SenderBindingError);
     });
 
@@ -51,7 +53,7 @@ describe("verifySenderBinding", () => {
         verifySenderBinding(` ${DELEGATE.toLowerCase()} `, ` ${SENDER} `, {
           delegate: DELEGATE.toUpperCase(),
           sender: SENDER.toLowerCase(),
-        })
+        }),
       ).not.toThrow();
     });
   });

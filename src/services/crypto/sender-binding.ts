@@ -17,7 +17,7 @@ export interface DelegateAuthorization {
 export function verifySenderBinding(
   signerAddress: string,
   declaredSender: string,
-  authorization?: DelegateAuthorization
+  authorization?: DelegateAuthorization,
 ): void {
   const normalizedSigner = signerAddress.trim().toLowerCase();
   const normalizedSender = declaredSender.trim().toLowerCase();
@@ -30,10 +30,7 @@ export function verifySenderBinding(
     const normalizedAuthDelegate = authorization.delegate.trim().toLowerCase();
     const normalizedAuthSender = authorization.sender.trim().toLowerCase();
 
-    if (
-      normalizedSigner === normalizedAuthDelegate &&
-      normalizedSender === normalizedAuthSender
-    ) {
+    if (normalizedSigner === normalizedAuthDelegate && normalizedSender === normalizedAuthSender) {
       return;
     }
   }
