@@ -24,8 +24,8 @@ test.describe("changelog panel", () => {
     await expect(page.getByText("Mailbox policy audit log")).toBeVisible();
 
     // Assert category badges are present
-    await expect(page.getByText("Security").first()).toBeVisible();
-    await expect(page.getByText("UI").first()).toBeVisible();
+    await expect(page.getByText("Security", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("UI", { exact: true }).first()).toBeVisible();
   });
 
   test("marks all releases as read upon viewing panel", async ({ page }) => {

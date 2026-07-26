@@ -11,7 +11,7 @@ export function useChangelog() {
   const [seenVersion, setSeenVersionState] = useState<string | null>(getSeenVersion);
   const [initialSeenVersion] = useState<string | null>(seenVersion);
 
-  const hasUnread = hasUnreadEntries(LATEST_VERSION, initialSeenVersion);
+  const hasUnread = hasUnreadEntries(LATEST_VERSION, seenVersion);
 
   const markAllSeen = useCallback(() => {
     setSeenVersion(LATEST_VERSION);
