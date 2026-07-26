@@ -16,8 +16,8 @@ import { validateEnvelopeInput } from "./limits";
 import { getCryptoTestVectors } from "./testing";
 import { createCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
-import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 import { getDefaultSuite, getDefaultVersion } from "./suites";
+import { encodeAad } from "./aad";
 import {
   wrapContentKeyForRecipients,
   type WrappedKeyEntry,
@@ -146,6 +146,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
     };
 
     const { generateKey, getRandomValues, now } = getCryptoTestVectors();
+    const payloadTimestamp = now ? now() : new Date();
 
     // --- Key generation (no plaintext allocated yet) ---
     throwIfAborted();
@@ -210,7 +211,13 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
       });
     }
 
-    const aad = canonicalizeAttachmentDescriptors(descriptors);
+    const aad = encodeAad({
+      version: getDefaultVersion(),
+      sender: input.sender,
+      recipient: input.recipient,
+      timestamp: payloadTimestamp.toISOString(),
+      attachments: descriptors,
+    });
 
     // --- Body encryption ---
     throwIfAborted();
@@ -329,7 +336,7 @@ export async function sealEnvelope(input: SealEnvelopeInput): Promise<SealedEnve
       version: getDefaultVersion() as "v1",
       sender: input.sender,
       recipient: input.recipient,
-      timestamp: now ? now().toISOString() : new Date().toISOString(),
+      timestamp: payloadTimestamp.toISOString(),
       encryption_metadata: {
         algorithm: defaultSuite.name,
         nonce: nonceHex,
