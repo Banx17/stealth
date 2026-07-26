@@ -15,8 +15,8 @@
 
 import { verifyCommitment } from "./commitment";
 import { recordCryptoTelemetry, type CryptoResultCode } from "./telemetry";
-import { canonicalizeAttachmentDescriptors } from "./attachment-metadata";
 import { validateNegotiationForOpen, getSuite, getDefaultVersion } from "./suites";
+import { encodeAad } from "./aad";
 import { unwrapContentKey, importRecipientPrivateKey, type WrappedKeyEntry } from "./key-wrap";
 import { sealedEnvelopeSchema } from "./schema";
 
@@ -343,7 +343,13 @@ export async function openEnvelope(
       content_hash: a.content_hash,
     }));
 
-    const aad = canonicalizeAttachmentDescriptors(parsedAttachments);
+    const aad = encodeAad({
+      version: payload.version,
+      sender: payload.sender,
+      recipient: payload.recipient,
+      timestamp: payload.timestamp,
+      attachments: parsedAttachments,
+    });
 
     const iv = fromHex(nonceHex);
     const ivCopy = new Uint8Array(new ArrayBuffer(iv.length));
