@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Provide an isolated workspace for implementing conversation escalation workflows for team users.
+Provide an isolated workspace for implementing conversation escalation workflows for team users with a stable, presentation-independent execution contract.
 
 ## Scope
 
 - Release tier: V2
 - Audience: Team
-- Status: Documentation and planning
+- Status: Stable service execution contract & isolated implementation
 - Folder ownership:
 
 ```text
@@ -32,12 +32,13 @@ Future integration should be completed only through a dedicated integration issu
 ## Recommended Structure
 
 ```text
-components/
 services/
-hooks/
+types/
+fixtures/
 tests/
 docs/
-fixtures/
+CONTRACT.md
+vitest.config.ts
 ```
 
 ## Required Issue Categories
@@ -52,4 +53,4 @@ fixtures/
 
 Future work may connect this tool to the application once a dedicated integration issue is approved.
 
-Until then, all implementation, testing, and documentation should remain completely isolated.
+Until then, all implementation, testing, and documentation remain completely isolated.

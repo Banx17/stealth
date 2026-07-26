@@ -6,9 +6,7 @@ This workspace is intentionally independent from the main application until a fu
 
 ## Purpose
 
-The tool is intended to support team workflows that require escalating conversations based on predefined business rules or manual review.
-
-Current work in this folder focuses on documentation and review guidance only.
+The tool supports team workflows that require escalating conversations based on predefined business rules or manual review. It exports a presentation-independent backend service contract so execution can run independently of UI concerns.
 
 ## Ownership Boundary
 
@@ -30,14 +28,32 @@ Do not modify or integrate with:
 - Database schema
 - Shared design system
 
+## Execution & Service Entry Point
+
+```ts
+import { escalationToolService } from "./tools/v2/team/escalation-tool";
+
+const result = await escalationToolService.execute({
+  conversationId: "conv-123",
+  reason: "SLA breach",
+  priority: "high",
+  requestedBy: "user-456",
+});
+```
+
+See `CONTRACT.md` for complete input, output, error code, and service boundary specifications.
+
 ## Documentation
 
+- `CONTRACT.md` — backend execution contract, error codes, and service boundaries
 - `specs.md` — tool scope and contributor expectations
-- `docs/TEST_PLAN.md` — planned validation strategy
+- `docs/TEST_PLAN.md` — validation strategy and unit test verification
 - `docs/REVIEW_NOTES.md` — reviewer guidance
 
-## Current Status
+## Testing
 
-The implementation is not yet available.
+Run isolated unit tests for this workspace:
 
-This workspace currently provides documentation and a contributor-friendly validation plan for future development.
+```bash
+npx vitest run --config tools/v2/team/escalation-tool/vitest.config.ts
+```

@@ -2,76 +2,52 @@
 
 ## Overview
 
-The Escalation Tool implementation is not yet available.
+The Escalation Tool provides a presentation-independent execution contract and isolated service implementation.
+This document outlines the validation strategy covering automated unit tests, fixtures, contract enforcement, and isolation checks.
 
-This document provides the validation strategy for future contributors while ensuring documentation is available for independent review.
+## Automated Unit Tests
 
-## Documentation Review
+Automated tests cover:
 
-Confirm that:
+- Successful escalation creation with normalized attributes and timestamps
+- Input validation failures (missing `conversationId`, missing `reason`, empty strings)
+- Priority validation (rejecting invalid priority values)
+- Correlation ID propagation
+- Persistence error handling when an injected repository throws
+- Custom clock (`now`) and ID generator (`generateId`) dependency injection
 
-- `README.md` accurately describes the workspace.
-- `specs.md` defines scope and ownership boundaries.
-- Review notes clearly explain validation expectations.
-- All documentation remains isolated to this tool.
+Run unit tests via:
+
+```bash
+npx vitest run --config tools/v2/team/escalation-tool/vitest.config.ts
+```
+
+## Fixtures
+
+`fixtures/execution.fixtures.ts` provides deterministic fixtures for testing and consumer integration:
+
+- `successfulEscalationInput` — valid high-priority escalation request
+- `missingConversationIdInput` — invalid whitespace conversation ID
+- `missingReasonInput` — invalid empty reason string
+- `invalidPriorityInput` — invalid priority level
+- `failingRepository` — repository mock throwing persistence errors
 
 ## Manual Review Checklist
 
-1. Confirm all modified files are contained within:
+1. Confirm all modified/created files are contained within:
 
 ```text
 tools/v2/team/escalation-tool/
 ```
 
-2. Confirm no application integration has been introduced.
+2. Confirm no UI layout or styling files were changed.
+3. Verify `CONTRACT.md` documents typed inputs, outputs, error codes, and service boundaries.
+4. Verify non-UI service entry point is exported from `index.ts`.
+5. Confirm unit tests pass cleanly.
 
-3. Verify contributor guidance is complete.
+## Acceptance Criteria Verification
 
-4. Verify ownership boundaries are clearly documented.
-
-5. Confirm future integration is documented as follow-up work rather than implemented here.
-
-## Future Unit Tests
-
-When implementation begins, add tests covering:
-
-- Escalation rule evaluation
-- Escalation creation
-- Escalation status updates
-- Priority handling
-- Error handling
-- Invalid input validation
-
-## Future Integration Tests
-
-Once integration is permitted, validate:
-
-- Mailbox interaction
-- Team workflow integration
-- Notification behavior
-- Permission enforcement
-- Audit logging
-
-## Edge Cases
-
-Future tests should include:
-
-- Missing escalation target
-- Duplicate escalation requests
-- Invalid priority values
-- Empty conversation input
-- Simultaneous escalation attempts
-- Permission failures
-
-## Known Limitations
-
-- Core implementation is not yet available.
-- Automated tests cannot be added until implementation exists.
-- This document serves as the planned validation strategy for future development.
-
-## Acceptance Criteria
-
-- Documentation is complete.
-- Validation strategy is documented.
-- Scope remains isolated.
-- No application-wide integration is introduced.
+- [x] Typed input and output contract is documented (`CONTRACT.md`)
+- [x] Non-UI service entry point is exported (`escalationToolService`, `createEscalationToolService`)
+- [x] Fixtures cover success and failure cases (`fixtures/execution.fixtures.ts`)
+- [x] No styling or layout files are changed
