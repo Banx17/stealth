@@ -41,15 +41,15 @@ export interface AccessError {
 
 ## 3. Error Codes (`AccessErrorCode`)
 
-| Error Code             | Description                                                                     | Example Trigger                                            |
-| :--------------------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------- |
-| `INVALID_INPUT`        | Input payload validation failed (e.g. malformed email, illegal characters).     | Email missing domain or threadId containing `../`          |
-| `UNKNOWN_ROLE`         | Specified role is not recognized or not allowed by boundary schema.             | Verifying request with `role: "hacker"`                    |
-| `UNKNOWN_ACCESS_LEVEL` | Specified access level is not recognized or not allowed.                        | Requesting action with `accessLevel: "destroy"`            |
-| `LIMIT_EXCEEDED`       | Input array or quantity exceeds safe boundary thresholds.                       | Team size exceeding `MAX_TEAM_SIZE` (500)                  |
-| `POLICY_UPDATE_ERROR`  | Error encountered while modifying policy permissions.                           | Invalid role or level in `updatePolicy`                    |
-| `INVALID_STATE`        | Operation requested when service is in an unrecoverable or incompatible state.  | Calling `verifyAccess` when backend status is `error`      |
-| `UNHANDLED_ERROR`      | General catch-all for unexpected internal runtime exceptions.                   | Unexpected storage or memory errors                        |
+| Error Code             | Description                                                                    | Example Trigger                                       |
+| :--------------------- | :----------------------------------------------------------------------------- | :---------------------------------------------------- |
+| `INVALID_INPUT`        | Input payload validation failed (e.g. malformed email, illegal characters).    | Email missing domain or threadId containing `../`     |
+| `UNKNOWN_ROLE`         | Specified role is not recognized or not allowed by boundary schema.            | Verifying request with `role: "hacker"`               |
+| `UNKNOWN_ACCESS_LEVEL` | Specified access level is not recognized or not allowed.                       | Requesting action with `accessLevel: "destroy"`       |
+| `LIMIT_EXCEEDED`       | Input array or quantity exceeds safe boundary thresholds.                      | Team size exceeding `MAX_TEAM_SIZE` (500)             |
+| `POLICY_UPDATE_ERROR`  | Error encountered while modifying policy permissions.                          | Invalid role or level in `updatePolicy`               |
+| `INVALID_STATE`        | Operation requested when service is in an unrecoverable or incompatible state. | Calling `verifyAccess` when backend status is `error` |
+| `UNHANDLED_ERROR`      | General catch-all for unexpected internal runtime exceptions.                  | Unexpected storage or memory errors                   |
 
 ---
 
@@ -98,10 +98,10 @@ Verifies whether a team member's role grants them the requested access level on 
 - **Input (`VerifyAccessInput`)**:
   ```ts
   {
-    requesterEmail: string;   // RFC 5321 compliant email address
-    role: string;             // Role name (admin, manager, agent, viewer, guest)
-    accessLevel: string;      // Action level (read, write, assign, delete, manage)
-    threadId: string;         // Alphanumeric thread identifier
+    requesterEmail: string; // RFC 5321 compliant email address
+    role: string; // Role name (admin, manager, agent, viewer, guest)
+    accessLevel: string; // Action level (read, write, assign, delete, manage)
+    threadId: string; // Alphanumeric thread identifier
   }
   ```
 - **Output (`VerifyAccessOutput`)**:

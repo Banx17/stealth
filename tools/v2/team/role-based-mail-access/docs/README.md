@@ -21,7 +21,6 @@ If you only want the reviewer checklist, start with [../tests/test-plan.md](../t
 
 ## Visual States
 
-
 The UI uses a dark, high-contrast palette with four main states:
 
 1. Empty state for a fresh console.

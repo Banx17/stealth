@@ -59,4 +59,3 @@ To prove that our boundary validators are robust, the `AccessConsole` includes a
 For headless execution (such as backend queue workers, RPC endpoints, or audit collectors), `RoleBasedMailAccessBackendService` (and alias `AccessBackendService`) provides an isolated service entry point implementing `IRoleBasedMailAccessBackendService`.
 All methods return standard `AccessResult<T>` envelopes containing either typed success DTOs or structured `AccessError` objects with `AccessErrorCode` identifiers (`INVALID_INPUT`, `UNKNOWN_ROLE`, `UNKNOWN_ACCESS_LEVEL`, `LIMIT_EXCEEDED`, `POLICY_UPDATE_ERROR`, `INVALID_STATE`, `UNHANDLED_ERROR`).
 See [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md) for full method contracts and error specifications.
-
