@@ -2,10 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { useTeamAnalytics } from "../hooks";
-import {
-  sampleDashboardReport,
-  sampleAnalyticsSnapshots,
-} from "../fixtures";
+import { sampleDashboardReport, sampleAnalyticsSnapshots } from "../fixtures";
 
 afterEach(() => {
   cleanup();

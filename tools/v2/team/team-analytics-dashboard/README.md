@@ -79,6 +79,7 @@ The fixture (`fixtures/sample-analytics-data.json`) defines the shape the dashbo
 ## Running the Tests
 
 ### 1. UI Component & Hook Unit Tests (Vitest)
+
 Run from the repository root:
 
 ```bash
@@ -88,6 +89,7 @@ npx vitest run --root tools/v2/team/team-analytics-dashboard
 Expected output: 27 passing tests (20 component tests + 7 hook tests) across 2 suites.
 
 ### 2. Service & Fixture Contract Tests (Node --test)
+
 Run from the repository root:
 
 ```bash

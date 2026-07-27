@@ -12,10 +12,7 @@ import {
   SnapshotList,
   TeamAnalyticsDashboard,
 } from "../components";
-import {
-  sampleDashboardReport,
-  sampleAnalyticsSnapshots,
-} from "../fixtures";
+import { sampleDashboardReport, sampleAnalyticsSnapshots } from "../fixtures";
 
 afterEach(() => {
   cleanup();
@@ -116,10 +113,7 @@ describe("SummaryCards component", () => {
   it("should trigger onFilterReviewRequired when Review Required filter button is clicked", () => {
     const filterMock = vi.fn();
     render(
-      <SummaryCards
-        summary={sampleDashboardReport.summary}
-        onFilterReviewRequired={filterMock}
-      />,
+      <SummaryCards summary={sampleDashboardReport.summary} onFilterReviewRequired={filterMock} />,
     );
 
     const btn = screen.getByRole("button", {
@@ -174,12 +168,7 @@ describe("MemberTable component", () => {
 
   it("should invoke onSelectMember on click or keyboard Enter", () => {
     const selectMock = vi.fn();
-    render(
-      <MemberTable
-        members={sampleDashboardReport.members}
-        onSelectMember={selectMock}
-      />,
-    );
+    render(<MemberTable members={sampleDashboardReport.members} onSelectMember={selectMock} />);
 
     const row = screen.getByText(/Aisha Mensah/).closest("tr");
     expect(row).toBeDefined();
@@ -222,12 +211,7 @@ describe("SnapshotList component", () => {
 
   it("should select snapshot when card is clicked or keyboard activated", () => {
     const selectMock = vi.fn();
-    render(
-      <SnapshotList
-        snapshots={sampleAnalyticsSnapshots}
-        onSelectSnapshot={selectMock}
-      />,
-    );
+    render(<SnapshotList snapshots={sampleAnalyticsSnapshots} onSelectSnapshot={selectMock} />);
 
     const supportCard = screen.getByLabelText(/Snapshot for team Support/);
     fireEvent.click(supportCard);
@@ -287,13 +271,7 @@ describe("TeamAnalyticsDashboard component", () => {
 
   it("should render empty state when report is null and snapshots array is empty", () => {
     const loadMock = vi.fn();
-    render(
-      <TeamAnalyticsDashboard
-        report={null}
-        snapshots={[]}
-        onLoadSampleData={loadMock}
-      />,
-    );
+    render(<TeamAnalyticsDashboard report={null} snapshots={[]} onLoadSampleData={loadMock} />);
 
     expect(screen.getByText("No team analytics loaded")).toBeDefined();
     const loadBtn = screen.getByRole("button", { name: "Load sample data" });
@@ -302,12 +280,7 @@ describe("TeamAnalyticsDashboard component", () => {
   });
 
   it("should render loading state when loading prop is true", () => {
-    render(
-      <TeamAnalyticsDashboard
-        loading={true}
-        report={sampleDashboardReport}
-      />,
-    );
+    render(<TeamAnalyticsDashboard loading={true} report={sampleDashboardReport} />);
 
     expect(screen.getByRole("status").getAttribute("aria-busy")).toBe("true");
     expect(screen.getByText("Loading team analytics dashboard…")).toBeDefined();

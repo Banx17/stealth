@@ -11,6 +11,7 @@ npx vitest run --root tools/v2/team/team-analytics-dashboard
 Expected result — 27 passing tests across 2 test suites:
 
 ### 1. Component Tests (`tests/components.test.tsx` - 20 tests)
+
 - `EmptyState`: Renders title, description, and interactive action button.
 - `LoadingState`: Renders `role="status"` with `aria-busy="true"` and spinner message.
 - `ErrorState`: Renders `role="alert"` with immediate assertive announcement and retry action.
@@ -35,6 +36,7 @@ Expected result — 27 passing tests across 2 test suites:
   - Renders `LoadingState`, `ErrorState`, `EmptyState`, or `SuccessState` according to props.
 
 ### 2. Hook Tests (`tests/hooks.test.tsx` - 7 tests)
+
 - `useTeamAnalytics`:
   - Initializes with default sample report and snapshots.
   - Filters members by status and `reviewRequiredOnly`.
@@ -97,6 +99,7 @@ Expected result — 27 passing tests:
 ## Future Integration Tests
 
 When a later issue connects this tool to the main app, add tests for:
+
 - aggregating live inbox data into the analytics contract
 - time-range filtering (daily, weekly, monthly views)
 - permission checks (only team managers see individual breakdowns)

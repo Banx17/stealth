@@ -17,17 +17,22 @@
 ## Validation Performed
 
 ### 1. UI Component & Hook Unit Tests (Vitest)
+
 ```bash
 npx vitest run --root tools/v2/team/team-analytics-dashboard
 ```
+
 All 27 tests pass:
+
 - 7 hook tests verifying filtering, searching, sorting, and state transitions.
 - 20 component tests verifying rendering, `aria-*` attributes, keyboard activation, column sorting, and N/A edge-case rendering.
 
 ### 2. Service & Fixture Integration Tests (Node --test)
+
 ```bash
 node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-contract.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-guards.test.mjs
 ```
+
 All 27 tests pass.
 
 ## Reviewer Focus
