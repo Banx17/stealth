@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, memo } from "react";
 import { ExternalLink, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { useChangelog } from "./useChangelog";
 import { CATEGORY_CONFIG, groupEntriesByRelease } from "./helpers";
 
-function CategoryBadge({ category }: { category: string }) {
+// `Intl`-backed date formatting is one of the more expensive calls a
+// component can make on every render; entries are a small, static set of
+// (version, date) pairs, so a plain module-level cache avoids reformatting
+// the same date over and over across re-renders and across mounts within
+// the same session.
+const dateFormatCache = new Map<string, string>();
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+function formatReleaseDate(date: string): string {
+  let formatted = dateFormatCache.get(date);
+  if (formatted === undefined) {
+    formatted = dateFormatter.format(new Date(date));
+    dateFormatCache.set(date, formatted);
+  }
+  return formatted;
+}
+
+const CategoryBadge = memo(function CategoryBadge({ category }: { category: string }) {
   const config = CATEGORY_CONFIG[category];
   if (!config) {
     return (
@@ -26,9 +46,9 @@ function CategoryBadge({ category }: { category: string }) {
       {config.label}
     </span>
   );
-}
+});
 
-function ReleaseHeader({
+const ReleaseHeader = memo(function ReleaseHeader({
   version,
   date,
   hasUnread,
@@ -37,11 +57,7 @@ function ReleaseHeader({
   date: string;
   hasUnread: boolean;
 }) {
-  const formattedDate = new Date(date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDate = formatReleaseDate(date);
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -66,9 +82,15 @@ function ReleaseHeader({
       </time>
     </div>
   );
-}
+});
 
-function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) {
+const ChangelogEntry = memo(function ChangelogEntry({
+  entry,
+  isUnread,
+}: {
+  entry: any;
+  isUnread: boolean;
+}) {
   return (
     <article
       className={cn(
@@ -119,7 +141,7 @@ function ChangelogEntry({ entry, isUnread }: { entry: any; isUnread: boolean }) 
       </div>
     </article>
   );
-}
+});
 
 export function ChangelogPanel() {
   const { entries, markAllSeen, isEntryUnread, hasUnread } = useChangelog();
@@ -129,6 +151,21 @@ export function ChangelogPanel() {
   }, [markAllSeen]);
 
   const grouped = useMemo(() => groupEntriesByRelease(entries), [entries]);
+
+  // isEntryUnread only depends on the (stable, mount-time) initial seen
+  // version, so each entry's unread state is computed once here instead of
+  // being recomputed by calling the helper again for every entry on every
+  // render (previously called both per-group, via `.some`, and per-entry
+  // inside the render loop below).
+  const unreadByVersion = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const entry of entries) {
+      if (!map.has(entry.version)) {
+        map.set(entry.version, isEntryUnread(entry.version));
+      }
+    }
+    return map;
+  }, [entries, isEntryUnread]);
 
   const isEmpty = entries.length === 0;
 
@@ -173,7 +210,7 @@ export function ChangelogPanel() {
         <div className="space-y-6">
           {Object.entries(grouped).map(([key, groupEntries]) => {
             const [version, date] = key.split("|");
-            const hasUnreadInGroup = groupEntries.some((e) => isEntryUnread(e.version));
+            const hasUnreadInGroup = unreadByVersion.get(version) ?? false;
 
             return (
               <section key={key} className="space-y-3">
@@ -183,7 +220,7 @@ export function ChangelogPanel() {
                     <ChangelogEntry
                       key={entry.id}
                       entry={entry}
-                      isUnread={isEntryUnread(entry.version)}
+                      isUnread={unreadByVersion.get(entry.version) ?? false}
                     />
                   ))}
                 </div>
