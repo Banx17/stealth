@@ -213,20 +213,24 @@ export const TEXT_ANALYSIS_TEST_CASES = [
 ];
 
 // ---------------------------------------------------------------------------
-// Summary Result Fixtures
+// Summary Result Fixtures - Type Examples
 // ---------------------------------------------------------------------------
 
-export const EXPECTED_SUMMARY_STRUCTURE = {
-  id: expect.any(String),
-  pdfId: expect.any(String),
-  content: expect.any(String),
-  settings: expect.objectContaining({
-    length: expect.stringMatching(/^(short|medium|long)$/),
-    style: expect.stringMatching(/^(bullet-points|paragraph)$/),
-    includeKeywords: expect.any(Boolean),
-    language: expect.any(String),
-  }),
-  generatedAt: expect.any(Date),
+/**
+ * Example summary structure (for reference in tests).
+ * In actual tests, use vitest's expect() matchers to validate.
+ */
+export const EXAMPLE_SUMMARY_STRUCTURE = {
+  id: "summary-12345",
+  pdfId: "example.pdf",
+  content: "This is a sample summary...",
+  settings: {
+    length: "medium" as const,
+    style: "paragraph" as const,
+    includeKeywords: true,
+    language: "en",
+  },
+  generatedAt: new Date(),
 };
 
 // ---------------------------------------------------------------------------
