@@ -22,7 +22,7 @@ function readRequest(actor: string, messageId: string = validMessageId) {
 }
 
 function parseJsonResponse(response: Response) {
-  return response.json() as Promise<{
+  return response.clone().json() as Promise<{
     error?: { code: string; message: string; retryable: boolean; details?: unknown };
     data?: unknown;
   }>;
