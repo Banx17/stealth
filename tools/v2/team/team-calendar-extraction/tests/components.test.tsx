@@ -69,7 +69,9 @@ describe("EventList", () => {
   it("renders event list as a ul element", () => {
     render(<EventList events={[sampleEvent()]} />);
     const lists = screen.getAllByRole("list");
-    const eventList = lists.find((l) => l.getAttribute("aria-label") === "Extracted calendar events");
+    const eventList = lists.find(
+      (l) => l.getAttribute("aria-label") === "Extracted calendar events",
+    );
     expect(eventList).toBeTruthy();
   });
 });
@@ -96,7 +98,13 @@ describe("StatusIndicators", () => {
   });
 
   it("renders processing logs", () => {
-    render(<StatusIndicators stats={null} errors={[]} logs={["Processing file...", "Extracted 2 events."]} />);
+    render(
+      <StatusIndicators
+        stats={null}
+        errors={[]}
+        logs={["Processing file...", "Extracted 2 events."]}
+      />,
+    );
     expect(screen.getByText("Processing file...")).toBeTruthy();
     expect(screen.getByText("Extracted 2 events.")).toBeTruthy();
   });

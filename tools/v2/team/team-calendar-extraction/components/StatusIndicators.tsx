@@ -70,7 +70,9 @@ export function StatusIndicators({ stats, errors, logs }: StatusIndicatorsProps)
             ) : (
               logs.map((log, i) => (
                 <div key={i} className="leading-5">
-                  <span className="text-zinc-500 mr-2" aria-hidden="true">&gt;</span>
+                  <span className="text-zinc-500 mr-2" aria-hidden="true">
+                    &gt;
+                  </span>
                   <span>{log}</span>
                 </div>
               ))

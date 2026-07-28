@@ -112,7 +112,12 @@ export function TeamCalendarExtraction() {
               className="flex flex-col items-center justify-center p-4 border border-zinc-800 rounded-xl hover:bg-zinc-900/60 hover:border-emerald-500/30 transition text-center group disabled:opacity-55"
               aria-label="Process standard feed with 2 normal emails"
             >
-              <span className="text-2xl mb-1 group-hover:scale-105 transition-transform" aria-hidden="true">📬</span>
+              <span
+                className="text-2xl mb-1 group-hover:scale-105 transition-transform"
+                aria-hidden="true"
+              >
+                📬
+              </span>
               <span className="text-xs font-semibold text-zinc-200">Standard Feed</span>
               <span className="text-[10px] text-zinc-500 mt-1">2 normal emails</span>
             </button>
@@ -123,7 +128,12 @@ export function TeamCalendarExtraction() {
               className="flex flex-col items-center justify-center p-4 border border-zinc-800 rounded-xl hover:bg-zinc-900/60 hover:border-rose-500/30 transition text-center group disabled:opacity-55"
               aria-label="Process malicious feed with XSS and exploit attempts"
             >
-              <span className="text-2xl mb-1 group-hover:scale-105 transition-transform" aria-hidden="true">⚠️</span>
+              <span
+                className="text-2xl mb-1 group-hover:scale-105 transition-transform"
+                aria-hidden="true"
+              >
+                ⚠️
+              </span>
               <span className="text-xs font-semibold text-zinc-200">Malicious/XSS Feed</span>
               <span className="text-[10px] text-zinc-500 mt-1">Contains exploits</span>
             </button>
@@ -220,10 +230,7 @@ export function TeamCalendarExtraction() {
             ? `${events.length} extracted event${events.length > 1 ? "s" : ""}`
             : "No extracted events"}
         </h3>
-        <EventList
-          events={events}
-          ariaLabelledBy={sectionId + "-events-heading"}
-        />
+        <EventList events={events} ariaLabelledBy={sectionId + "-events-heading"} />
       </div>
     </section>
   );

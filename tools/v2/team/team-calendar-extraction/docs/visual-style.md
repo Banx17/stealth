@@ -8,16 +8,16 @@ This document describes the visual design and accessibility decisions for the Te
 
 The UI uses a dark theme built on Tailwind CSS zinc/gray tones with accent colors for interactive elements and status indicators. All colors are applied through Tailwind utility classes scoped to the component tree — no global CSS or design tokens are modified.
 
-| Element | Tailwind classes | Purpose |
-|---|---|---|
-| Background | `bg-zinc-950/40` | Main section background with backdrop blur |
-| Borders | `border-zinc-800/80` | Card borders and dividers |
-| Accent (primary) | `bg-sky-600 hover:bg-sky-500` | Primary action buttons |
-| Success | `text-emerald-400`, `border-emerald-500/30` | Event validation, safe indicators |
-| Warning/Error | `text-rose-400`, `bg-rose-500/5` | Error alerts, blocked entries |
-| Text primary | `text-zinc-100` | Headings and emphasis |
-| Text muted | `text-zinc-400`, `text-muted-foreground` | Descriptions and secondary info |
-| Gradient heading | `from-sky-400 via-indigo-400 to-purple-400` | Tool title decoration |
+| Element          | Tailwind classes                            | Purpose                                    |
+| ---------------- | ------------------------------------------- | ------------------------------------------ |
+| Background       | `bg-zinc-950/40`                            | Main section background with backdrop blur |
+| Borders          | `border-zinc-800/80`                        | Card borders and dividers                  |
+| Accent (primary) | `bg-sky-600 hover:bg-sky-500`               | Primary action buttons                     |
+| Success          | `text-emerald-400`, `border-emerald-500/30` | Event validation, safe indicators          |
+| Warning/Error    | `text-rose-400`, `bg-rose-500/5`            | Error alerts, blocked entries              |
+| Text primary     | `text-zinc-100`                             | Headings and emphasis                      |
+| Text muted       | `text-zinc-400`, `text-muted-foreground`    | Descriptions and secondary info            |
+| Gradient heading | `from-sky-400 via-indigo-400 to-purple-400` | Tool title decoration                      |
 
 ### Typography
 

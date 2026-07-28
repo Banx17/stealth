@@ -40,7 +40,11 @@ export function EventList({ events, ariaLabelledBy }: EventListProps) {
         </span>
       </h3>
 
-      <ul className="grid gap-4 sm:grid-cols-1 md:grid-cols-2" role="list" aria-label="Extracted calendar events">
+      <ul
+        className="grid gap-4 sm:grid-cols-1 md:grid-cols-2"
+        role="list"
+        aria-label="Extracted calendar events"
+      >
         {events.map((event) => (
           <li
             key={event.id}
@@ -58,25 +62,33 @@ export function EventList({ events, ariaLabelledBy }: EventListProps) {
 
               <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
                 <div className="flex items-center gap-2">
-                  <span className="w-4 text-center" aria-hidden="true">📅</span>
+                  <span className="w-4 text-center" aria-hidden="true">
+                    📅
+                  </span>
                   <span>
                     <strong>Start:</strong> {new Date(event.startDate).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-4 text-center" aria-hidden="true">🏁</span>
+                  <span className="w-4 text-center" aria-hidden="true">
+                    🏁
+                  </span>
                   <span>
                     <strong>End:</strong> {new Date(event.endDate).toLocaleString()}
                   </span>
                 </div>
                 {event.location && (
                   <div className="flex items-center gap-2">
-                    <span className="w-4 text-center" aria-hidden="true">📍</span>
+                    <span className="w-4 text-center" aria-hidden="true">
+                      📍
+                    </span>
                     <span className="truncate max-w-[280px]">{escapeHtml(event.location)}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="w-4 text-center" aria-hidden="true">👤</span>
+                  <span className="w-4 text-center" aria-hidden="true">
+                    👤
+                  </span>
                   <span className="truncate max-w-[280px]">
                     <strong>Host:</strong> {escapeHtml(event.organizer)}
                   </span>
