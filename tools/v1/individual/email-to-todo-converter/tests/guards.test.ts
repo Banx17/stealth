@@ -8,7 +8,12 @@ import {
   GUARD_LIMITS,
 } from "../services/guards";
 import { buildTaskDraft, type NormalizedEmail } from "../services/emailToTodo";
-import { emailFixtures, fixtureEmailList, buildExpectedDraft, type FixtureEntry } from "../services/fixtures";
+import {
+  emailFixtures,
+  fixtureEmailList,
+  buildExpectedDraft,
+  type FixtureEntry,
+} from "../services/fixtures";
 
 function baseEmail(overrides: Partial<NormalizedEmail> = {}): NormalizedEmail {
   return {

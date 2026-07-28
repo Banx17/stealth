@@ -13,10 +13,7 @@ import {
   MAX_SUBJECT_LENGTH,
   type NormalizedEmail,
 } from "../services/emailToTodo";
-import {
-  describeConverter,
-  resolveStatusMessage,
-} from "../ui/emailToTodoView";
+import { describeConverter, resolveStatusMessage } from "../ui/emailToTodoView";
 
 function baseEmail(overrides: Partial<NormalizedEmail> = {}): NormalizedEmail {
   return {

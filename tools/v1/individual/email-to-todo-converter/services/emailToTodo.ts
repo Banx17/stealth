@@ -123,7 +123,6 @@ export function hasConvertibleContent(email: NormalizedEmail | null): email is N
     return false;
   }
   return (
-    normalizeWhitespace(email.subject).length > 0 ||
-    normalizeWhitespace(email.body).length > 0
+    normalizeWhitespace(email.subject).length > 0 || normalizeWhitespace(email.body).length > 0
   );
 }
