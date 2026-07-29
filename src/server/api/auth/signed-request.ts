@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { ApiError } from "../errors";
 import {
   AUTH_TIMING_REASONS,
   DEFAULT_AUTH_CHALLENGE_LIFETIME_MS,
@@ -19,11 +20,20 @@ export const SIGNED_REQUEST_VERSION = "STEALTH-AUTH-V1";
 export const SIGNED_REQUEST_MAX_AGE_MS = DEFAULT_AUTH_CHALLENGE_LIFETIME_MS;
 export const SIGNED_REQUEST_CLOCK_SKEW_MS = DEFAULT_AUTH_CLOCK_SKEW_MS;
 
+/**
+ * Headers folded into the canonical request and therefore into the signature.
+ *
+ * `x-stealth-audience` binds a signature to the deployment it was issued for
+ * (see {@link validateSignedRequestAudience}), so a signature captured against
+ * one environment or service cannot be replayed against another that happens
+ * to share a verification key.
+ */
 export const SIGNED_REQUEST_HEADERS = [
   "host",
   "x-stealth-address",
   "x-stealth-nonce",
   "x-stealth-timestamp",
+  "x-stealth-audience",
 ] as const;
 
 export interface SignedRequestInput {
@@ -69,6 +79,28 @@ export function canonicalizeSignedRequest(input: SignedRequestInput): string {
     SIGNED_REQUEST_HEADERS.join(";"),
     bodyHash,
   ].join("\n");
+}
+
+export interface SignedRequestAudienceConfig {
+  /** The bounded set of audience values this deployment currently accepts. */
+  readonly activeAudiences: ReadonlySet<string>;
+}
+
+/**
+ * Validates the signed request's `x-stealth-audience` value against the
+ * deployment's accepted audiences. The audience is part of the canonical
+ * request (see {@link SIGNED_REQUEST_HEADERS}), so this rejects a
+ * cryptographically valid signature that was scoped to a different
+ * deployment (e.g. staging signed material replayed against production)
+ * before any signature verification happens.
+ */
+export function validateSignedRequestAudience(
+  audience: string,
+  config: SignedRequestAudienceConfig,
+): void {
+  if (!config.activeAudiences.has(audience)) {
+    throw new ApiError("unauthorized", { audience });
+  }
 }
 
 export type SignedRequestTimeStatus = "valid" | "expired" | "future" | "invalid";

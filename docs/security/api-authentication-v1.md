@@ -21,6 +21,7 @@ unknown versions rather than attempting a compatible interpretation.
 | `X-Stealth-Address`   | Valid Stellar G-address whose authorized public key verifies the signature.                                                            |
 | `X-Stealth-Nonce`     | Lowercase hexadecimal encoding of 32 cryptographically random bytes.                                                                   |
 | `X-Stealth-Timestamp` | UTC RFC 3339 timestamp with millisecond precision, for example `2026-07-22T12:00:00.000Z`.                                             |
+| `X-Stealth-Audience`  | Identifier of the deployment the signature is scoped to, for example `stealth-api.example.test`. Checked against the server's accepted audience set. |
 | `X-Stealth-Signature` | Base64 encoding of the 64-byte Ed25519 signature over the canonical request. It is transported but omitted from the canonical request. |
 | `Content-Type`        | Required by an endpoint when it has a body; use `application/json`. It is not signed in v1.                                            |
 
@@ -40,7 +41,8 @@ host:<NORMALIZED VALUE>
 x-stealth-address:<NORMALIZED VALUE>
 x-stealth-nonce:<NORMALIZED VALUE>
 x-stealth-timestamp:<NORMALIZED VALUE>
-host;x-stealth-address;x-stealth-nonce;x-stealth-timestamp
+x-stealth-audience:<NORMALIZED VALUE>
+host;x-stealth-address;x-stealth-nonce;x-stealth-timestamp;x-stealth-audience
 <LOWERCASE SHA-256 HEX OF EXACT BODY BYTES>
 ```
 
@@ -50,7 +52,11 @@ with `&`; duplicate pairs are retained. Omit `?` when there is no query. The bod
 exact bytes received, including an empty body, so JSON is not reparsed or reformatted.
 
 The fields above are all required signed fields. Method, target, authority, actor, nonce, timestamp,
-and body are therefore bound to one signature and cannot be substituted independently.
+audience, and body are therefore bound to one signature and cannot be substituted independently: a
+signature captured for one method, route, body, or audience fails verification for any other, and
+reordering an equivalent request's query parameters or header whitespace never changes its canonical
+string. `x-stealth-audience` in particular stops a signature that was scoped to one deployment (for
+example staging) from being replayed against another that happens to trust the same signing key.
 
 ## Nonces, timestamps, and challenges
 
@@ -79,14 +85,16 @@ nonce expires with its validity window and can never extend request validity.
 The server performs these checks in order, without revealing whether an account or key exists:
 
 1. Require one well-formed instance of every header and the supported version.
-2. Parse the timestamp and reject requests outside the configured time window.
-3. Validate the nonce format and load its actor-, purpose-, and expiry-bound challenge record.
-4. Recreate the canonical request from the received method, URL, headers, and exact body bytes.
-5. Resolve an authorized Ed25519 public key for `x-stealth-address`, decode the base64 signature, and
+2. Validate `x-stealth-audience` against the deployment's accepted audience set
+   (`validateSignedRequestAudience`) and reject before any other check if it does not match.
+3. Parse the timestamp and reject requests outside the configured time window.
+4. Validate the nonce format and load its actor-, purpose-, and expiry-bound challenge record.
+5. Recreate the canonical request from the received method, URL, headers, and exact body bytes.
+6. Resolve an authorized Ed25519 public key for `x-stealth-address`, decode the base64 signature, and
    verify it over the canonical request's UTF-8 bytes using a constant-time crypto implementation.
-6. Atomically consume the nonce. Only the winning consumer proceeds; concurrent or later consumers
+7. Atomically consume the nonce. Only the winning consumer proceeds; concurrent or later consumers
    are replay attempts.
-7. Derive the authenticated actor from the verified account. Never accept a bare
+8. Derive the authenticated actor from the verified account. Never accept a bare
    `x-stealth-address` as authentication at a public edge.
 
 Failed format, time, key, or signature checks must not consume the nonce, allowing the legitimate
@@ -99,7 +107,7 @@ Failures use the standard JSON API error envelope and do not echo signatures or 
 
 | Condition                                                                     | HTTP | Stable code               | `details.reason`     | Retry guidance                                      |
 | ----------------------------------------------------------------------------- | ---: | ------------------------- | -------------------- | --------------------------------------------------- |
-| Missing/malformed header, unknown version, invalid account, invalid signature |  401 | `unauthorized`            | —                    | Obtain a new challenge and sign again.              |
+| Missing/malformed header, unknown version, wrong audience, invalid account, invalid signature |  401 | `unauthorized`            | —                    | Obtain a new challenge and sign again.              |
 | Timestamp or challenge expired                                                |  422 | `expired_challenge`       | `AUTH_EXPIRED`       | Obtain a new challenge.                             |
 | Timestamp too far in the future                                               |  422 | `challenge_not_yet_valid` | `AUTH_NOT_YET_VALID` | Correct the clock, then sign a fresh challenge.     |
 | Unparseable or inverted challenge timestamps                                  |  422 | `validation_error`        | —                    | Correct the request, then sign a fresh challenge.   |
@@ -117,10 +125,17 @@ challenge records.
 ## Executable vectors
 
 [`signed-request-v1.json`](../../test-fixtures/auth/signed-request-v1.json) contains a valid request,
-an invalid signature, an expired request, accepted and rejected clock-skew boundaries, and a
-first-use/replay pair, plus a malformed request with a missing required header. Accepted vectors
-declare the expected authenticated principal. All domains, identities, messages, nonces,
-signatures, and the public key are synthetic examples. No private key or secret seed is included.
-`npm test` recreates each canonical string in memory, verifies every Ed25519 result and expected
-principal, evaluates time boundaries, exercises replay state, and confirms malformed input is
-rejected, so changes to implementation or fixtures fail together.
+an invalid signature, a request cryptographically valid but scoped to a different `x-stealth-audience`,
+an expired request, accepted and rejected clock-skew boundaries, and a first-use/replay pair, plus a
+malformed request with a missing required header. Accepted vectors declare the expected authenticated
+principal. All domains, identities, messages, nonces, signatures, and the public key are synthetic
+examples. No private key or secret seed is included. `npm test` recreates each canonical string in
+memory, verifies every Ed25519 result and expected principal, evaluates time boundaries, checks
+`validateSignedRequestAudience` against the fixture's accepted audience, exercises replay state, and
+confirms malformed input is rejected, so changes to implementation or fixtures fail together.
+
+[`signed-request-binding.test.ts`](../../tests/unit/api/auth/signed-request-binding.test.ts) signs one
+base request with a freshly generated Ed25519 key and proves end to end -- not just by comparing
+canonical strings -- that the resulting signature fails verification once the method, route, query,
+body, or audience changes, and that it still verifies for a request that is merely an equivalent
+re-encoding (reordered query parameters, differently-cased or padded header values).
