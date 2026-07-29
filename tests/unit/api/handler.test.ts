@@ -76,6 +76,7 @@ describe("createRouteHandler", () => {
   });
 
   it("blocks invalid body schema", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const handler = createRouteHandler({
       bodySchema: z.object({ value: z.number() }),
       handler: () => new Response("OK"),
@@ -88,6 +89,7 @@ describe("createRouteHandler", () => {
     });
     const response = await handler(request);
     expect(response.status).toBe(422);
+    errorSpy.mockRestore();
   });
 
   it("authenticates the actor", async () => {

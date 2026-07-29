@@ -5,6 +5,11 @@ import {
   snapshot,
   reset,
   DEFAULT_LATENCY_BUCKETS,
+  computeAvailabilitySLI,
+  computeLatencySLI,
+  computeAuthAvailabilitySLI,
+  computePostageTransitionSLI,
+  computeSLOSummary,
 } from "../../../src/server/api/metrics";
 
 describe("metrics", () => {
@@ -38,9 +43,9 @@ describe("metrics", () => {
     });
 
     it("works without labels", () => {
-      incrementCounter("some_metric");
+      incrementCounter("api_requests_total");
       const snap = snapshot();
-      expect(snap.counters["some_metric"]).toBe(1);
+      expect(snap.counters["api_requests_total"]).toBe(1);
     });
   });
 
@@ -100,23 +105,210 @@ describe("metrics", () => {
 
   describe("snapshot / reset", () => {
     it("snapshot returns current state without mutation", () => {
-      incrementCounter("test", { label: "a" });
+      incrementCounter("api_requests_total", { method: "GET" });
       const snap1 = snapshot();
-      expect(snap1.counters['test{label:"a"}']).toBe(1);
+      expect(snap1.counters['api_requests_total{method:"GET"}']).toBe(1);
 
       // Mutating the snapshot should not affect internal state
-      snap1.counters['test{label:"a"}'] = 999;
+      snap1.counters['api_requests_total{method:"GET"}'] = 999;
       const snap2 = snapshot();
-      expect(snap2.counters['test{label:"a"}']).toBe(1);
+      expect(snap2.counters['api_requests_total{method:"GET"}']).toBe(1);
     });
 
     it("reset clears all counters and histograms", () => {
-      incrementCounter("test");
-      recordHistogram("latency", 50);
+      incrementCounter("api_requests_total");
+      recordHistogram("api_latency", 50);
       reset();
       const snap = snapshot();
       expect(snap.counters).toEqual({});
       expect(snap.histograms).toEqual({});
+    });
+  });
+
+  describe("SLI Computation", () => {
+    it("computes API Availability SLI with exact numerator and denominator", () => {
+      // 990 successful requests (200, 400, 404, etc.), 10 server error requests (500)
+      for (let i = 0; i < 990; i++) {
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          path: "/api/v1/policies",
+          status: "200",
+        });
+      }
+      for (let i = 0; i < 10; i++) {
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          path: "/api/v1/policies",
+          status: "500",
+        });
+      }
+
+      const sli = computeAvailabilitySLI();
+      expect(sli.numerator).toBe(990);
+      expect(sli.denominator).toBe(1000);
+      expect(sli.ratio).toBeCloseTo(0.99);
+      expect(sli.target).toBe(0.999);
+      expect(sli.met).toBe(false);
+    });
+
+    it("excludes configured paths like health check from Availability SLI", () => {
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/health",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "500",
+      });
+
+      const sli = computeAvailabilitySLI();
+      expect(sli.numerator).toBe(1);
+      expect(sli.denominator).toBe(2);
+      expect(sli.ratio).toBe(0.5);
+    });
+
+    it("computes API Latency SLI within threshold", () => {
+      const labels = { method: "GET", path: "/api/v1/policies", status: "200" };
+      recordHistogram("api_latency", 20, labels); // <= 250ms
+      recordHistogram("api_latency", 100, labels); // <= 250ms
+      recordHistogram("api_latency", 400, labels); // > 250ms
+
+      const sli = computeLatencySLI(250);
+      expect(sli.numerator).toBe(2);
+      expect(sli.denominator).toBe(3);
+      expect(sli.ratio).toBeCloseTo(2 / 3);
+    });
+
+    it("computes Authentication Availability SLI for auth paths", () => {
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        status: "401",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        status: "500",
+      });
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "500",
+      });
+
+      const sli = computeAuthAvailabilitySLI();
+      // Auth requests: 200 (non-5xx), 401 (non-5xx), 500 (5xx)
+      expect(sli.numerator).toBe(2);
+      expect(sli.denominator).toBe(3);
+      expect(sli.target).toBe(0.9995);
+    });
+
+    it("computes Critical Postage Transitions SLI", () => {
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/quote",
+        status: "200",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/settle",
+        status: "201",
+      });
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/settle",
+        status: "409",
+      }); // idempotency handled
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/quote",
+        status: "422",
+      }); // validation handled
+      incrementCounter("api_requests_total", {
+        method: "POST",
+        path: "/api/v1/postage/settle",
+        status: "500",
+      }); // system error
+
+      const sli = computePostageTransitionSLI();
+      expect(sli.numerator).toBe(4);
+      expect(sli.denominator).toBe(5);
+      expect(sli.ratio).toBeCloseTo(0.8);
+      expect(sli.target).toBe(0.999);
+    });
+
+    it("computes complete SLO summary", () => {
+      incrementCounter("api_requests_total", {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "200",
+      });
+      recordHistogram("api_latency", 50, {
+        method: "GET",
+        path: "/api/v1/policies",
+        status: "200",
+      });
+
+      const summary = computeSLOSummary();
+      expect(summary.availability).toBeDefined();
+      expect(summary.latency).toBeDefined();
+      expect(summary.authAvailability).toBeDefined();
+      expect(summary.postageTransitions).toBeDefined();
+      expect(summary.availability.met).toBe(true);
+    });
+  });
+
+  describe("cardinality limits", () => {
+    it("fails fast on unknown labels outside production", () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      try {
+        expect(() => {
+          incrementCounter("api_requests_total", {
+            method: "GET",
+            unknown_label: "bad", // This should throw
+          });
+        }).toThrow("Unknown label 'unknown_label' for metric 'api_requests_total'");
+
+        expect(() => {
+          incrementCounter("unknown_metric" as any, { method: "GET" });
+        }).toThrow("Unknown metric name: unknown_metric");
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+
+    it("drops unknown labels in production to prevent unbounded cardinality", () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+      try {
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          user_id: "user1",
+        });
+        incrementCounter("api_requests_total", {
+          method: "GET",
+          user_id: "user2",
+        });
+        const snap = snapshot();
+        // Since user_id is dropped, they should map to the same series, series count = 1
+        expect(Object.keys(snap.counters)).toHaveLength(1);
+        expect(snap.counters['api_requests_total{method:"GET"}']).toBe(2);
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
     });
   });
 });
