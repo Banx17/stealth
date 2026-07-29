@@ -189,12 +189,56 @@ export function runRepositoryContractTests(
           state: "completed",
           status: 200,
           body: { ok: true },
+          requestDigest: "digest-1",
           createdAt: "2026-01-01T00:00:00.000Z",
           completedAt: "2026-01-01T00:00:01.000Z",
         });
         await expect(repo.getIdempotencyRecord("key-1")).resolves.toMatchObject({
           status: 200,
         });
+      });
+
+      // Issue #1498: acquiring a lease binds it to a canonical request digest,
+      // so a same-key-different-payload retry never blocks behind or replays
+      // an unrelated request's response.
+      it("acquires, blocks concurrent followers, and replays the completed response", async () => {
+        const acquired = await repo.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
+        expect(acquired).toEqual({ status: "acquired" });
+
+        const inProgress = await repo.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
+        expect(inProgress).toEqual({ status: "in_progress" });
+
+        await repo.setIdempotencyRecord("key-2", {
+          state: "completed",
+          status: 200,
+          body: { ok: true },
+          requestDigest: "digest-a",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          completedAt: "2026-01-01T00:00:01.000Z",
+        });
+
+        const completed = await repo.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
+        expect(completed).toMatchObject({ status: "completed", record: { body: { ok: true } } });
+      });
+
+      it("returns conflict when the same key is reused with a different payload digest", async () => {
+        await repo.acquireIdempotencyRecord("key-3", "digest-a", 30_000);
+
+        const conflict = await repo.acquireIdempotencyRecord("key-3", "digest-b", 30_000);
+        expect(conflict).toEqual({ status: "conflict" });
+      });
+
+      it("only lets one of many concurrent duplicate acquires win", async () => {
+        const results = await Promise.all(
+          Array.from({ length: 5 }, () =>
+            repo.acquireIdempotencyRecord("key-4", "digest-a", 30_000),
+          ),
+        );
+
+        const acquired = results.filter((result) => result.status === "acquired");
+        const inProgress = results.filter((result) => result.status === "in_progress");
+        expect(acquired).toHaveLength(1);
+        expect(inProgress).toHaveLength(4);
       });
     });
 

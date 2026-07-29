@@ -147,9 +147,10 @@ export class HybridApiRepository implements ApiRepository {
 
   async acquireIdempotencyRecord(
     key: string,
+    requestDigest: string,
     leaseMs: number,
   ): Promise<import("./repository").AcquireIdempotencyResult> {
-    return this.getStub().acquireIdempotencyRecord(key, leaseMs);
+    return this.getStub().acquireIdempotencyRecord(key, requestDigest, leaseMs);
   }
 
   async setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {

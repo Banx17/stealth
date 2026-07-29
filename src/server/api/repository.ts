@@ -27,7 +27,14 @@ export type PostageTransitionResult =
 export type AcquireIdempotencyResult =
   | { status: "acquired" }
   | { status: "in_progress" }
-  | { status: "completed"; record: IdempotencyRecord & { state: "completed" } };
+  | { status: "completed"; record: IdempotencyRecord & { state: "completed" } }
+  /**
+   * A record already exists for this actor/method/route/key, but it was
+   * created for a request with a different canonical body digest. Issue
+   * #1498: reusing an idempotency key for a different payload must never
+   * block behind, or replay the response of, an unrelated request.
+   */
+  | { status: "conflict" };
 
 /**
  * Outcome of an atomic read-receipt publication.
@@ -88,7 +95,11 @@ export interface ApiRepository {
   setReceipt(receipt: Receipt): Promise<Receipt>;
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
   markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
-  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult>;
+  acquireIdempotencyRecord(
+    key: string,
+    requestDigest: string,
+    leaseMs: number,
+  ): Promise<AcquireIdempotencyResult>;
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
@@ -271,11 +282,15 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
-  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
+  acquireIdempotencyRecord(
+    key: string,
+    requestDigest: string,
+    leaseMs: number,
+  ): Promise<AcquireIdempotencyResult> {
     // Acquire does not take an object payload to insert, it creates one internally.
     // The internal DO logic is responsible for its own fields.
     // For reads via this repo wrapper, we could validate the returned record.
-    return this.inner.acquireIdempotencyRecord(key, leaseMs).then((result) => {
+    return this.inner.acquireIdempotencyRecord(key, requestDigest, leaseMs).then((result) => {
       if (result.status === "completed") {
         result.record = validateRecord<IdempotencyRecord & { state: "completed" }>(
           "idempotencyRecord",
@@ -475,8 +490,12 @@ export class RetryableApiRepository implements ApiRepository {
     );
   }
 
-  acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
-    return this.inner.acquireIdempotencyRecord(key, leaseMs);
+  acquireIdempotencyRecord(
+    key: string,
+    requestDigest: string,
+    leaseMs: number,
+  ): Promise<AcquireIdempotencyResult> {
+    return this.inner.acquireIdempotencyRecord(key, requestDigest, leaseMs);
   }
 
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {

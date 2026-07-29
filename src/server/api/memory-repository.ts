@@ -186,12 +186,19 @@ export class MemoryApiRepository implements ApiRepository {
 
   async acquireIdempotencyRecord(
     key: string,
+    requestDigest: string,
     leaseMs: number,
   ): Promise<import("./repository").AcquireIdempotencyResult> {
     const existing = this.idempotency.get(key);
     const now = Date.now();
 
     if (existing) {
+      // Same key, different payload: never block behind or replay a
+      // response for a different logical request (Issue #1498).
+      if (existing.requestDigest !== requestDigest) {
+        return { status: "conflict" };
+      }
+
       if (existing.state === "completed") {
         return { status: "completed", record: structuredClone(existing) };
       }
@@ -205,6 +212,7 @@ export class MemoryApiRepository implements ApiRepository {
     // Acquire the lock
     this.idempotency.set(key, {
       state: "in_progress",
+      requestDigest,
       createdAt: new Date(now).toISOString(),
       recoveryExpiryAt: new Date(now + leaseMs).toISOString(),
     });

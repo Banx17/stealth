@@ -2,7 +2,14 @@
 
 ## Overview
 
-The postage settlement endpoint (`POST /api/v1/postage/:messageId/settle`) implements idempotency to ensure safe retry behavior during network failures, race conditions, or other transient errors.
+The postage settlement and refund endpoints (`POST /api/v1/postage/:messageId/settle` and
+`POST /api/v1/postage/:messageId/refund`) implement idempotency to ensure safe retry behavior
+during network failures, race conditions, or other transient errors.
+
+Idempotency records are persisted durably (via the same Durable Object storage that backs
+settlement's compare-and-swap transitions), so this behavior survives worker restarts and is
+consistent across every Worker instance that reaches the same Durable Object — not just a single
+in-memory process.
 
 ## Problem Statement
 
@@ -27,11 +34,16 @@ X-Idempotency-Key: unique-settlement-request-id
 
 ### Key Properties
 
-- **Actor-scoped**: Keys are scoped per recipient, preventing cross-actor collisions
+- **Actor-, method-, and route-scoped**: Keys are hashed together with the recipient, HTTP
+  method, and route template, so the same raw key can never collide across actors or endpoints
 - **SHA-256 hashed**: Raw keys are hashed to protect against key leakage in logs
+- **Payload-bound**: Every lease and cached response is bound to a canonical digest of the
+  request payload. Reusing a key for a *different* payload (e.g. a different `messageId`) never
+  blocks behind or replays the wrong response — it fails closed with `409 idempotency_mismatch`
 - **Success replay**: Successful settlements (200) are cached and replayed
 - **Error replay**: Terminal-state errors (409 conflict) are cached and replayed
-- **Transient errors**: Non-terminal errors (500, network failures) are NOT cached, allowing retry
+- **Transient errors**: Non-terminal errors (500, network failures) are NOT cached; the lease is
+  released immediately so an identical retry with the same key can proceed right away
 
 ### Request Flow
 
@@ -307,6 +319,7 @@ async function settleWithRetry(messageId, maxRetries = 3) {
 The same idempotency pattern is also used in:
 
 - `POST /api/v1/postage/` (postage submission)
+- `POST /api/v1/postage/:messageId/refund`
 
 Future endpoints that modify critical state should adopt this pattern.
 

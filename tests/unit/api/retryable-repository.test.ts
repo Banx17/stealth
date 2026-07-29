@@ -94,9 +94,13 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setReceipt");
     return this.inner.setReceipt(receipt);
   }
-  async acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
+  async acquireIdempotencyRecord(
+    key: string,
+    requestDigest: string,
+    leaseMs: number,
+  ): Promise<AcquireIdempotencyResult> {
     this.maybeFail("acquireIdempotencyRecord");
-    return this.inner.acquireIdempotencyRecord(key, leaseMs);
+    return this.inner.acquireIdempotencyRecord(key, requestDigest, leaseMs);
   }
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
     this.maybeFail("getIdempotencyRecord");
@@ -256,7 +260,7 @@ describe("RetryableApiRepository", () => {
   it("does not retry acquireIdempotencyRecord (unsafe write)", async () => {
     failing.setFailCount("acquireIdempotencyRecord", 2);
 
-    await expect(repo.acquireIdempotencyRecord("key", 30_000)).rejects.toThrow();
+    await expect(repo.acquireIdempotencyRecord("key", "digest", 30_000)).rejects.toThrow();
     expect(failing.getCallCount("acquireIdempotencyRecord")).toBe(1);
   });
 
