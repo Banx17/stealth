@@ -1,5 +1,13 @@
 import type { ChangelogEntry } from "./types";
 
+/**
+ * Static release entries for the Changelog Panel.
+ *
+ * ## Safety & Privacy Boundaries
+ * - **Demo Data**: All entries below contain static, demonstration release notes.
+ * - **Data Hygiene**: Do NOT add real user data, private keys, secrets, or live customer mail.
+ * - **Positioning**: Content aligns with Stealth Mail's safety, speed, and sender-control values.
+ */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     id: "v0.4.0-security-1",
