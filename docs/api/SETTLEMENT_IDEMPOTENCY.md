@@ -38,7 +38,7 @@ X-Idempotency-Key: unique-settlement-request-id
   method, and route template, so the same raw key can never collide across actors or endpoints
 - **SHA-256 hashed**: Raw keys are hashed to protect against key leakage in logs
 - **Payload-bound**: Every lease and cached response is bound to a canonical digest of the
-  request payload. Reusing a key for a *different* payload (e.g. a different `messageId`) never
+  request payload. Reusing a key for a _different_ payload (e.g. a different `messageId`) never
   blocks behind or replays the wrong response — it fails closed with `409 idempotency_mismatch`
 - **Success replay**: Successful settlements (200) are cached and replayed
 - **Error replay**: Terminal-state errors (409 conflict) are cached and replayed
