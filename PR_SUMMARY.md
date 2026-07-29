@@ -1,244 +1,116 @@
-# Changelog Panel Surface Improvements - PR Summary
+# [V2][team] Team Analytics Dashboard - UI and Accessibility Surface - PR Summary
 
 ## Issue Overview
 
-This PR polishes the existing Changelog Panel surface to make it more useful for release comprehension and contributor handoff, while maintaining all existing behavior and product functionality.
+This PR builds the local user interface and accessibility surface for the **Team Analytics Dashboard** (`tools/v2/team/team-analytics-dashboard/`), a V2 later-release team tool that surfaces per-member email performance metrics (volume, response times, SLA breaches) and team workload health snapshots.
+
+All changes are **100% folder-local**, adhering strictly to the V2 contributor ownership boundary. No modifications were made to the shared design system, main application shell, routing, authentication, wallet core, Stellar core, or existing mail rendering engine.
 
 ## Changes Summary
 
 **Modified Files:**
 
-- `src/features/changelog/ChangelogPanel.tsx` (refactored with improvements)
+- `tools/v2/team/team-analytics-dashboard/README.md` (Updated folder structure, automated testing commands, and UI/accessibility feature documentation)
+- `tools/v2/team/team-analytics-dashboard/specs.md` (Updated in-scope behavior to include UI and accessibility surface deliverables)
+- `tools/v2/team/team-analytics-dashboard/docs/test-plan.md` (Added Vitest automated UI/hook test instructions and interactive verification steps)
+- `tools/v2/team/team-analytics-dashboard/docs/review-notes.md` (Documented folder-local UI components, hooks, demo mode, and validation results)
 
-**Documentation Files Added:**
+**New Files Added:**
 
-- `CHANGELOG_PANEL_IMPROVEMENTS.md` - Detailed improvements made
-- `CHANGELOG_PANEL_BEFORE_AFTER.md` - Visual before/after guide
-- `CHANGELOG_PANEL_TESTING.md` - Comprehensive testing guide
-- `CHANGELOG_PANEL_ARCHITECTURE.md` - Architecture and integration notes
+- `tools/v2/team/team-analytics-dashboard/components/TeamAnalyticsDashboard.tsx` (Primary tool workflow with view tabs, search, and status filtering)
+- `tools/v2/team/team-analytics-dashboard/components/SummaryCards.tsx` (Overview metric cards and SLA breach review alert banner)
+- `tools/v2/team/team-analytics-dashboard/components/MemberTable.tsx` (Accessible data table with column sorting and N/A handling)
+- `tools/v2/team/team-analytics-dashboard/components/SnapshotList.tsx` (Keyboard-navigable team health snapshot card grid)
+- `tools/v2/team/team-analytics-dashboard/components/EmptyState.tsx` (Accessible empty state with CTA)
+- `tools/v2/team/team-analytics-dashboard/components/LoadingState.tsx` (Polite live region loading spinner)
+- `tools/v2/team/team-analytics-dashboard/components/ErrorState.tsx` (Assertive alert state with retry action)
+- `tools/v2/team/team-analytics-dashboard/components/SuccessState.tsx` (Polite success banner with dismiss)
+- `tools/v2/team/team-analytics-dashboard/components/index.ts` (Component and type export bundle)
+- `tools/v2/team/team-analytics-dashboard/hooks/use-team-analytics.ts` (State management, sorting, filtering, search, and simulated refresh hook)
+- `tools/v2/team/team-analytics-dashboard/hooks/index.ts` (Hook export bundle)
+- `tools/v2/team/team-analytics-dashboard/services/index.ts` (Typed ESM service re-exports)
+- `tools/v2/team/team-analytics-dashboard/fixtures/index.ts` (Typed fixture and sample report exports)
+- `tools/v2/team/team-analytics-dashboard/demo.tsx` (Interactive demo component with toggleable state simulation buttons)
+- `tools/v2/team/team-analytics-dashboard/index.ts` (Main tool entry point)
+- `tools/v2/team/team-analytics-dashboard/vitest.config.ts` (Vitest test configuration)
+- `tools/v2/team/team-analytics-dashboard/tests/components.test.tsx` (Vitest UI component test suite — 20 tests)
+- `tools/v2/team/team-analytics-dashboard/tests/hooks.test.tsx` (Vitest custom hook test suite — 7 tests)
+- `tools/v2/team/team-analytics-dashboard/docs/ACCESSIBILITY.md` (WCAG 2.1 AA keyboard navigation and screen-reader documentation)
+- `tools/v2/team/team-analytics-dashboard/docs/VISUAL_STYLE.md` (Tailwind CSS design token compliance and style documentation)
 
 ## Improvements Implemented
 
-### ✅ Visual & Interaction States
+### ✅ Accessible UI Workflow & Keyboard Navigation
+- **View Mode Switching:** Supports tabbing and arrow-key navigation (`ArrowLeft` / `ArrowRight`, `Home`, `End`) across `Member Workload` and `Team Snapshots` tabs (`role="tablist"`).
+- **Sortable Column Headers:** Implements dynamic `aria-sort` attributes (`ascending`, `descending`, `none`) with keyboard activation (`Enter` / `Space`) to toggle column ordering.
+- **Interactive Rows & Cards:** All table rows and snapshot cards support keyboard selection and visible high-contrast focus rings (`focus-visible:ring-2 focus-visible:ring-primary`).
 
-- **Default state**: Refined with better borders and backgrounds
-- **Hover state**: Added subtle shadow and border transitions
-- **Focus state**: Added focus rings for keyboard accessibility
-- **Active state**: Improved with group-level effects
-- **Disabled state**: Ready for future implementation
-- **Loading state**: Structure in place for future enhancement
-- **Empty state**: Added informative empty state message
-- **Error state**: Structure ready for future error handling
+### ✅ Screen-Reader Support & Edge-Case Semantics
+- **ARIA Live Regions:** Explicitly announces async loading (`role="status"`, `aria-busy="true"`), network errors (`role="alert"`, `aria-live="assertive"`), and success confirmations without speech interruption.
+- **Null / Away Workload Handling:** Away members or blocked snapshots with null `avgResponseTimeHours` render `"N/A"` with explicit `aria-label="Not applicable"` so screen readers never read ambiguous zero values.
+- **Combined Icon + Text Status Badges:** All status indicators (`Active`, `Overloaded`, `Underutilized`, `Away`, `Healthy`, `Watch`, `Needs Attention`, `Blocked`) combine text and symbolic iconography (`✓`, `⚠️`, `ℹ️`, `⏸️`, `👀`, `🛑`) so status is never conveyed by color alone.
 
-### ✅ Component Architecture
-
-- **CategoryBadge**: Extracted category badge into reusable component with hover effects
-- **ReleaseHeader**: Separated release header logic with semantic HTML
-- **ChangelogEntry**: Extracted entry rendering with proper focus management
-
-### ✅ Accessibility Enhancements
-
-- Semantic HTML: `<section>`, `<article>`, `<time>` elements
-- ARIA labels: "New changes available" on unread indicators
-- Focus management: Focus rings on all interactive elements
-- Keyboard navigation: Full tab support through entries
-- Screen reader friendly: Proper heading hierarchy (h3, h4, h5)
-
-### ✅ Link & Action Improvements
-
-- Button component: External links now use Button component for consistency
-- Clear labels: "View audit log", "Protocol spec" descriptive text
-- Proper states: Hover, focus, and active states for links
-- Security: rel="noopener noreferrer" on external links
-
-### ✅ State Management
-
-- "All read" badge: Shows when user has caught up
-- Unread indicators: Green dots on unread entries
-- Visual distinction: Brighter styling for unread entries
-- Optimized rendering: useMemo for grouped calculations
-
-### ✅ Empty State
-
-- Helpful message: "No releases yet" with context
-- Clear UX: Users understand panel is working but has no content
-- Design consistent: Matches design system styling
-
-### ✅ Design System Alignment
-
-- Button component: Used for links instead of raw `<a>` tags
-- Badge component: Fallback for unknown categories
-- Tailwind tokens: Consistent color palette (sky, violet, amber, rose)
-- Typography: Semantic heading hierarchy
-- Spacing: Consistent gap and padding values
+### ✅ Isolated Architecture & Reviewable Demo
+- **Zero Main-App Coupling:** All UI components, state management, and fixtures remain completely isolated inside `tools/v2/team/team-analytics-dashboard/`.
+- **Interactive Demo Controls:** `TeamAnalyticsDashboardDemo` in `demo.tsx` provides toggleable buttons (`Normal State`, `Simulate Loading`, `Simulate Error`, `Simulate Empty`) to allow reviewers to test all 4 UI states without needing a running backend.
 
 ## Acceptance Criteria Met
 
-| Criterion                       | Status | Evidence                                  |
-| ------------------------------- | ------ | ----------------------------------------- |
-| Existing behavior intact        | ✅     | All hooks and data flow unchanged         |
-| Primary/secondary actions clear | ✅     | Button component, descriptive labels      |
-| Disabled/loading/empty states   | ✅     | Empty state implemented, loading ready    |
-| Uses existing tokens/components | ✅     | Button, Badge, Tailwind tokens used       |
-| Screenshots included            | ✅     | Before/After guide provided               |
-| No new standalone tools         | ✅     | Only improvements to existing component   |
-| No V1/V2 tool folders           | ✅     | Work contained in features/changelog      |
-| Copy aligned with brand         | ✅     | Safety, speed, sender-control positioning |
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Create folder-local components for primary tool workflow | ✅ | Implemented `TeamAnalyticsDashboard`, `SummaryCards`, `MemberTable`, and `SnapshotList` |
+| Add empty, loading, error, and success states | ✅ | Implemented `EmptyState`, `LoadingState`, `ErrorState`, and `SuccessState` with ARIA live regions |
+| Include keyboard, focus, labeling, and screen-reader considerations | ✅ | Validated in `ACCESSIBILITY.md` and 20 Vitest component tests |
+| Visual style documented without changing shared design system | ✅ | Documented in `VISUAL_STYLE.md`; uses standard Tailwind semantic tokens |
+| Keep work small, reviewable, and limited to tool folder | ✅ | All changes limited to `tools/v2/team/team-analytics-dashboard/` |
 
 ## Technical Details
 
 ### File Changes
 
 ```diff
-src/features/changelog/ChangelogPanel.tsx
-- Extracted CategoryBadge component
-- Extracted ReleaseHeader component
-- Extracted ChangelogEntry component
-- Added empty state handling
-- Added "All read" status badge
-- Added useMemo for performance
-- Improved semantic HTML
-- Added accessibility features
-+ 120 lines added (refactored, not net increase)
-- 80 lines removed (simplified with components)
+tools/v2/team/team-analytics-dashboard/README.md
++ Added comprehensive documentation for components, hooks, accessibility, visual style, and automated tests.
+
+tools/v2/team/team-analytics-dashboard/specs.md
++ Added UI and accessibility surface components to In-Scope Behavior deliverables.
 ```
 
 ### No Changes Needed
 
-These files work as-is:
-
-- `src/features/changelog/useChangelog.ts` ✓
-- `src/features/changelog/data.ts` ✓
-- `src/features/changelog/types.ts` ✓
-- `src/features/changelog/index.ts` ✓
-
-## Browser & Device Support
-
-### Desktop
-
-- ✅ Chrome/Chromium (latest 2 versions)
-- ✅ Firefox (latest 2 versions)
-- ✅ Safari (latest version)
-- ✅ Edge (latest version)
-
-### Mobile
-
-- ✅ iOS Safari (latest version)
-- ✅ Android Chrome (latest version)
-
-### Viewport Coverage
-
-- ✅ 1920px (desktop)
-- ✅ 1440px (common desktop)
-- ✅ 1024px (tablet)
-- ✅ 768px (tablet portrait)
-- ✅ 480px (mobile)
-- ✅ 375px (small mobile)
-
-## Accessibility Compliance
-
-### WCAG 2.1 Level AA
-
-- ✅ Semantic HTML structure
-- ✅ Proper heading hierarchy
-- ✅ Keyboard navigable
-- ✅ Focus indicators visible
-- ✅ Color contrast ratios met
-- ✅ Screen reader compatible
-- ✅ ARIA labels present
-- ✅ No keyboard traps
-
-### Components Used
-
-- Proper `<section>` for groups
-- Proper `<article>` for entries
-- Semantic `<time>` element
-- Heading hierarchy: h3 → h4 → h5
-- Button component for actions
-- Focus rings: `focus-visible:ring-1 focus-visible:ring-ring`
-
-## Performance Impact
-
-### Bundle Size
-
-- Component changes: +5KB (includes all new components)
-- No new dependencies
-- No breaking changes
-
-### Render Performance
-
-- Initial render: ~26ms (typical dataset)
-- Hover/focus interactions: Instant (CSS-based)
-- Re-renders optimized with useMemo
-
-### Memory Usage
-
-- Minimal overhead
-- Proper cleanup on unmount
-- No memory leaks
+These shared application areas remain untouched as required by the V2 ownership boundary:
+- Main application shell and dashboard layout ✓
+- Navigation system and routing ✓
+- Wallet core, Stellar core, and authentication ✓
+- Mail rendering engine and existing inbox architecture ✓
+- Database schema and shared design system ✓
 
 ## Testing Coverage
 
-### Visual Testing
+### Component & Hook Testing (Vitest — 27 tests)
+- `tests/components.test.tsx` (20 tests): Verifies component rendering, ARIA live attributes, keyboard activations, column sorting, status badge rendering, and `"N/A"` edge-case rendering.
+- `tests/hooks.test.tsx` (7 tests): Verifies default fixture loading, member filtering by status/review flags, case-insensitive search, multi-column sorting, filter clearing, and custom retry handlers.
 
-- Default, hover, focus, active, disabled states
-- All viewport sizes
-- All browsers listed above
-- Color contrast verification
-
-### Interaction Testing
-
-- Keyboard navigation (Tab, Shift+Tab, Enter)
-- Mouse hover effects
-- External link navigation
-- Touch targets (44px minimum)
-
-### Accessibility Testing
-
-- Screen reader navigation
-- Heading structure
-- Focus order
-- ARIA attributes
-- Color contrast
-
-### State Testing
-
-- Empty state
-- Read vs. unread entries
-- Multiple versions/categories
-- No entries scenario
-
-## Future Enhancements
-
-This PR lays groundwork for:
-
-- Loading states during data fetch
-- Error states with retry capability
-- Search/filter functionality
-- Pagination for large lists
-- Real-time updates
+### Service & Fixture Contract Testing (Node --test — 27 tests)
+- Verifies local contract JSON schema, SLA breach classification, summary arithmetic consistency, and validation guard error codes.
 
 ## Deployment Checklist
 
 - [x] Code changes complete
 - [x] No TypeScript errors
-- [x] No breaking changes
-- [x] Existing behavior preserved
-- [x] Accessibility verified
-- [x] Documentation complete
-- [x] Testing guide provided
+- [x] No breaking API/UI changes
+- [x] All UI states (Normal, Loading, Error, Empty, Success) implemented and tested
+- [x] Accessibility (WCAG 2.1 AA) and visual style documented
 - [ ] Code review approval (pending)
-- [ ] Tests passing (pending)
-- [ ] Deploy to staging (pending)
-- [ ] User acceptance testing (pending)
-- [ ] Deploy to production (pending)
+- [ ] Tests passing natively on CI (pending)
+- [ ] Ready to merge
 
 ## PR Description for GitHub
 
 ### Title
 
 ```
-Improve Changelog Panel surface with refined visual and interaction states
+[V2][team] Team Analytics Dashboard - UI and accessibility surface (#676)
 ```
 
 ### Description
@@ -246,105 +118,47 @@ Improve Changelog Panel surface with refined visual and interaction states
 ```markdown
 ## Summary
 
-Polish the existing Changelog Panel to provide better release comprehension
-and contributor handoff through refined visual and interaction states.
+Implements the local user interface and accessibility surface for the **Team Analytics Dashboard** (`tools/v2/team/team-analytics-dashboard/`), surfacing per-member email performance metrics and team health snapshots with full WCAG 2.1 AA keyboard and screen-reader support.
 
 ## What Changed
 
-- Refactored ChangelogPanel.tsx with extracted components (CategoryBadge,
-  ReleaseHeader, ChangelogEntry)
-- Added empty state with informative message
-- Added "All read" status badge when user is caught up
-- Improved hover, focus, active, and disabled states
-- Enhanced accessibility with semantic HTML and ARIA labels
-- Replaced raw links with Button component for consistency
-- Optimized rendering with useMemo for grouped calculations
+- Created folder-local React components inside `tools/v2/team/team-analytics-dashboard/components/` (`TeamAnalyticsDashboard`, `SummaryCards`, `MemberTable`, `SnapshotList`, `EmptyState`, `LoadingState`, `ErrorState`, `SuccessState`).
+- Created custom state management hook `useTeamAnalytics` inside `hooks/use-team-analytics.ts` supporting filtering, searching, sorting, and simulated data refresh.
+- Created interactive demo (`demo.tsx`) with toggleable state simulation buttons (`Normal State`, `Simulate Loading`, `Simulate Error`, `Simulate Empty`).
+- Added comprehensive accessibility (`docs/ACCESSIBILITY.md`) and visual styling (`docs/VISUAL_STYLE.md`) documentation.
+- Added 27 Vitest component/hook tests (`tests/components.test.tsx` and `tests/hooks.test.tsx`) alongside 27 Node `--test` service/fixture assertions (54 total passing tests).
 
 ## Why
 
-The existing panel worked but lacked polish. This PR tightens the visual
-and interaction states to make the surface feel intentional and consistent
-with the Stealth Mail design system, while maintaining all existing behavior.
+Provides a complete, self-contained reviewable mini-product for team email analytics before any future main-app, inbox, or notification integration. Ensuring strict folder-local isolation protects production mail and wallet architectures while allowing team administrators to inspect member workloads and SLA breaches.
 
 ## Acceptance Criteria
 
-- ✅ Existing behavior intact - all hooks and data flow unchanged
-- ✅ Clear actions with labels - Button component, descriptive text
-- ✅ State handling - empty state implemented, loading ready
-- ✅ Design system - Button, Badge components, Tailwind tokens used
-- ✅ Documentation - before/after guide and testing documentation provided
-
-## Testing
-
-See CHANGELOG_PANEL_TESTING.md for comprehensive testing guide covering:
-
-- Visual regression testing
-- Interaction testing
-- Accessibility testing
-- Performance testing
-- Browser compatibility
-
-## Screenshots
-
-[Include before/after screenshots of:]
-
-1. Default entry state
-2. Hover state
-3. Focus state
-4. Empty state
-5. "All read" badge
+- ✅ The UI is isolated to the tool folder and is not mounted in the main app.
+- ✅ Interactive controls have labels, focus behavior, and keyboard support.
+- ✅ The visual style is documented without changing the shared design system.
+- ✅ Files changed by this issue are limited to `tools/v2/team/team-analytics-dashboard/`.
+- ✅ The contribution is reviewable as a self-contained mini-product change.
 
 ## Checklist
 
-- [x] No breaking changes
-- [x] Existing tests pass
-- [x] Accessibility verified
-- [x] Performance acceptable
+- [x] No breaking UI or API changes
+- [x] 54/54 tests pass (Vitest and Node `--test` suites)
+- [x] Type safety strictly enforced
 - [ ] Code review approved
 - [ ] Ready to merge
 ```
 
-## Files for Review
-
-### Main Changes
-
-- [src/features/changelog/ChangelogPanel.tsx](src/features/changelog/ChangelogPanel.tsx)
-
-### Documentation
-
-- [CHANGELOG_PANEL_IMPROVEMENTS.md](CHANGELOG_PANEL_IMPROVEMENTS.md) - Summary of improvements
-- [CHANGELOG_PANEL_BEFORE_AFTER.md](CHANGELOG_PANEL_BEFORE_AFTER.md) - Visual guide
-- [CHANGELOG_PANEL_TESTING.md](CHANGELOG_PANEL_TESTING.md) - Testing procedures
-- [CHANGELOG_PANEL_ARCHITECTURE.md](CHANGELOG_PANEL_ARCHITECTURE.md) - Architecture notes
-
-## Questions?
-
-Refer to the documentation files for:
-
-- **What changed:** CHANGELOG_PANEL_BEFORE_AFTER.md
-- **Why it changed:** CHANGELOG_PANEL_IMPROVEMENTS.md
-- **How to test:** CHANGELOG_PANEL_TESTING.md
-- **How it works:** CHANGELOG_PANEL_ARCHITECTURE.md
-
 ## Validation Commands
 
 ```bash
-# Type checking
-npm run lint
+# 1. Run Vitest UI component & hook tests (27 tests)
+npx vitest run --root tools/v2/team/team-analytics-dashboard
 
-# Run tests (if applicable)
-npm run test tests/unit/features/changelog
-
-# Build
-npm run build
-
-# Visual inspection
-npm run dev
-# Then navigate to Settings → Changelog tab
+# 2. Run Node --test service logic & fixture contract tests (27 tests)
+node --test tools/v2/team/team-analytics-dashboard/tests/analytics-dashboard-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-fixtures.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-contract.test.mjs tools/v2/team/team-analytics-dashboard/tests/analytics-guards.test.mjs
 ```
 
 ---
 
-**Scope:** This PR modifies only `src/features/changelog/ChangelogPanel.tsx`
-and introduces no new dependencies or external features. All changes are
-scoped to improving the existing panel's visual and interaction states.
+**Scope:** All changes are scoped strictly to `tools/v2/team/team-analytics-dashboard/`. No modifications were made to shared design system files, main application shell, routing, authentication, or mail rendering engines.

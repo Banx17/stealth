@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import { quotePostage } from "../../../src/server/api/postage-service";
+import { createApiContext } from "../../../src/server/api/context";
 import { stellarAddressSchema } from "../../../src/server/api/domain";
 
 const validRecipient = `G${"A".repeat(55)}`;
@@ -124,7 +125,7 @@ describe("Postage Quote Validation", () => {
         requireVerified: false,
       });
 
-      const quote = await quotePostage(repository, {
+      const quote = await quotePostage(createApiContext(repository), {
         recipient: validRecipient,
         sender: validSender,
       });
@@ -150,7 +151,7 @@ describe("Postage Quote Validation", () => {
       const normalizedSender = stellarAddressSchema.parse(`  ${validSender.toLowerCase()}  `);
 
       // Use the normalized addresses (which match the policy)
-      const quote = await quotePostage(repository, {
+      const quote = await quotePostage(createApiContext(repository), {
         recipient: normalizedRecipient,
         sender: normalizedSender,
       });

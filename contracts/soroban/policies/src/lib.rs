@@ -90,6 +90,11 @@ pub enum Error {
 
 #[contractimpl]
 impl PoliciesContract {
+    /// Sets the mailbox policy and emits a `policy` event.
+    ///
+    /// Event topics are `("policy", owner)` and data is
+    /// `VersionedMailboxPolicy { policy, version }`. The version is the
+    /// post-mutation policy version.
     pub fn set_policy(env: Env, owner: Address, policy: MailboxPolicy) -> Result<(), Error> {
         Self::set_policy_as(env, owner.clone(), owner, policy)
     }
@@ -136,6 +141,11 @@ impl PoliciesContract {
             .unwrap_or(0)
     }
 
+    /// Sets or revokes a delegate scope and emits a `delegate` event.
+    ///
+    /// Event topics are `("delegate", owner, delegate)` and data is the
+    /// requested `DelegateScope`. Both scope flags being false represents
+    /// revocation. Delegate changes do not increment the policy version.
     pub fn set_delegate(
         env: Env,
         owner: Address,
@@ -164,6 +174,11 @@ impl PoliciesContract {
             })
     }
 
+    /// Sets or clears a sender rule and emits a `sender` event.
+    ///
+    /// Event topics are `("sender", owner, sender)` and data is
+    /// `(rule, version)`. `SenderRule::Default` represents clearing an
+    /// explicit rule. The version is the post-mutation policy version.
     pub fn set_sender_rule(
         env: Env,
         owner: Address,
@@ -196,6 +211,11 @@ impl PoliciesContract {
         Ok(())
     }
 
+    /// Sets sender-specific minimum postage and emits a `tier` event.
+    ///
+    /// Event topics are `("tier", owner, sender)` and data is
+    /// `(minimum_postage, version)`. The version is the post-mutation policy
+    /// version.
     pub fn set_sender_tier(
         env: Env,
         owner: Address,
@@ -389,6 +409,121 @@ impl PoliciesContract {
             .persistent()
             .set(&DataKey::PolicyVersion(owner.clone()), &version);
         version
+    }
+}
+
+#[cfg(test)]
+mod event_schema {
+    // Ledger indexers decode these raw events, so topic order and payload
+    // values are public API. These tests intentionally exercise the existing
+    // `publish` calls rather than introducing new event types or semantics.
+    extern crate std;
+
+    use super::*;
+    use soroban_sdk::{
+        testutils::{Address as _, Events},
+        IntoVal, Val, Vec,
+    };
+
+    fn assert_last_event(env: &Env, contract_id: &Address, topics: Vec<Val>, data: Val) {
+        assert_eq!(
+            env.events().all(),
+            Vec::from_array(env, [(contract_id.clone(), topics, data)])
+        );
+    }
+
+    #[test]
+    fn policy_event_schema_is_stable() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let policy = MailboxPolicy {
+            allow_unknown: true,
+            require_verified: false,
+            require_receipt: true,
+            minimum_postage: 25,
+        };
+
+        client.set_policy(&owner, &policy);
+
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("policy"), owner.clone()).into_val(&env),
+            VersionedMailboxPolicy { policy, version: 1 }.into_val(&env),
+        );
+    }
+
+    #[test]
+    fn delegate_event_schema_is_stable_and_unversioned() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let delegate = Address::generate(&env);
+        let scope = DelegateScope {
+            can_set_policy: true,
+            can_set_senders: false,
+        };
+
+        client.set_delegate(&owner, &delegate, &scope);
+
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("delegate"), owner.clone(), delegate.clone()).into_val(&env),
+            scope.into_val(&env),
+        );
+        assert_eq!(client.policy_version(&owner), 0);
+    }
+
+    #[test]
+    fn sender_and_tier_events_pin_topic_order_and_post_mutation_version() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        client.set_sender_rule(&owner, &sender, &SenderRule::Allow);
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("sender"), owner.clone(), sender.clone()).into_val(&env),
+            (SenderRule::Allow, 1_u32).into_val(&env),
+        );
+
+        client.set_sender_tier(&owner, &sender, &40);
+        assert_last_event(
+            &env,
+            &contract_id,
+            (symbol_short!("tier"), owner.clone(), sender.clone()).into_val(&env),
+            (40_i128, 2_u32).into_val(&env),
+        );
+    }
+
+    #[test]
+    fn rejected_mutations_emit_no_event() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(PoliciesContract, ());
+        let client = PoliciesContractClient::new(&env, &contract_id);
+        let owner = Address::generate(&env);
+        let sender = Address::generate(&env);
+
+        assert_eq!(
+            client
+                .try_set_sender_tier(&owner, &sender, &-1)
+                .unwrap_err()
+                .unwrap(),
+            Error::InvalidPostage
+        );
+        assert!(env.events().all().events().is_empty());
+        assert_eq!(client.policy_version(&owner), 0);
     }
 }
 
@@ -1294,5 +1429,322 @@ mod auth_boundaries {
             PolicyReason::TierSatisfied
         );
         assert_eq!(env.auths(), []);
+    }
+}
+
+#[cfg(test)]
+mod spec_check {
+    // Contract spec regeneration check.
+    //
+    // spec.json feeds scripts/generate-contract-bindings.mjs, which emits the
+    // typed TypeScript clients used against the ledger. If the contract
+    // interface changes without regenerating spec.json, the bindings silently
+    // drift from on-chain reality. This module decodes the XDR spec entries
+    // that the soroban-sdk macros embed in the crate — the same entries a wasm
+    // build publishes in its contractspecv0 section — renders the canonical
+    // spec.json from them, and fails if the committed file differs.
+    //
+    // To regenerate after an interface change:
+    //   UPDATE_SPEC=1 cargo test -p stealth-policies spec_json
+    extern crate std;
+
+    use std::format;
+    use std::string::{String, ToString};
+    use std::vec::Vec;
+
+    use soroban_sdk::xdr::{Limits, ReadXdr, ScSpecEntry, ScSpecTypeDef, ScSpecUdtUnionCaseV0};
+
+    use super::{
+        DelegateScope, Error, MailboxPolicy, PoliciesContract, PolicyDecision, PolicyReason,
+        SenderRule, VersionedMailboxPolicy,
+    };
+
+    const SPEC_JSON: &str = include_str!("../spec.json");
+    const LIB_RS: &str = include_str!("lib.rs");
+
+    /// The `#[contract]` struct carries no spec entry of its own; every other
+    /// public type in this file is part of the contract interface.
+    const CONTRACT_STRUCT: &str = "PoliciesContract";
+
+    /// Every spec entry the contract exports, in canonical spec.json order.
+    /// Adding a public contract function or type requires adding its entry
+    /// here; the coverage tests below enforce that.
+    fn entries() -> Vec<ScSpecEntry> {
+        let xdrs: Vec<Vec<u8>> = std::vec![
+            MailboxPolicy::spec_xdr().to_vec(),
+            VersionedMailboxPolicy::spec_xdr().to_vec(),
+            DelegateScope::spec_xdr().to_vec(),
+            PolicyDecision::spec_xdr().to_vec(),
+            SenderRule::spec_xdr().to_vec(),
+            PolicyReason::spec_xdr().to_vec(),
+            Error::spec_xdr().to_vec(),
+            PoliciesContract::spec_xdr_set_policy().to_vec(),
+            PoliciesContract::spec_xdr_set_policy_as().to_vec(),
+            PoliciesContract::spec_xdr_get_policy().to_vec(),
+            PoliciesContract::spec_xdr_get_versioned_policy().to_vec(),
+            PoliciesContract::spec_xdr_policy_version().to_vec(),
+            PoliciesContract::spec_xdr_set_delegate().to_vec(),
+            PoliciesContract::spec_xdr_delegate_scope().to_vec(),
+            PoliciesContract::spec_xdr_set_sender_rule().to_vec(),
+            PoliciesContract::spec_xdr_set_sender_rule_as().to_vec(),
+            PoliciesContract::spec_xdr_set_sender_tier().to_vec(),
+            PoliciesContract::spec_xdr_set_sender_tier_as().to_vec(),
+            PoliciesContract::spec_xdr_sender_rule().to_vec(),
+            PoliciesContract::spec_xdr_sender_tier().to_vec(),
+            PoliciesContract::spec_xdr_can_mail().to_vec(),
+            PoliciesContract::spec_xdr_evaluate().to_vec(),
+        ];
+        xdrs.iter()
+            .map(|xdr| {
+                ScSpecEntry::from_xdr(xdr.as_slice(), Limits::none())
+                    .expect("embedded contract spec entry must decode")
+            })
+            .collect()
+    }
+
+    /// Render a type using the grammar consumed by
+    /// scripts/generate-contract-bindings.mjs.
+    fn render_type(def: &ScSpecTypeDef) -> String {
+        match def {
+            ScSpecTypeDef::Void => "void".to_string(),
+            ScSpecTypeDef::Bool => "bool".to_string(),
+            ScSpecTypeDef::U32 => "u32".to_string(),
+            ScSpecTypeDef::I32 => "i32".to_string(),
+            ScSpecTypeDef::U64 => "u64".to_string(),
+            ScSpecTypeDef::I64 => "i64".to_string(),
+            ScSpecTypeDef::U128 => "u128".to_string(),
+            ScSpecTypeDef::I128 => "i128".to_string(),
+            ScSpecTypeDef::Address => "address".to_string(),
+            ScSpecTypeDef::BytesN(b) if b.n == 32 => "bytes32".to_string(),
+            ScSpecTypeDef::Option(o) => format!("option:{}", render_type(&o.value_type)),
+            ScSpecTypeDef::Udt(u) => format!("udt:{}", u.name.to_utf8_string_lossy()),
+            ScSpecTypeDef::Result(r) => {
+                // Contract errors appear as the built-in error type in XDR;
+                // this crate has exactly one #[contracterror] enum, `Error`.
+                let err = match &*r.error_type {
+                    ScSpecTypeDef::Error => "Error".to_string(),
+                    ScSpecTypeDef::Udt(u) => u.name.to_utf8_string_lossy(),
+                    other => std::panic!("unsupported error type in spec: {other:?}"),
+                };
+                format!("result:{}:{}", render_type(&r.ok_type), err)
+            }
+            other => std::panic!("type not covered by the spec.json grammar: {other:?}"),
+        }
+    }
+
+    fn render_name_type_list(items: &[(String, String)], indent: &str) -> String {
+        let rendered: Vec<String> = items
+            .iter()
+            .map(|(name, ty)| format!("{{ \"name\": \"{name}\", \"type\": \"{ty}\" }}"))
+            .collect();
+        render_array(&rendered, indent)
+    }
+
+    fn render_case_list(items: &[(String, u32)], indent: &str) -> String {
+        let rendered: Vec<String> = items
+            .iter()
+            .map(|(name, value)| format!("{{ \"name\": \"{name}\", \"value\": {value} }}"))
+            .collect();
+        render_array(&rendered, indent)
+    }
+
+    /// Arrays with zero or one element stay inline; longer arrays go one
+    /// element per line. The committed file may use a different indentation
+    /// style — the comparison below ignores whitespace entirely.
+    fn render_array(rendered: &[String], indent: &str) -> String {
+        match rendered {
+            [] => "[]".to_string(),
+            [only] if !only.contains('\n') => format!("[{only}]"),
+            many => {
+                let inner = many
+                    .iter()
+                    .map(|item| format!("{indent}  {item}"))
+                    .collect::<Vec<_>>()
+                    .join(",\n");
+                format!("[\n{inner}\n{indent}]")
+            }
+        }
+    }
+
+    /// Render the canonical spec.json for the current contract interface.
+    fn render_spec_json() -> String {
+        let mut structs: Vec<String> = Vec::new();
+        let mut enums: Vec<String> = Vec::new();
+        let mut errors: Vec<(String, u32)> = Vec::new();
+        let mut functions: Vec<String> = Vec::new();
+
+        for entry in entries() {
+            match entry {
+                ScSpecEntry::UdtStructV0(s) => {
+                    let fields: Vec<(String, String)> = s
+                        .fields
+                        .iter()
+                        .map(|f| (f.name.to_utf8_string_lossy(), render_type(&f.type_)))
+                        .collect();
+                    structs.push(format!(
+                        "{{\n      \"name\": \"{}\",\n      \"fields\": {}\n    }}",
+                        s.name.to_utf8_string_lossy(),
+                        render_name_type_list(&fields, "      "),
+                    ));
+                }
+                ScSpecEntry::UdtUnionV0(u) => {
+                    let cases: Vec<(String, u32)> = u
+                        .cases
+                        .iter()
+                        .enumerate()
+                        .map(|(index, case)| match case {
+                            ScSpecUdtUnionCaseV0::VoidV0(v) => {
+                                (v.name.to_utf8_string_lossy(), index as u32)
+                            }
+                            ScSpecUdtUnionCaseV0::TupleV0(t) => std::panic!(
+                                "tuple union case {} is not covered by the spec.json grammar",
+                                t.name.to_utf8_string_lossy()
+                            ),
+                        })
+                        .collect();
+                    enums.push(format!(
+                        "{{\n      \"name\": \"{}\",\n      \"cases\": {}\n    }}",
+                        u.name.to_utf8_string_lossy(),
+                        render_case_list(&cases, "      "),
+                    ));
+                }
+                ScSpecEntry::UdtErrorEnumV0(e) => {
+                    for case in e.cases.iter() {
+                        errors.push((case.name.to_utf8_string_lossy(), case.value));
+                    }
+                }
+                ScSpecEntry::FunctionV0(f) => {
+                    let inputs: Vec<(String, String)> = f
+                        .inputs
+                        .iter()
+                        .map(|i| (i.name.to_utf8_string_lossy(), render_type(&i.type_)))
+                        .collect();
+                    let output = match f.outputs.iter().next() {
+                        Some(def) => render_type(def),
+                        None => "void".to_string(),
+                    };
+                    functions.push(format!(
+                        "{{\n      \"name\": \"{}\",\n      \"inputs\": {},\n      \"output\": \"{}\"\n    }}",
+                        f.name.0.to_utf8_string_lossy(),
+                        render_name_type_list(&inputs, "      "),
+                        output,
+                    ));
+                }
+                other => std::panic!("unexpected spec entry: {other:?}"),
+            }
+        }
+
+        format!(
+            "{{\n  \"structs\": {},\n  \"enums\": {},\n  \"errors\": {},\n  \"functions\": {}\n}}\n",
+            render_array(&structs, "  "),
+            render_array(&enums, "  "),
+            render_case_list(&errors, "  "),
+            render_array(&functions, "  "),
+        )
+    }
+
+    fn strip_whitespace(text: &str) -> String {
+        text.chars().filter(|c| !c.is_whitespace()).collect()
+    }
+
+    /// Leading identifier of a declaration, for example `Foo` in
+    /// `pub struct Foo {`.
+    fn leading_identifier(rest: &str) -> &str {
+        let end = rest
+            .find(|c: char| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(rest.len());
+        &rest[..end]
+    }
+
+    /// Sorted, de-duplicated identifiers declared in this file with any of the
+    /// given declaration prefixes, excluding the `#[contract]` struct.
+    fn declared_in_source(prefixes: &[&str]) -> Vec<&'static str> {
+        let mut declared: Vec<&str> = LIB_RS
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim_start();
+                prefixes
+                    .iter()
+                    .find_map(|prefix| trimmed.strip_prefix(*prefix))
+                    .map(leading_identifier)
+            })
+            .filter(|name| !name.is_empty() && *name != CONTRACT_STRUCT)
+            .collect();
+        declared.sort_unstable();
+        declared.dedup();
+        declared
+    }
+
+    #[test]
+    fn spec_json_matches_contract_interface() {
+        let expected = render_spec_json();
+        if std::env::var("UPDATE_SPEC").is_ok() {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("spec.json");
+            std::fs::write(&path, &expected).expect("failed to write spec.json");
+            // SPEC_JSON was captured at compile time; skip the comparison on
+            // the regeneration run and let the next plain run verify it.
+            return;
+        }
+        // Whitespace-insensitive: no value in this document contains spaces,
+        // so formatting cannot mask real drift and cannot cause false alarms.
+        assert_eq!(
+            strip_whitespace(SPEC_JSON),
+            strip_whitespace(&expected),
+            "spec.json is out of date with the contract interface.\n\
+             Regenerate it with: UPDATE_SPEC=1 cargo test -p stealth-policies spec_json\n\
+             Expected content:\n{expected}"
+        );
+    }
+
+    #[test]
+    fn spec_covers_every_public_contract_function() {
+        // Every `pub fn` in this file lives in the #[contractimpl] block, so
+        // scanning the source catches a new contract function that was not
+        // added to the entries() list above (and therefore not to spec.json).
+        let source_fns = declared_in_source(&["pub fn "]);
+
+        let mut spec_fns: Vec<String> = entries()
+            .iter()
+            .filter_map(|entry| match entry {
+                ScSpecEntry::FunctionV0(f) => Some(f.name.0.to_utf8_string_lossy()),
+                _ => None,
+            })
+            .collect();
+        spec_fns.sort_unstable();
+
+        assert_eq!(
+            source_fns,
+            spec_fns.iter().map(String::as_str).collect::<Vec<_>>(),
+            "public contract functions and spec entries differ.\n\
+             Add the missing spec_xdr_* entry to spec_check::entries() and \
+             regenerate spec.json with: UPDATE_SPEC=1 cargo test -p stealth-policies spec_json"
+        );
+    }
+
+    #[test]
+    fn spec_covers_every_public_contract_type() {
+        // Public structs and enums other than the #[contract] struct are part
+        // of the ledger-facing interface, so each one needs a spec entry.
+        // Private types such as DataKey are storage details and are excluded.
+        let source_types = declared_in_source(&["pub struct ", "pub enum "]);
+
+        let mut spec_types: Vec<String> = entries()
+            .iter()
+            .filter_map(|entry| match entry {
+                ScSpecEntry::UdtStructV0(s) => Some(s.name.to_utf8_string_lossy()),
+                ScSpecEntry::UdtUnionV0(u) => Some(u.name.to_utf8_string_lossy()),
+                ScSpecEntry::UdtErrorEnumV0(e) => Some(e.name.to_utf8_string_lossy()),
+                _ => None,
+            })
+            .collect();
+        spec_types.sort_unstable();
+
+        assert_eq!(
+            source_types,
+            spec_types.iter().map(String::as_str).collect::<Vec<_>>(),
+            "public contract types and spec entries differ.\n\
+             Add the missing spec_xdr entry to spec_check::entries() and \
+             regenerate spec.json with: UPDATE_SPEC=1 cargo test -p stealth-policies spec_json"
+        );
     }
 }
