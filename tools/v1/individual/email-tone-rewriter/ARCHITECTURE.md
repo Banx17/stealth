@@ -71,15 +71,15 @@ tools/v1/individual/email-tone-rewriter/
 
 ## 3. Module Responsibilities
 
-| Module       | Location          | Responsibility                                                              |
-|------------- |-------------------|-----------------------------------------------------------------------------|
-| **Types**    | `services/` types | Shared TypeScript interfaces (`ToneRewriteDraft`, `ToneRewriteResult`, etc.)|
-| **Services** | `services/`       | Pure business logic: validation, key-point extraction, tone rewriting       |
-| **Guards**   | `services/guards.ts` | Input safety checks: size limits, character sanitization, field validation |
-| **Hooks**    | (future)          | React integration layer bridging services to components                     |
-| **Components** | `components/`   | Presentational UI: draft input, tone selector, result display, states       |
-| **Tests**    | `tests/`          | Unit and component test suites                                              |
-| **Docs**     | `docs/`           | Architecture, test plan, threat model, performance, visual style            |
+| Module         | Location             | Responsibility                                                               |
+| -------------- | -------------------- | ---------------------------------------------------------------------------- |
+| **Types**      | `services/` types    | Shared TypeScript interfaces (`ToneRewriteDraft`, `ToneRewriteResult`, etc.) |
+| **Services**   | `services/`          | Pure business logic: validation, key-point extraction, tone rewriting        |
+| **Guards**     | `services/guards.ts` | Input safety checks: size limits, character sanitization, field validation   |
+| **Hooks**      | (future)             | React integration layer bridging services to components                      |
+| **Components** | `components/`        | Presentational UI: draft input, tone selector, result display, states        |
+| **Tests**      | `tests/`             | Unit and component test suites                                               |
+| **Docs**       | `docs/`              | Architecture, test plan, threat model, performance, visual style             |
 
 ### Dependency flow (one-way)
 
@@ -232,6 +232,6 @@ integration issue. No integration work is permitted in V1.
 
 ## 13. Change Log
 
-| Date       | Change                                        | Author       |
-|----------- |-----------------------------------------------|------------- |
-| 2026-07-29 | Initial architecture contract for V1 isolation | —            |
+| Date       | Change                                         | Author |
+| ---------- | ---------------------------------------------- | ------ |
+| 2026-07-29 | Initial architecture contract for V1 isolation | —      |
