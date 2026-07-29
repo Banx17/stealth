@@ -22,22 +22,24 @@ Related integration & test files:
 ## Data Contracts
 
 ### `ChangelogEntry`
+
 ```typescript
 export interface ChangelogEntry {
-  id: string;          // Unique entry identifier (e.g. "v0.4.0-security-1")
-  version: string;     // Semver string (e.g. "0.4.0")
-  date: string;        // ISO 8601 YYYY-MM-DD date string (e.g. "2026-06-17")
+  id: string; // Unique entry identifier (e.g. "v0.4.0-security-1")
+  version: string; // Semver string (e.g. "0.4.0")
+  date: string; // ISO 8601 YYYY-MM-DD date string (e.g. "2026-06-17")
   category: ChangelogCategory; // "ui" | "api" | "protocol" | "security"
-  title: string;       // Concise summary title
+  title: string; // Concise summary title
   description: string; // Plain-language description of changes
   link?: {
-    label: string;     // Human-readable link label (e.g. "View audit log")
-    href: string;      // Anchor (#settings/audit) or external URL
+    label: string; // Human-readable link label (e.g. "View audit log")
+    href: string; // Anchor (#settings/audit) or external URL
   };
 }
 ```
 
 ### Categories & Badge Configuration
+
 - `ui`: Sky theme (`"UI"`)
 - `api`: Violet theme (`"API"`)
 - `protocol`: Amber theme (`"Protocol"`)
