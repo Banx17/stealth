@@ -6,8 +6,10 @@ import { apiFailure, apiSuccess } from "./response";
 import * as metrics from "./metrics";
 import { parseJsonBody } from "./request";
 import { consumeRouteQuota, type RateLimitConfig } from "./rate-limit";
+import { applyCors, corsEarlyResponse, validateCorsPolicy, type CorsPolicy } from "./cors";
 
 export type { RateLimitConfig } from "./rate-limit";
+export type { CorsPolicy } from "./cors";
 
 // Define authentication mode options
 export type AuthMode = "public" | "optional" | "required";
@@ -37,6 +39,7 @@ export type RouteConfig<
   querySchema?: QuerySchema;
   paramsSchema?: ParamsSchema;
   cacheSeconds?: number;
+  cors?: CorsPolicy;
   handler: (context: {
     request: Request;
     apiContext: ApiContext;
@@ -53,6 +56,10 @@ export function createRouteHandler<
   QuerySchema extends z.ZodTypeAny = z.ZodAny,
   ParamsSchema extends z.ZodTypeAny = z.ZodAny,
 >(config: RouteConfig<BodySchema, QuerySchema, ParamsSchema>) {
+  if (config.cors) {
+    validateCorsPolicy(config.cors);
+  }
+
   return async (request: Request, params?: Record<string, string>): Promise<Response> => {
     const startTime = performance.now();
     const method = request.method;
@@ -60,6 +67,11 @@ export function createRouteHandler<
     const path = url.pathname;
 
     let actorId: string | undefined;
+
+    const preflight = config.cors ? corsEarlyResponse(request, config.cors) : undefined;
+    if (preflight) {
+      return preflight;
+    }
 
     try {
       // 0. Resolve request-scoped ApiContext
@@ -187,7 +199,7 @@ export function createRouteHandler<
 
       console.log(`[API SUCCESS] ${method} ${path} - ${response.status} (${latency.toFixed(2)}ms)`);
 
-      return response;
+      return config.cors ? applyCors(request, response, config.cors) : response;
     } catch (error: any) {
       // 8. Error Metrics & Logs
       const latency = performance.now() - startTime;
@@ -200,7 +212,8 @@ export function createRouteHandler<
 
       console.error(`[API ERROR] ${method} ${path} - ${status} (${latency.toFixed(2)}ms)`, apiErr);
 
-      return apiFailure(request, apiErr);
+      const response = apiFailure(request, apiErr);
+      return config.cors ? applyCors(request, response, config.cors) : response;
     }
   };
 }
