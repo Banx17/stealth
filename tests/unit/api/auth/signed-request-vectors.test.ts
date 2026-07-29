@@ -5,10 +5,12 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalizeSignedRequest,
   signedRequestTimeStatus,
+  validateSignedRequestAudience,
   type SignedRequestInput,
 } from "../../../../src/server/api/auth/signed-request";
 
 type VectorError =
+  | "audience_mismatch"
   | "expired"
   | "future"
   | "invalid_signature"
@@ -29,6 +31,7 @@ interface Vector {
 
 interface Fixture {
   version: string;
+  audience: string;
   now: string;
   publicKeySpkiDerBase64: string;
   vectors: Vector[];
@@ -73,9 +76,25 @@ describe("signed request v1 documentation vectors", () => {
       Date.parse(fixture.now),
     );
 
-    if (vector.expected.outcome === "accepted" || vector.expected.error === "replayed_nonce") {
+    if (
+      vector.expected.outcome === "accepted" ||
+      vector.expected.error === "replayed_nonce" ||
+      vector.expected.error === "audience_mismatch"
+    ) {
       expect(time).toBe("valid");
       expect(signatureIsValid(vector)).toBe(true);
+
+      const checkAudience = () =>
+        validateSignedRequestAudience(vector.request.headers["x-stealth-audience"], {
+          activeAudiences: new Set([fixture.audience]),
+        });
+
+      if (vector.expected.error === "audience_mismatch") {
+        expect(checkAudience).toThrow();
+      } else {
+        expect(checkAudience).not.toThrow();
+      }
+
       if (vector.expected.outcome === "accepted") {
         expect(vector.expected.principal).toBe(vector.request.headers["x-stealth-address"]);
       }
@@ -107,6 +126,7 @@ describe("signed request v1 documentation vectors", () => {
         "replayed_nonce",
         "future",
         "malformed_request",
+        "audience_mismatch",
       ]),
     );
   });
