@@ -45,6 +45,7 @@ describe("StealthCoordinator - Durable Object Operations", () => {
     const record: IdempotencyRecord = {
       state: "completed",
       body: { ok: true },
+      requestDigest: "digest-1",
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       status: 201,
@@ -53,6 +54,74 @@ describe("StealthCoordinator - Durable Object Operations", () => {
     expect(await coordinator.getIdempotencyRecord("key-1")).toBeNull();
     await coordinator.setIdempotencyRecord("key-1", record);
     expect(await coordinator.getIdempotencyRecord("key-1")).toEqual(record);
+  });
+
+  describe("idempotency lease acquisition (issue #1498)", () => {
+    it("acquires, blocks concurrent followers, and replays after completion", async () => {
+      const first = await coordinator.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
+      expect(first).toEqual({ status: "acquired" });
+
+      const second = await coordinator.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
+      expect(second).toEqual({ status: "in_progress" });
+
+      await coordinator.setIdempotencyRecord("key-2", {
+        state: "completed",
+        status: 200,
+        body: { ok: true },
+        requestDigest: "digest-a",
+        createdAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      });
+
+      const third = await coordinator.acquireIdempotencyRecord("key-2", "digest-a", 30_000);
+      expect(third).toMatchObject({ status: "completed", record: { body: { ok: true } } });
+    });
+
+    it("returns conflict when the same key is reused with a different payload digest", async () => {
+      await coordinator.acquireIdempotencyRecord("key-3", "digest-a", 30_000);
+
+      const mismatchWhileInProgress = await coordinator.acquireIdempotencyRecord(
+        "key-3",
+        "digest-b",
+        30_000,
+      );
+      expect(mismatchWhileInProgress).toEqual({ status: "conflict" });
+
+      await coordinator.setIdempotencyRecord("key-3", {
+        state: "completed",
+        status: 200,
+        body: { ok: true },
+        requestDigest: "digest-a",
+        createdAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      });
+
+      const mismatchAfterCompletion = await coordinator.acquireIdempotencyRecord(
+        "key-3",
+        "digest-b",
+        30_000,
+      );
+      expect(mismatchAfterCompletion).toEqual({ status: "conflict" });
+    });
+
+    it("survives independent API contexts sharing the same durable storage", async () => {
+      // Simulates two separate Worker invocations reaching the same Durable
+      // Object storage: a fresh StealthCoordinator instance, backed by the
+      // same underlying storage, must observe state left by the other.
+      await coordinator.acquireIdempotencyRecord("key-4", "digest-a", 30_000);
+      await coordinator.setIdempotencyRecord("key-4", {
+        state: "completed",
+        status: 200,
+        body: { settled: true },
+        requestDigest: "digest-a",
+        createdAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      });
+
+      const independentContext = new StealthCoordinator(state as any, {});
+      const replay = await independentContext.acquireIdempotencyRecord("key-4", "digest-a", 30_000);
+      expect(replay).toMatchObject({ status: "completed", record: { body: { settled: true } } });
+    });
   });
 
   it("handles counter sliding window rate-limiting", async () => {

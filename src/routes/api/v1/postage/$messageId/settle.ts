@@ -5,8 +5,7 @@ import { getApiContext } from "@/server/api/context";
 import { hash32Schema } from "@/server/api/domain";
 import { getPostage, resolvePostage } from "@/server/api/postage-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
-import { acquireIdempotency, recordIdempotency } from "@/server/api/idempotency-service";
-import { ApiError } from "@/server/api/errors";
+import { withIdempotency } from "@/server/api/idempotency-service";
 
 /**
  * POST /api/v1/postage/:messageId/settle
@@ -53,71 +52,30 @@ export const Route = createFileRoute("/api/v1/postage/$messageId/settle")({
 
           // Check for idempotency key to enable safe retries
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
-          if (rawIdempotencyKey) {
-            const result = await acquireIdempotency(
-              repository,
-              current.recipient,
-              rawIdempotencyKey,
-            );
-
-            if (result.status === "in_progress") {
-              throw new ApiError(409, "conflict", "Request is already in progress");
-            }
-
-            if (result.status === "completed") {
-              // Replay the previous response (success or failure)
-              return apiSuccess(request, result.record.body, {
-                status: result.record.status,
-                headers: { "x-idempotency-replayed": "true" },
-              });
-            }
-          }
-
-          try {
+          const settle = async () => {
             const postage = await resolvePostage(context, messageId, "settled");
+            return { status: 200, body: postage };
+          };
 
-            // Record successful settlement for idempotent replay
-            if (rawIdempotencyKey) {
-              await recordIdempotency(
+          const result = rawIdempotencyKey
+            ? await withIdempotency(
                 repository,
-                current.recipient,
-                rawIdempotencyKey,
-                200,
-                postage,
-              );
-            }
+                {
+                  actor: current.recipient,
+                  method: request.method,
+                  route: "POST /postage/{messageId}/settle",
+                  rawKey: rawIdempotencyKey,
+                },
+                { messageId },
+                settle,
+                { cacheableErrorStatuses: [409] },
+              )
+            : { ...(await settle()), replayed: false };
 
-            return apiSuccess(request, postage);
-          } catch (error) {
-            // Record terminal-state errors for idempotent replay
-            // This ensures retry-after-failure returns the same error
-            if (
-              rawIdempotencyKey &&
-              error &&
-              typeof error === "object" &&
-              "status" in error &&
-              "code" in error &&
-              "message" in error
-            ) {
-              const apiError = error as {
-                status: number;
-                code: string;
-                message: string;
-                details?: unknown;
-              };
-              // Only cache terminal-state errors (409 conflict), not transient failures
-              if (apiError.status === 409) {
-                await recordIdempotency(repository, current.recipient, rawIdempotencyKey, 409, {
-                  error: {
-                    code: apiError.code,
-                    message: apiError.message,
-                    details: apiError.details,
-                  },
-                });
-              }
-            }
-            throw error;
-          }
+          return apiSuccess(request, result.body, {
+            status: result.status,
+            ...(result.replayed ? { headers: { "x-idempotency-replayed": "true" } } : {}),
+          });
         }),
     },
   },

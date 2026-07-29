@@ -109,6 +109,10 @@ export type SenderRule = z.infer<typeof senderRuleSchema>;
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({
     state: z.literal("in_progress"),
+    // Issue #1498: canonical digest of the request that acquired this lease,
+    // so a same-key-different-payload retry is detected as a conflict
+    // instead of blocking behind (or later replaying) an unrelated request.
+    requestDigest: z.string(),
     createdAt: z.string().datetime(),
     recoveryExpiryAt: z.string().datetime(),
   }),
@@ -116,6 +120,7 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
     state: z.literal("completed"),
     status: z.number(),
     body: z.unknown(),
+    requestDigest: z.string(),
     createdAt: z.string().datetime(),
     completedAt: z.string().datetime(),
   }),

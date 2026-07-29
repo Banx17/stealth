@@ -188,7 +188,15 @@ registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
 registerRecordSchema("senderRule", 1, senderRuleSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
-registerRecordSchema("idempotencyRecord", 1, idempotencyRecordSchema);
+// v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
+// lease/response to the exact request payload that created it. Legacy
+// records predate this and never bore a client-supplied payload we can
+// recompute, so they are stamped with a sentinel that can never equal a
+// real digest — any replay attempt against one fails closed as a conflict
+// rather than silently matching or replaying the wrong response.
+registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
+  1: (data: any) => ({ ...data, requestDigest: "legacy:unrecoverable" }),
+});
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

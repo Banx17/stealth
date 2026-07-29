@@ -16,7 +16,9 @@ registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
 registerRecordSchema("senderRule", 1, senderRuleSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
-registerRecordSchema("idempotencyRecord", 1, idempotencyRecordSchema);
+registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
+  1: (data: any) => ({ ...data, requestDigest: "legacy:unrecoverable" }),
+});
 
 const owner = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;

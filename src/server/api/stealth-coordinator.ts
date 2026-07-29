@@ -51,13 +51,23 @@ export class StealthCoordinator extends DurableObjectBase {
     await this.ctx.storage.put(`idempotency:${key}`, record);
   }
 
-  async acquireIdempotencyRecord(key: string, leaseMs: number): Promise<AcquireIdempotencyResult> {
+  async acquireIdempotencyRecord(
+    key: string,
+    requestDigest: string,
+    leaseMs: number,
+  ): Promise<AcquireIdempotencyResult> {
     return this.runExclusive(`idempotency:${key}`, async () => {
       const storageKey = `idempotency:${key}`;
       const existing = (await this.ctx.storage.get(storageKey)) as IdempotencyRecord | undefined;
       const now = Date.now();
 
       if (existing) {
+        // Same key, different payload: never block behind or replay a
+        // response for a different logical request (Issue #1498).
+        if (existing.requestDigest !== requestDigest) {
+          return { status: "conflict" };
+        }
+
         if (existing.state === "completed") {
           return {
             status: "completed",
@@ -75,6 +85,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
       await this.ctx.storage.put(storageKey, {
         state: "in_progress",
+        requestDigest,
         createdAt: new Date(now).toISOString(),
         recoveryExpiryAt: new Date(now + leaseMs).toISOString(),
       });

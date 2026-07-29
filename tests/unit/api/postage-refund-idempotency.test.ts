@@ -3,10 +3,34 @@ import { describe, expect, it } from "vitest";
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import { resolvePostage, getPostage } from "../../../src/server/api/postage-service";
 import { createApiContext } from "../../../src/server/api/context";
-import { checkIdempotency, recordIdempotency } from "../../../src/server/api/idempotency-service";
+import {
+  acquireIdempotency,
+  recordIdempotency,
+  type IdempotencyScope,
+} from "../../../src/server/api/idempotency-service";
 
 const recipient = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;
+
+const refundScope = (recipientAddress: string, key: string): IdempotencyScope => ({
+  actor: recipientAddress,
+  method: "POST",
+  route: "POST /postage/{messageId}/refund",
+  rawKey: key,
+});
+
+/** Mirrors the refund route: refund has no request body, so the message id is the payload. */
+async function checkIdempotency(
+  repository: MemoryApiRepository,
+  recipientAddress: string,
+  key: string,
+  messageId: string,
+) {
+  const result = await acquireIdempotency(repository, refundScope(recipientAddress, key), {
+    messageId,
+  });
+  return result.status === "completed" ? result.record : null;
+}
 
 describe("Postage Refund Idempotency", () => {
   describe("resolvePostage - deterministic terminal states", () => {
@@ -244,7 +268,7 @@ describe("Postage Refund Idempotency", () => {
       });
 
       // First request: no idempotency record exists
-      const firstCheck = await checkIdempotency(repository, recipient, idempotencyKey);
+      const firstCheck = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(firstCheck).toBeNull();
 
       // Perform refund
@@ -256,10 +280,16 @@ describe("Postage Refund Idempotency", () => {
       expect(refundedPostage.status).toBe("refunded");
 
       // Record the success for replay
-      await recordIdempotency(repository, recipient, idempotencyKey, 200, refundedPostage);
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, idempotencyKey),
+        { messageId },
+        200,
+        refundedPostage,
+      );
 
       // Second request: idempotency record exists
-      const secondCheck = await checkIdempotency(repository, recipient, idempotencyKey);
+      const secondCheck = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(secondCheck).not.toBeNull();
       expect((secondCheck as any)?.status).toBe(200);
       expect((secondCheck as any)?.body).toEqual(refundedPostage);
@@ -307,16 +337,27 @@ describe("Postage Refund Idempotency", () => {
         message: string;
         details: unknown;
       };
-      await recordIdempotency(repository, recipient, idempotencyKey, 409, {
-        error: {
-          code: apiError.code,
-          message: apiError.message,
-          details: apiError.details,
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, idempotencyKey),
+        { messageId },
+        409,
+        {
+          error: {
+            code: apiError.code,
+            message: apiError.message,
+            details: apiError.details,
+          },
         },
-      });
+      );
 
       // Second attempt: retrieve cached error
-      const replayedRecord = await checkIdempotency(repository, recipient, idempotencyKey);
+      const replayedRecord = await checkIdempotency(
+        repository,
+        recipient,
+        idempotencyKey,
+        messageId,
+      );
       expect(replayedRecord).not.toBeNull();
       expect((replayedRecord as any)?.status).toBe(409);
 
@@ -333,18 +374,35 @@ describe("Postage Refund Idempotency", () => {
       const idempotencyKey = "shared-key-refund-123";
 
       // Recipient 1 records a refund
-      await recordIdempotency(repository, recipient, idempotencyKey, 200, {
-        messageId: "x".repeat(64),
-        status: "refunded",
-      });
+      const messageId = "x".repeat(64);
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, idempotencyKey),
+        { messageId },
+        200,
+        {
+          messageId,
+          status: "refunded",
+        },
+      );
 
       // Recipient 1 can retrieve their record
-      const recipient1Check = await checkIdempotency(repository, recipient, idempotencyKey);
+      const recipient1Check = await checkIdempotency(
+        repository,
+        recipient,
+        idempotencyKey,
+        messageId,
+      );
       expect(recipient1Check).not.toBeNull();
       expect((recipient1Check as any)?.status).toBe(200);
 
       // Recipient 2 cannot see recipient 1's idempotency record (actor isolation)
-      const recipient2Check = await checkIdempotency(repository, recipient2, idempotencyKey);
+      const recipient2Check = await checkIdempotency(
+        repository,
+        recipient2,
+        idempotencyKey,
+        messageId,
+      );
       expect(recipient2Check).toBeNull();
     });
   });
@@ -367,10 +425,16 @@ describe("Postage Refund Idempotency", () => {
 
       // First request completes successfully
       const firstResult = await resolvePostage(createApiContext(repository), messageId, "refunded");
-      await recordIdempotency(repository, recipient, idempotencyKey, 200, firstResult);
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, idempotencyKey),
+        { messageId },
+        200,
+        firstResult,
+      );
 
       // Network failure occurs, client retries with same idempotency key
-      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey);
+      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(retryRecord).not.toBeNull();
       expect((retryRecord as any)?.status).toBe(200);
 
@@ -414,16 +478,22 @@ describe("Postage Refund Idempotency", () => {
         message: string;
         details: unknown;
       };
-      await recordIdempotency(repository, recipient, idempotencyKey, 409, {
-        error: {
-          code: apiError.code,
-          message: apiError.message,
-          details: apiError.details,
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, idempotencyKey),
+        { messageId },
+        409,
+        {
+          error: {
+            code: apiError.code,
+            message: apiError.message,
+            details: apiError.details,
+          },
         },
-      });
+      );
 
       // Network failure, client retries with same idempotency key
-      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey);
+      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(retryRecord).not.toBeNull();
       expect((retryRecord as any)?.status).toBe(409);
 
@@ -466,15 +536,27 @@ describe("Postage Refund Idempotency", () => {
 
       // Refund first postage with key1
       const result1 = await resolvePostage(createApiContext(repository), messageId1, "refunded");
-      await recordIdempotency(repository, recipient, key1, 200, result1);
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, key1),
+        { messageId: messageId1 },
+        200,
+        result1,
+      );
 
       // Refund second postage with key2
       const result2 = await resolvePostage(createApiContext(repository), messageId2, "refunded");
-      await recordIdempotency(repository, recipient, key2, 200, result2);
+      await recordIdempotency(
+        repository,
+        refundScope(recipient, key2),
+        { messageId: messageId2 },
+        200,
+        result2,
+      );
 
       // Each key retrieves its own result
-      const check1 = await checkIdempotency(repository, recipient, key1);
-      const check2 = await checkIdempotency(repository, recipient, key2);
+      const check1 = await checkIdempotency(repository, recipient, key1, messageId1);
+      const check2 = await checkIdempotency(repository, recipient, key2, messageId2);
 
       expect((check1 as any)?.body).toEqual(result1);
       expect((check2 as any)?.body).toEqual(result2);
