@@ -26,8 +26,9 @@ retry behavior during network failures or race conditions. Currently supported:
 
 - `POST /api/v1/postage/` - Postage submission
 - `POST /api/v1/postage/:messageId/settle` - Postage settlement
+- `POST /api/v1/postage/:messageId/refund` - Postage refund
 
-See [SETTLEMENT_IDEMPOTENCY.md](./SETTLEMENT_IDEMPOTENCY.md) for detailed documentation on
+See [SETTLEMENT_IDEMPOTENCY.md](./SETTLEMENT_IDEMPOTENCY.md) and [REFUND_IDEMPOTENCY.md](./REFUND_IDEMPOTENCY.md) for detailed documentation on
 idempotency semantics, retry scenarios, and client best practices.
 
 ## Input Validation
