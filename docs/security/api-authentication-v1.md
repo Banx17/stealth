@@ -15,15 +15,15 @@ unknown versions rather than attempting a compatible interpretation.
 
 ## Required headers
 
-| Header                | Requirement                                                                                                                            |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `Host`                | Authority of the intended API server, without surrounding whitespace.                                                                  |
-| `X-Stealth-Address`   | Valid Stellar G-address whose authorized public key verifies the signature.                                                            |
-| `X-Stealth-Nonce`     | Lowercase hexadecimal encoding of 32 cryptographically random bytes.                                                                   |
-| `X-Stealth-Timestamp` | UTC RFC 3339 timestamp with millisecond precision, for example `2026-07-22T12:00:00.000Z`.                                             |
+| Header                | Requirement                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Host`                | Authority of the intended API server, without surrounding whitespace.                                                                                |
+| `X-Stealth-Address`   | Valid Stellar G-address whose authorized public key verifies the signature.                                                                          |
+| `X-Stealth-Nonce`     | Lowercase hexadecimal encoding of 32 cryptographically random bytes.                                                                                 |
+| `X-Stealth-Timestamp` | UTC RFC 3339 timestamp with millisecond precision, for example `2026-07-22T12:00:00.000Z`.                                                           |
 | `X-Stealth-Audience`  | Identifier of the deployment the signature is scoped to, for example `stealth-api.example.test`. Checked against the server's accepted audience set. |
-| `X-Stealth-Signature` | Base64 encoding of the 64-byte Ed25519 signature over the canonical request. It is transported but omitted from the canonical request. |
-| `Content-Type`        | Required by an endpoint when it has a body; use `application/json`. It is not signed in v1.                                            |
+| `X-Stealth-Signature` | Base64 encoding of the 64-byte Ed25519 signature over the canonical request. It is transported but omitted from the canonical request.               |
+| `Content-Type`        | Required by an endpoint when it has a body; use `application/json`. It is not signed in v1.                                                          |
 
 Header names are case-insensitive on the wire. Signed header values are trimmed and internal runs of
 ASCII space or tab become one space. Duplicate required headers are invalid and must be rejected
@@ -105,15 +105,15 @@ authorization or business validation fails.
 
 Failures use the standard JSON API error envelope and do not echo signatures or nonce records.
 
-| Condition                                                                     | HTTP | Stable code               | `details.reason`     | Retry guidance                                      |
-| ----------------------------------------------------------------------------- | ---: | ------------------------- | -------------------- | --------------------------------------------------- |
+| Condition                                                                                     | HTTP | Stable code               | `details.reason`     | Retry guidance                                      |
+| --------------------------------------------------------------------------------------------- | ---: | ------------------------- | -------------------- | --------------------------------------------------- |
 | Missing/malformed header, unknown version, wrong audience, invalid account, invalid signature |  401 | `unauthorized`            | —                    | Obtain a new challenge and sign again.              |
-| Timestamp or challenge expired                                                |  422 | `expired_challenge`       | `AUTH_EXPIRED`       | Obtain a new challenge.                             |
-| Timestamp too far in the future                                               |  422 | `challenge_not_yet_valid` | `AUTH_NOT_YET_VALID` | Correct the clock, then sign a fresh challenge.     |
-| Unparseable or inverted challenge timestamps                                  |  422 | `validation_error`        | —                    | Correct the request, then sign a fresh challenge.   |
-| Nonce already consumed (replay)                                               |  409 | `conflict`                | —                    | Never retry the signed request; obtain a new nonce. |
-| Verified actor lacks endpoint permission                                      |  403 | `forbidden`               | —                    | Do not retry unchanged.                             |
-| Authentication rate limit exceeded                                            |  429 | `too_many_requests`       | —                    | Honor `Retry-After`.                                |
+| Timestamp or challenge expired                                                                |  422 | `expired_challenge`       | `AUTH_EXPIRED`       | Obtain a new challenge.                             |
+| Timestamp too far in the future                                                               |  422 | `challenge_not_yet_valid` | `AUTH_NOT_YET_VALID` | Correct the clock, then sign a fresh challenge.     |
+| Unparseable or inverted challenge timestamps                                                  |  422 | `validation_error`        | —                    | Correct the request, then sign a fresh challenge.   |
+| Nonce already consumed (replay)                                                               |  409 | `conflict`                | —                    | Never retry the signed request; obtain a new nonce. |
+| Verified actor lacks endpoint permission                                                      |  403 | `forbidden`               | —                    | Do not retry unchanged.                             |
+| Authentication rate limit exceeded                                                            |  429 | `too_many_requests`       | —                    | Honor `Retry-After`.                                |
 
 Both timing failures share HTTP 422, so `details.reason` is what lets a client distinguish a clock
 that is behind from one that is ahead without parsing prose.
