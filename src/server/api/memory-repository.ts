@@ -7,6 +7,7 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
@@ -47,6 +48,7 @@ export class MemoryApiRepository implements ApiRepository {
 
   // BETA-006: Session storage
   private readonly sessions = new Map<string, Session>();
+  private readonly retiredSessions = new Map<string, RetiredSession>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -349,6 +351,15 @@ export class MemoryApiRepository implements ApiRepository {
         this.sessions.delete(id);
       }
     }
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return structuredClone(this.retiredSessions.get(sessionId) ?? null);
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    this.retiredSessions.set(retiredSession.sessionId, structuredClone(retiredSession));
+    return structuredClone(retiredSession);
   }
 
   async getRelayQueueDepth(_relayId: string) {

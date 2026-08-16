@@ -1,10 +1,13 @@
 import type { ApiContext } from "../context";
-import type { Session, User } from "../domain";
+import type { RetiredSession, Session, User } from "../domain";
 import { ApiError } from "../errors";
 import { dummyVerifyPassword, verifyPassword } from "./password";
 
 export const SESSION_COOKIE_NAME = "stealth_session";
 export const DEFAULT_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+export const DEFAULT_IDLE_TIMEOUT_SECONDS = 1800; // 30 minutes
+export const DEFAULT_ABSOLUTE_TIMEOUT_SECONDS = 7 * 24 * 60 * 60; // 7 days
+export const CONCURRENT_RENEWAL_GRACE_PERIOD_MS = 10 * 1000; // 10 seconds
 export const MAX_LOGIN_ATTEMPTS = 5;
 const RATE_LIMIT_WINDOW_SECONDS = 900; // 15 minutes
 
@@ -15,6 +18,12 @@ export interface AuthenticateInput {
   userAgent?: string;
   deviceFingerprint?: string;
   currentSessionId?: string;
+}
+
+export interface SessionOptions {
+  now?: () => Date;
+  idleTtlSeconds?: number;
+  absoluteTtlSeconds?: number;
 }
 
 export function parseSessionCookie(cookieHeader: string | null | undefined): string | null {
@@ -56,6 +65,7 @@ export function buildClearSessionCookie(isProd = false): string {
 export async function authenticateWithPassword(
   apiContext: ApiContext,
   input: AuthenticateInput,
+  options: SessionOptions = {},
 ): Promise<{ user: User; session: Session; cookieHeader: string }> {
   const repo = apiContext.repository;
   const normalizedId = input.identifier.trim().toLowerCase();
@@ -113,22 +123,37 @@ export async function authenticateWithPassword(
     throw new ApiError(403, "forbidden", "Account is not active");
   }
 
+  const now = options.now ? options.now() : new Date();
+  const nowMs = now.getTime();
+  const idleTtl = options.idleTtlSeconds ?? DEFAULT_IDLE_TIMEOUT_SECONDS;
+  const absoluteTtl = options.absoluteTtlSeconds ?? DEFAULT_ABSOLUTE_TIMEOUT_SECONDS;
+
+  const absoluteExpiresMs = nowMs + absoluteTtl * 1000;
+  const idleExpiresMs = nowMs + idleTtl * 1000;
+  const expiresMs = Math.min(idleExpiresMs, absoluteExpiresMs);
+
+  const newSessionId = `sess_${crypto.randomUUID().replace(/-/g, "")}`;
+
   // Session fixation prevention: rotate session if a previous session exists
   if (input.currentSessionId) {
+    const retiredSession: RetiredSession = {
+      sessionId: input.currentSessionId,
+      replacedBySessionId: newSessionId,
+      userId: user.userId,
+      retiredAt: now.toISOString(),
+      expiresAt: now.toISOString(),
+    };
+    await repo.createRetiredSession(retiredSession);
     await repo.deleteSession(input.currentSessionId);
   }
-
-  // Issue opaque server-side session
-  const newSessionId = `sess_${crypto.randomUUID().replace(/-/g, "")}`;
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + DEFAULT_SESSION_TTL_SECONDS * 1000);
 
   const session: Session = {
     sessionId: newSessionId,
     userId: user.userId,
     createdAt: now.toISOString(),
-    expiresAt: expiresAt.toISOString(),
+    expiresAt: new Date(expiresMs).toISOString(),
     lastActiveAt: now.toISOString(),
+    absoluteExpiresAt: new Date(absoluteExpiresMs).toISOString(),
     ipAddress: input.ip ?? null,
     userAgent: input.userAgent ?? null,
     deviceFingerprint: input.deviceFingerprint ?? null,
@@ -137,40 +162,169 @@ export async function authenticateWithPassword(
   await repo.createSession(session);
 
   const isProd = import.meta.env?.PROD ?? false;
-  const cookieHeader = buildSessionCookie(newSessionId, DEFAULT_SESSION_TTL_SECONDS, isProd);
+  const maxAgeSeconds = Math.max(0, Math.floor((expiresMs - nowMs) / 1000));
+  const cookieHeader = buildSessionCookie(newSessionId, maxAgeSeconds, isProd);
 
   return { user, session, cookieHeader };
 }
 
 /**
- * Validates a session by ID, enforcing expiration, account status, and activity tracking.
+ * Validates a session by ID, enforcing idle timeout, absolute lifetime expiry,
+ * account status, and retired session reuse protection.
  */
 export async function validateSession(
   apiContext: ApiContext,
   sessionId: string,
+  options: SessionOptions = {},
 ): Promise<{ user: User; session: Session } | null> {
   const repo = apiContext.repository;
+  const now = options.now ? options.now() : new Date();
+  const nowMs = now.getTime();
+
+  // 1. Look up active session
   const session = await repo.getSession(sessionId);
 
-  if (!session) return null;
+  if (session) {
+    const expiresAtMs = new Date(session.expiresAt).getTime();
+    const absoluteExpiresAtMs = session.absoluteExpiresAt
+      ? new Date(session.absoluteExpiresAt).getTime()
+      : Number.POSITIVE_INFINITY;
 
-  if (new Date(session.expiresAt) < new Date()) {
-    await repo.deleteSession(sessionId);
-    return null;
+    // Check idle expiration or absolute expiration
+    if (nowMs >= expiresAtMs || nowMs >= absoluteExpiresAtMs) {
+      await repo.deleteSession(sessionId);
+      return null;
+    }
+
+    const user = await repo.getUserById(session.userId);
+    if (!user || user.status !== "active") {
+      return null;
+    }
+
+    // Extend sliding window for idle timeout, bounded by absoluteExpiresAt
+    const idleTtl = options.idleTtlSeconds ?? DEFAULT_IDLE_TIMEOUT_SECONDS;
+    const nextIdleExpiresMs = nowMs + idleTtl * 1000;
+    const nextExpiresMs = Math.min(nextIdleExpiresMs, absoluteExpiresAtMs);
+
+    const updatedSession: Session = {
+      ...session,
+      lastActiveAt: now.toISOString(),
+      expiresAt: new Date(nextExpiresMs).toISOString(),
+    };
+
+    await repo.updateSession(updatedSession);
+    return { user, session: updatedSession };
   }
 
-  const user = await repo.getUserById(session.userId);
-  if (!user || user.status !== "active") {
-    return null;
+  // 2. Check retired sessions for rotation resolution or theft detection
+  const retired = await repo.getRetiredSession(sessionId);
+  if (retired) {
+    const retiredAtMs = new Date(retired.retiredAt).getTime();
+
+    // Concurrent renewal grace window: return replacement active session
+    if (nowMs - retiredAtMs <= CONCURRENT_RENEWAL_GRACE_PERIOD_MS) {
+      const replacement = await repo.getSession(retired.replacedBySessionId);
+      if (replacement) {
+        const user = await repo.getUserById(replacement.userId);
+        if (user && user.status === "active") {
+          return { user, session: replacement };
+        }
+      }
+      return null;
+    }
+
+    // Stolen retired session ID reuse attempt past grace window!
+    // Immediately revoke active replacement session and all user sessions for safety.
+    await repo.deleteSession(retired.replacedBySessionId);
+    await repo.deleteUserSessions(retired.userId);
+    throw new ApiError(
+      401,
+      "unauthorized",
+      "Retired session token reused. Session chain revoked for security.",
+    );
   }
 
-  const updatedSession: Session = {
-    ...session,
-    lastActiveAt: new Date().toISOString(),
+  return null;
+}
+
+/**
+ * Renews and rotates a session identifier, generating a new session record
+ * bound by the original absolute lifetime and creating a retired session marker.
+ */
+export async function renewSession(
+  apiContext: ApiContext,
+  sessionId: string,
+  options: SessionOptions = {},
+): Promise<{ user: User; session: Session; cookieHeader: string }> {
+  const repo = apiContext.repository;
+  const now = options.now ? options.now() : new Date();
+  const nowMs = now.getTime();
+
+  const validated = await validateSession(apiContext, sessionId, options);
+  if (!validated) {
+    throw new ApiError(401, "unauthorized", "Session invalid or expired");
+  }
+
+  const currentSession = validated.session;
+  const user = validated.user;
+
+  const absoluteExpiresAtMs = currentSession.absoluteExpiresAt
+    ? new Date(currentSession.absoluteExpiresAt).getTime()
+    : nowMs + (options.absoluteTtlSeconds ?? DEFAULT_ABSOLUTE_TIMEOUT_SECONDS) * 1000;
+
+  if (nowMs >= absoluteExpiresAtMs) {
+    await repo.deleteSession(currentSession.sessionId);
+    throw new ApiError(401, "unauthorized", "Session has reached maximum absolute lifetime");
+  }
+
+  const idleTtl = options.idleTtlSeconds ?? DEFAULT_IDLE_TIMEOUT_SECONDS;
+  const nextIdleExpiresMs = nowMs + idleTtl * 1000;
+  const nextExpiresMs = Math.min(nextIdleExpiresMs, absoluteExpiresAtMs);
+
+  const newSessionId = `sess_${crypto.randomUUID().replace(/-/g, "")}`;
+  const newSession: Session = {
+    sessionId: newSessionId,
+    userId: user.userId,
+    createdAt: currentSession.createdAt,
+    expiresAt: new Date(nextExpiresMs).toISOString(),
+    lastActiveAt: now.toISOString(),
+    absoluteExpiresAt: new Date(absoluteExpiresAtMs).toISOString(),
+    rotatedFromSessionId: currentSession.sessionId,
+    ipAddress: currentSession.ipAddress,
+    userAgent: currentSession.userAgent,
+    deviceFingerprint: currentSession.deviceFingerprint,
   };
 
-  await repo.updateSession(updatedSession);
-  return { user, session: updatedSession };
+  // 1. Record retired session marker
+  const retiredSession: RetiredSession = {
+    sessionId: currentSession.sessionId,
+    replacedBySessionId: newSessionId,
+    userId: user.userId,
+    retiredAt: now.toISOString(),
+    expiresAt: currentSession.expiresAt,
+  };
+  await repo.createRetiredSession(retiredSession);
+
+  // 2. Remove old session & save new session
+  await repo.deleteSession(currentSession.sessionId);
+  await repo.createSession(newSession);
+
+  const isProd = import.meta.env?.PROD ?? false;
+  const maxAgeSeconds = Math.max(0, Math.floor((nextExpiresMs - nowMs) / 1000));
+  const cookieHeader = buildSessionCookie(newSessionId, maxAgeSeconds, isProd);
+
+  return { user, session: newSession, cookieHeader };
+}
+
+/**
+ * Rotates session identifiers after privilege-sensitive events.
+ */
+export async function rotateSession(
+  apiContext: ApiContext,
+  sessionId: string,
+  options: SessionOptions = {},
+): Promise<{ user: User; session: Session; cookieHeader: string }> {
+  return renewSession(apiContext, sessionId, options);
 }
 
 /**

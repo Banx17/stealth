@@ -313,6 +313,8 @@ export const sessionSchema = z.object({
   createdAt: z.string().datetime(),
   expiresAt: z.string().datetime(),
   lastActiveAt: z.string().datetime(),
+  absoluteExpiresAt: z.string().datetime().optional(),
+  rotatedFromSessionId: z.string().optional().nullable(),
   ipAddress: z.string().optional().nullable(),
   userAgent: z.string().optional().nullable(),
   deviceFingerprint: z.string().optional().nullable(),
@@ -324,10 +326,20 @@ export const publicSessionSchema = z.object({
   createdAt: z.string().datetime(),
   expiresAt: z.string().datetime(),
   lastActiveAt: z.string().datetime(),
+  absoluteExpiresAt: z.string().datetime().optional(),
+});
+
+export const retiredSessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  replacedBySessionId: z.string().min(1, "Replaced by Session ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  retiredAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
 });
 
 export type Session = z.infer<typeof sessionSchema>;
 export type PublicSession = z.infer<typeof publicSessionSchema>;
+export type RetiredSession = z.infer<typeof retiredSessionSchema>;
 
 export function toPublicSession(session: Session): PublicSession {
   return {
@@ -336,6 +348,7 @@ export function toPublicSession(session: Session): PublicSession {
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,
     lastActiveAt: session.lastActiveAt,
+    absoluteExpiresAt: session.absoluteExpiresAt,
   };
 }
 

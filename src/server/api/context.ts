@@ -13,6 +13,7 @@ import {
   profileSchema,
   credentialSchema,
   sessionSchema,
+  retiredSessionSchema,
   storedEnvelopeSchema,
   policyWriteIntentSchema,
 } from "./domain";
@@ -198,6 +199,7 @@ registerRecordSchema("user", 1, userSchema);
 registerRecordSchema("profile", 1, profileSchema);
 registerRecordSchema("credential", 1, credentialSchema);
 registerRecordSchema("session", 1, sessionSchema);
+registerRecordSchema("retiredSession", 1, retiredSessionSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
 // lease/response to the exact request payload that created it. Legacy
 // records predate this and never bore a client-supplied payload we can
