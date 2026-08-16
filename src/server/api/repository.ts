@@ -3,11 +3,14 @@ import type {
   Credential,
   IdempotencyRecord,
   MailboxPolicy,
+  PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   SenderRule,
+  Session,
   StoredEnvelope,
   User,
   VerificationPurpose,
@@ -139,6 +142,12 @@ export type RecordVerificationAttemptResult = {
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
+  // BETA-023 (Issue #1930): durable scheduled-write intent for the Policies
+  // contract. The off-chain policy and the intent are written together during
+  // provisioning so a retry never re-submits (and never re-bumps the on-chain
+  // version) for an already-scheduled policy.
+  getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null>;
+  setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;
@@ -345,6 +354,15 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
     return this.inner.setPolicy(owner, versionRecord("mailboxPolicy", policy));
+  }
+
+  async getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null> {
+    const raw = await this.inner.getPolicyWriteIntent(owner);
+    return raw ? validateRecord<PolicyWriteIntent>("policyWriteIntent", raw) : null;
+  }
+
+  setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
+    return this.inner.setPolicyWriteIntent(versionRecord("policyWriteIntent", intent));
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -619,6 +637,7 @@ export const DEFAULT_RETRY_POLICY: RetryPolicy = {
 
 const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicy",
+  "getPolicyWriteIntent",
   "getSenderRule",
   "getPostage",
   "getReceipt",
@@ -630,6 +649,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getRelayDeadLetterCount",
   "getCounter",
   "setPolicy",
+  "setPolicyWriteIntent",
   "setSenderRule",
   "setPostage",
   "setReceipt",
@@ -645,6 +665,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setProfile",
   "getCredential",
   "setCredential",
+  "getSession",
+  "updateSession",
+  "getRetiredSession",
   "getEnvelope",
   "getVerificationToken",
   "getActiveVerificationToken",
@@ -710,6 +733,14 @@ export class RetryableApiRepository implements ApiRepository {
 
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
     return this.withRetry("setPolicy", () => this.inner.setPolicy(owner, policy));
+  }
+
+  getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null> {
+    return this.withRetry("getPolicyWriteIntent", () => this.inner.getPolicyWriteIntent(owner));
+  }
+
+  setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
+    return this.withRetry("setPolicyWriteIntent", () => this.inner.setPolicyWriteIntent(intent));
   }
 
   getSenderRule(owner: string, sender: string): Promise<SenderRule> {

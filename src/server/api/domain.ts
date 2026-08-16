@@ -38,6 +38,61 @@ export const mailboxPolicySchema = z.object({
   requireVerified: z.boolean(),
 });
 
+/**
+ * Request body accepted when replacing a mailbox policy. `requireReceipt` is
+ * optional: when absent it defaults to false and is carried into the scheduled
+ * on-chain write as `require_receipt = false`.
+ */
+export const mailboxPolicyWriteSchema = z.object({
+  allowUnknown: z.boolean(),
+  minimumPostage: stroopAmountSchema,
+  requireVerified: z.boolean(),
+  requireReceipt: z.boolean().default(false),
+});
+
+// ---------------------------------------------------------------------------
+// BETA-023 (Issue #1930) — privacy-safe mailbox policy provisioning
+//
+// The on-chain Policies contract persists a four-field policy (including the
+// delivery-receipt preference). The off-chain `MailboxPolicy` deliberately
+// stays at three fields for backward compatibility with stored records and
+// existing callers; the delivery-receipt preference and the off-chain policy
+// version travel with the durable write intent that is scheduled for the
+// matching testnet contract write.
+// ---------------------------------------------------------------------------
+
+export const chainMailboxPolicySchema = z.object({
+  allowUnknown: z.boolean(),
+  minimumPostage: stroopAmountSchema,
+  requireReceipt: z.boolean(),
+  requireVerified: z.boolean(),
+});
+
+export const policyWriteStatusSchema = z.enum(["pending", "submitted", "confirmed", "failed"]);
+
+/**
+ * Durable intent to write a mailbox policy to the Policies contract on
+ * testnet. `offchainVersion` is the off-chain policy version: it is bumped
+ * only when the effective policy actually changes, never on a retry of the
+ * same policy — mirroring the contract's version-as-change-marker contract
+ * without re-submitting an identical write (which the contract would still
+ * count as a version bump).
+ *
+ * `lastError` is a redacted, bounded failure reason; wallet seeds, tokens and
+ * transaction payloads never appear in it.
+ */
+export const policyWriteIntentSchema = z.object({
+  owner: stellarAddressSchema,
+  policy: chainMailboxPolicySchema,
+  offchainVersion: z.number().int().nonnegative(),
+  status: policyWriteStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+});
+
 export const postageSchema = z.object({
   amount: stroopAmountSchema,
   createdAt: z.string().datetime(),
@@ -106,6 +161,9 @@ export function createReceiptSchema(options: ReceiptSchemaOptions = {}) {
 export const receiptSchema = createReceiptSchema();
 
 export type MailboxPolicy = z.infer<typeof mailboxPolicySchema>;
+export type ChainMailboxPolicy = z.infer<typeof chainMailboxPolicySchema>;
+export type PolicyWriteIntent = z.infer<typeof policyWriteIntentSchema>;
+export type PolicyWriteStatus = z.infer<typeof policyWriteStatusSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
@@ -287,64 +345,93 @@ export function toPublicProfile(profile: Profile): PublicProfile {
   };
 }
 
-/**
- * Zod schema for a durably stored encrypted message envelope.
- *
- * Design principles
- * -----------------
- * - `ciphertext`        : the raw encrypted body (base64url), never decrypted here.
- * - `protectedHeaders`  : immutable encryption metadata stored alongside ciphertext
- *                         (algorithm, ephemeral key, nonce, MAC) so the data needed
- *                         to decrypt is co-located with the ciphertext.
- * - `contentCommitment` : SHA-256 hex commitment over the plaintext, allowing
- *                         integrity verification without storing plaintext.
- * - `senderId`          : Stellar G-address of the originating party.
- * - `recipientId`       : Stellar G-address of the intended recipient — used as
- *                         the primary index for mailbox sync without indexing plaintext.
- * - `createdAt`         : ISO-8601 insertion timestamp set by the server.
- * - `$v`                : schema version for future migrations (starts at 1).
- *
- * Plaintext (`subject`, `body`) is **never** a field of this record.
- */
-export const storedEnvelopeProtectedHeadersSchema = z.object({
-  algorithm: z.string().min(1).max(64),
-  ephemeral_public_key: stellarAddressSchema,
-  nonce: z
-    .string()
-    .regex(/^[a-f0-9]+$/, "Expected a hex string for nonce")
-    .min(2)
-    .max(128),
-  mac: hash32Schema,
-  version: z.string().regex(/^v[0-9]+$/),
+// ---------------------------------------------------------------------------
+// BETA-006: Server-Side Session Domain
+// ---------------------------------------------------------------------------
+
+export const sessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  lastActiveAt: z.string().datetime(),
+  absoluteExpiresAt: z.string().datetime().optional(),
+  rotatedFromSessionId: z.string().optional().nullable(),
+  ipAddress: z.string().optional().nullable(),
+  userAgent: z.string().optional().nullable(),
+  deviceFingerprint: z.string().optional().nullable(),
 });
 
+export const publicSessionSchema = z.object({
+  sessionId: z.string(),
+  userId: z.string(),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  lastActiveAt: z.string().datetime(),
+  absoluteExpiresAt: z.string().datetime().optional(),
+});
+
+export const retiredSessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  replacedBySessionId: z.string().min(1, "Replaced by Session ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  retiredAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+});
+
+export type Session = z.infer<typeof sessionSchema>;
+export type PublicSession = z.infer<typeof publicSessionSchema>;
+export type RetiredSession = z.infer<typeof retiredSessionSchema>;
+
+export function toPublicSession(session: Session): PublicSession {
+  return {
+    sessionId: session.sessionId,
+    userId: session.userId,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    lastActiveAt: session.lastActiveAt,
+    absoluteExpiresAt: session.absoluteExpiresAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// StoredEnvelope — durable encrypted-message record (Issue #1936 / BETA-029)
+// ---------------------------------------------------------------------------
+
+export const storedEnvelopeProtectedHeadersSchema = z
+  .object({
+    algorithm: z.string().optional(),
+    ephemeral_public_key: z.string().optional(),
+    nonce: z
+      .string()
+      .regex(/^[0-9a-fA-F]*$/)
+      .refine((val) => val.length % 2 === 0, "Nonce must be even hex")
+      .optional(),
+    mac: z.string().optional(),
+    version: z
+      .string()
+      .regex(/^v\d+$/, "Version must be v<digit>")
+      .optional(),
+    alg: z.string().optional(),
+    kid: z.string().optional(),
+    typ: z.string().optional(),
+  })
+  .catchall(z.unknown());
+
 export const storedEnvelopeSchema = z.object({
-  /** Immutable unique message identifier — 32-byte lowercase hex. */
+  envelopeId: z.string().optional(),
   messageId: hash32Schema,
-  /** Stellar G-address of the sender. */
   senderId: stellarAddressSchema,
-  /** Stellar G-address of the recipient — used as the mailbox index. */
   recipientId: stellarAddressSchema,
-  /**
-   * Encrypted body ciphertext.
-   * Base64url-encoded, no padding (RFC 4648 §5). Plaintext is never stored.
-   */
   ciphertext: z
     .string()
-    .min(1, "Ciphertext must not be empty")
+    .min(1, "Ciphertext cannot be empty")
     .max(20 * 1024 * 1024, "Ciphertext exceeds 20 MiB limit")
-    .regex(/^[A-Za-z0-9+/=]+$/, "Ciphertext must be valid base64"),
-  /** Encryption metadata required for decryption; immutable after insert. */
+    .regex(/^[A-Za-z0-9+/=]+$/, "Ciphertext must be base64 encoded"),
   protectedHeaders: storedEnvelopeProtectedHeadersSchema,
-  /**
-   * Hex-encoded SHA-256 commitment over the plaintext body.
-   * Enables integrity verification without storing plaintext.
-   */
-  contentCommitment: hash32Schema,
-  /** ISO-8601 server-side insertion timestamp. */
+  contentCommitment: hash32Schema.optional(),
   createdAt: z.string().datetime(),
-  /** Schema version for future migrations. */
-  $v: z.number().int().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;

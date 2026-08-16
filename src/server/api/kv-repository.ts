@@ -8,11 +8,14 @@ import type {
   Credential,
   IdempotencyRecord,
   MailboxPolicy,
+  PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   SenderRule,
+  Session,
   StoredEnvelope,
   User,
   VerificationPurpose,
@@ -38,6 +41,16 @@ export class HybridApiRepository implements ApiRepository {
   async setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
     await this.kv.put(this.key("policy", owner), JSON.stringify(policy));
     return policy;
+  }
+
+  async getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null> {
+    const intent = await this.kv.get(this.key("policy-write", owner), "json");
+    return (intent as PolicyWriteIntent) ?? null;
+  }
+
+  async setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
+    await this.kv.put(this.key("policy-write", intent.owner), JSON.stringify(intent));
+    return intent;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -212,6 +225,33 @@ export class HybridApiRepository implements ApiRepository {
     now: Date,
   ): Promise<import("./repository").RecordVerificationAttemptResult> {
     return this.getStub().recordVerificationAttempt(tokenHash, now);
+  // BETA-006: Session DO stubs
+  async getSession(sessionId: string): Promise<Session | null> {
+    return this.getStub().getSession(sessionId);
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    return this.getStub().createSession(session);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    return this.getStub().updateSession(session);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    return this.getStub().deleteSession(sessionId);
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    return this.getStub().deleteUserSessions(userId);
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return this.getStub().getRetiredSession(sessionId);
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    return this.getStub().createRetiredSession(retiredSession);
   }
 
   // Consistent layer delegated to Durable Object via RPC

@@ -2,11 +2,14 @@ import type {
   Credential,
   IdempotencyRecord,
   MailboxPolicy,
+  PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   SenderRule,
+  Session,
   StoredEnvelope,
   User,
   VerificationPurpose,
@@ -33,6 +36,7 @@ function activeTokenKey(userId: string, purpose: string) {
 
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
+  private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
@@ -124,6 +128,15 @@ export class MemoryApiRepository implements ApiRepository {
   async setPolicy(owner: string, policy: MailboxPolicy) {
     this.policies.set(owner, structuredClone(policy));
     return structuredClone(policy);
+  }
+
+  async getPolicyWriteIntent(owner: string) {
+    return structuredClone(this.policyWriteIntents.get(owner) ?? null);
+  }
+
+  async setPolicyWriteIntent(intent: PolicyWriteIntent) {
+    this.policyWriteIntents.set(intent.owner, structuredClone(intent));
+    return structuredClone(intent);
   }
 
   async getSenderRule(owner: string, sender: string) {
@@ -566,6 +579,7 @@ export class MemoryApiRepository implements ApiRepository {
 
   reset() {
     this.policies.clear();
+    this.policyWriteIntents.clear();
     this.postage.clear();
     this.receipts.clear();
     this.senderRules.clear();

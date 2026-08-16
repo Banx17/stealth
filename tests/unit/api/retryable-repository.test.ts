@@ -60,6 +60,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setPolicy");
     return this.inner.setPolicy(owner, policy);
   }
+  async getPolicyWriteIntent(owner: string) {
+    this.maybeFail("getPolicyWriteIntent");
+    return this.inner.getPolicyWriteIntent(owner);
+  }
+  async setPolicyWriteIntent(intent: import("../../../src/server/api/domain").PolicyWriteIntent) {
+    this.maybeFail("setPolicyWriteIntent");
+    return this.inner.setPolicyWriteIntent(intent);
+  }
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
     this.maybeFail("getSenderRule");
     return this.inner.getSenderRule(owner, sender);
@@ -192,11 +200,41 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setCredential");
     return this.inner.setCredential(credential);
   }
-  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+  async getSession(sessionId: string) {
+    this.maybeFail("getSession");
+    return this.inner.getSession(sessionId);
+  }
+  async createSession(session: import("../../../src/server/api/domain").Session) {
+    this.maybeFail("createSession");
+    return this.inner.createSession(session);
+  }
+  async updateSession(session: import("../../../src/server/api/domain").Session) {
+    this.maybeFail("updateSession");
+    return this.inner.updateSession(session);
+  }
+  async deleteSession(sessionId: string) {
+    this.maybeFail("deleteSession");
+    return this.inner.deleteSession(sessionId);
+  }
+  async deleteUserSessions(userId: string) {
+    this.maybeFail("deleteUserSessions");
+    return this.inner.deleteUserSessions(userId);
+  }
+  async getRetiredSession(sessionId: string) {
+    this.maybeFail("getRetiredSession");
+    return this.inner.getRetiredSession(sessionId);
+  }
+  async createRetiredSession(
+    retiredSession: import("../../../src/server/api/domain").RetiredSession,
+  ) {
+    this.maybeFail("createRetiredSession");
+    return this.inner.createRetiredSession(retiredSession);
+  }
+  async getEnvelope(messageId: string) {
     this.maybeFail("getEnvelope");
     return this.inner.getEnvelope(messageId);
   }
-  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+  async insertEnvelope(envelope: import("../../../src/server/api/domain").StoredEnvelope) {
     this.maybeFail("insertEnvelope");
     return this.inner.insertEnvelope(envelope);
   }

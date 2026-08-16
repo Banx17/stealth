@@ -5,6 +5,8 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
+  Session,
   StoredEnvelope,
   User,
   VerificationPurpose,
