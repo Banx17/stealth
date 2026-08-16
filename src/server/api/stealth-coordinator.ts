@@ -5,6 +5,7 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   Session,
   StoredEnvelope,
   User,
@@ -389,6 +390,18 @@ export class StealthCoordinator extends DurableObjectBase {
       default:
         throw new Error(`Unknown migration command: ${String(command)}`);
     }
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    const retired = (await this.ctx.storage.get(`retired_session:${sessionId}`)) as
+      | RetiredSession
+      | undefined;
+    return retired ?? null;
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    await this.ctx.storage.put(`retired_session:${retiredSession.sessionId}`, retiredSession);
+    return retiredSession;
   }
 
   async getCounter(key: string): Promise<number> {

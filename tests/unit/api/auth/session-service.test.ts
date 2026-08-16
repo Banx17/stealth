@@ -5,7 +5,12 @@ import {
   buildSessionCookie,
   logoutSession,
   parseSessionCookie,
+  renewSession,
+  rotateSession,
   validateSession,
+  CONCURRENT_RENEWAL_GRACE_PERIOD_MS,
+  DEFAULT_ABSOLUTE_TIMEOUT_SECONDS,
+  DEFAULT_IDLE_TIMEOUT_SECONDS,
   MAX_LOGIN_ATTEMPTS,
 } from "../../../../src/server/api/auth/session-service";
 import { hashPassword } from "../../../../src/server/api/auth/password";
@@ -14,7 +19,7 @@ import type { AccountStatus, Credential, User } from "../../../../src/server/api
 import { ApiError } from "../../../../src/server/api/errors";
 import { MemoryApiRepository } from "../../../../src/server/api/memory-repository";
 
-describe("BETA-006: Password Login & Server-Side Sessions", () => {
+describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expiry", () => {
   let repo: MemoryApiRepository;
   let apiContext: ReturnType<typeof createApiContext>;
 
@@ -114,6 +119,7 @@ describe("BETA-006: Password Login & Server-Side Sessions", () => {
       expect(result.session.sessionId).toMatch(/^sess_/);
       expect(result.session.userId).toBe(result.user.userId);
       expect(result.session.ipAddress).toBe("127.0.0.1");
+      expect(result.session.absoluteExpiresAt).toBeDefined();
       expect(result.cookieHeader).toContain(`stealth_session=${result.session.sessionId}`);
     });
 
@@ -261,40 +267,186 @@ describe("BETA-006: Password Login & Server-Side Sessions", () => {
       expect(await repo.getSession(oldSessionId)).toBeNull();
       // New session must exist
       expect(await repo.getSession(newSessionId)).not.toBeNull();
+      // Retired session record must exist
+      expect(await repo.getRetiredSession(oldSessionId)).not.toBeNull();
     });
   });
 
-  describe("validateSession & logoutSession", () => {
-    it("validates an active session and updates lastActiveAt", async () => {
+  describe("validateSession & Expiry Boundaries", () => {
+    it("validates an active session and extends sliding idle expiration window", async () => {
+      let currentTime = new Date("2026-06-01T10:00:00.000Z");
       const { user } = await seedTestUser();
-      const authResult = await authenticateWithPassword(apiContext, {
-        identifier: user.email,
-        password: defaultPassword,
+
+      const authResult = await authenticateWithPassword(
+        apiContext,
+        { identifier: user.email, password: defaultPassword },
+        { now: () => currentTime, idleTtlSeconds: 1800, absoluteTtlSeconds: 86400 },
+      );
+
+      const initialExpiresAt = authResult.session.expiresAt;
+      expect(initialExpiresAt).toBe(new Date("2026-06-01T10:30:00.000Z").toISOString());
+
+      // Advance time by 10 minutes (within 30-min idle window)
+      currentTime = new Date("2026-06-01T10:10:00.000Z");
+
+      const validated = await validateSession(apiContext, authResult.session.sessionId, {
+        now: () => currentTime,
+        idleTtlSeconds: 1800,
       });
 
-      const validated = await validateSession(apiContext, authResult.session.sessionId);
       expect(validated).not.toBeNull();
       expect(validated?.user.userId).toBe(user.userId);
-      expect(validated?.session.lastActiveAt).toBeDefined();
+      expect(validated?.session.lastActiveAt).toBe(currentTime.toISOString());
+      // Sliding window should push expiresAt 30 minutes from current time (10:40)
+      expect(validated?.session.expiresAt).toBe(new Date("2026-06-01T10:40:00.000Z").toISOString());
     });
 
-    it("rejects an expired session and deletes it", async () => {
+    it("rejects and deletes session when idle timeout duration is exceeded", async () => {
+      let currentTime = new Date("2026-06-01T10:00:00.000Z");
       const { user } = await seedTestUser();
-      const authResult = await authenticateWithPassword(apiContext, {
-        identifier: user.email,
-        password: defaultPassword,
+
+      const authResult = await authenticateWithPassword(
+        apiContext,
+        { identifier: user.email, password: defaultPassword },
+        { now: () => currentTime, idleTtlSeconds: 1800 },
+      );
+
+      // Advance time by 31 minutes (exceeds 30-min idle timeout)
+      currentTime = new Date("2026-06-01T10:31:00.000Z");
+
+      const validated = await validateSession(apiContext, authResult.session.sessionId, {
+        now: () => currentTime,
+        idleTtlSeconds: 1800,
       });
 
-      // Manually set session expiry to the past
-      const expiredSession = {
-        ...authResult.session,
-        expiresAt: new Date(Date.now() - 10000).toISOString(),
-      };
-      await repo.updateSession(expiredSession);
-
-      const validated = await validateSession(apiContext, expiredSession.sessionId);
       expect(validated).toBeNull();
-      expect(await repo.getSession(expiredSession.sessionId)).toBeNull();
+      expect(await repo.getSession(authResult.session.sessionId)).toBeNull();
+    });
+
+    it("enforces absolute lifetime expiry ceiling even with continuous activity", async () => {
+      const startTime = new Date("2026-06-01T10:00:00.000Z");
+      const { user } = await seedTestUser();
+
+      // Set 1-hour absolute lifetime ceiling and 30-minute idle timeout
+      const authResult = await authenticateWithPassword(
+        apiContext,
+        { identifier: user.email, password: defaultPassword },
+        { now: () => startTime, idleTtlSeconds: 1800, absoluteTtlSeconds: 3600 },
+      );
+
+      // Validate at +20 minutes (extends idle to 10:50:00)
+      const t1 = new Date("2026-06-01T10:20:00.000Z");
+      const v1 = await validateSession(apiContext, authResult.session.sessionId, {
+        now: () => t1,
+        idleTtlSeconds: 1800,
+      });
+
+      expect(v1).not.toBeNull();
+      expect(v1?.session.expiresAt).toBe(new Date("2026-06-01T10:50:00.000Z").toISOString());
+
+      // Validate at +45 minutes (extends idle to 10:45+30m=11:15, but capped at absolute lifetime 11:00:00)
+      const t2 = new Date("2026-06-01T10:45:00.000Z");
+      const v2 = await validateSession(apiContext, authResult.session.sessionId, {
+        now: () => t2,
+        idleTtlSeconds: 1800,
+      });
+
+      expect(v2).not.toBeNull();
+      expect(v2?.session.expiresAt).toBe(new Date("2026-06-01T11:00:00.000Z").toISOString());
+
+      // Attempt validation at +61 minutes (exceeds 1-hour absolute lifetime ceiling)
+      const t3 = new Date("2026-06-01T11:01:00.000Z");
+      const v3 = await validateSession(apiContext, authResult.session.sessionId, {
+        now: () => t3,
+        idleTtlSeconds: 1800,
+      });
+
+      expect(v3).toBeNull();
+      expect(await repo.getSession(authResult.session.sessionId)).toBeNull();
+    });
+  });
+
+  describe("Session Renewal, Rotation & Theft Prevention", () => {
+    it("renews session and rotates session identifier", async () => {
+      const startTime = new Date("2026-06-01T10:00:00.000Z");
+      const { user } = await seedTestUser();
+
+      const authResult = await authenticateWithPassword(
+        apiContext,
+        { identifier: user.email, password: defaultPassword },
+        { now: () => startTime },
+      );
+
+      const oldSessionId = authResult.session.sessionId;
+
+      const renewTime = new Date("2026-06-01T10:15:00.000Z");
+      const renewed = await renewSession(apiContext, oldSessionId, { now: () => renewTime });
+
+      expect(renewed.session.sessionId).not.toBe(oldSessionId);
+      expect(renewed.session.rotatedFromSessionId).toBe(oldSessionId);
+      expect(renewed.session.createdAt).toBe(authResult.session.createdAt);
+      expect(renewed.cookieHeader).toContain(`stealth_session=${renewed.session.sessionId}`);
+
+      // Old session ID removed from active sessions
+      expect(await repo.getSession(oldSessionId)).toBeNull();
+      // Old session ID preserved in retired sessions
+      const retired = await repo.getRetiredSession(oldSessionId);
+      expect(retired).not.toBeNull();
+      expect(retired?.replacedBySessionId).toBe(renewed.session.sessionId);
+    });
+
+    it("resolves concurrent renewals deterministically within grace window", async () => {
+      const startTime = new Date("2026-06-01T10:00:00.000Z");
+      const { user } = await seedTestUser();
+
+      const authResult = await authenticateWithPassword(
+        apiContext,
+        { identifier: user.email, password: defaultPassword },
+        { now: () => startTime },
+      );
+
+      const oldSessionId = authResult.session.sessionId;
+
+      // Request 1 rotates oldSessionId to newSessionId at 10:15:00
+      const renewTime = new Date("2026-06-01T10:15:00.000Z");
+      const renewed = await renewSession(apiContext, oldSessionId, { now: () => renewTime });
+
+      // Concurrent Request 2 arrives 2 seconds later (within 10s grace period) still using oldSessionId
+      const concurrentTime = new Date("2026-06-01T10:15:02.000Z");
+      const validatedConcurrent = await validateSession(apiContext, oldSessionId, {
+        now: () => concurrentTime,
+      });
+
+      expect(validatedConcurrent).not.toBeNull();
+      expect(validatedConcurrent?.session.sessionId).toBe(renewed.session.sessionId);
+    });
+
+    it("rejects stolen retired session reuse past grace window and revokes active session chain", async () => {
+      const startTime = new Date("2026-06-01T10:00:00.000Z");
+      const { user } = await seedTestUser();
+
+      const authResult = await authenticateWithPassword(
+        apiContext,
+        { identifier: user.email, password: defaultPassword },
+        { now: () => startTime },
+      );
+
+      const oldSessionId = authResult.session.sessionId;
+
+      // Legitimate user renews session at 10:15:00
+      const renewTime = new Date("2026-06-01T10:15:00.000Z");
+      const renewed = await renewSession(apiContext, oldSessionId, { now: () => renewTime });
+      const newSessionId = renewed.session.sessionId;
+
+      // Attacker attempts to reuse oldSessionId 30 seconds later (past 10s grace window)
+      const attackerTime = new Date("2026-06-01T10:15:30.000Z");
+
+      await expect(
+        validateSession(apiContext, oldSessionId, { now: () => attackerTime }),
+      ).rejects.toThrow("Retired session token reused");
+
+      // Active session chain must be revoked to protect the user
+      expect(await repo.getSession(newSessionId)).toBeNull();
     });
 
     it("revokes session on logout", async () => {

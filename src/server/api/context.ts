@@ -13,7 +13,9 @@ import {
   profileSchema,
   credentialSchema,
   sessionSchema,
+  retiredSessionSchema,
   storedEnvelopeSchema,
+  policyWriteIntentSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -197,6 +199,7 @@ registerRecordSchema("user", 1, userSchema);
 registerRecordSchema("profile", 1, profileSchema);
 registerRecordSchema("credential", 1, credentialSchema);
 registerRecordSchema("session", 1, sessionSchema);
+registerRecordSchema("retiredSession", 1, retiredSessionSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
 // lease/response to the exact request payload that created it. Legacy
 // records predate this and never bore a client-supplied payload we can
@@ -210,6 +213,10 @@ registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
 // ValidatedApiRepository can detect tampered or structurally invalid
 // envelope records at the adapter boundary before they reach any caller.
 registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
+// Issue #1930 (BETA-023): durable scheduled-write intent for the Policies
+// contract, so tampered or structurally invalid intents fail closed at the
+// adapter boundary instead of silently drifting the reconciliation state.
+registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

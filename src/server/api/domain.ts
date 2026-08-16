@@ -38,6 +38,61 @@ export const mailboxPolicySchema = z.object({
   requireVerified: z.boolean(),
 });
 
+/**
+ * Request body accepted when replacing a mailbox policy. `requireReceipt` is
+ * optional: when absent it defaults to false and is carried into the scheduled
+ * on-chain write as `require_receipt = false`.
+ */
+export const mailboxPolicyWriteSchema = z.object({
+  allowUnknown: z.boolean(),
+  minimumPostage: stroopAmountSchema,
+  requireVerified: z.boolean(),
+  requireReceipt: z.boolean().default(false),
+});
+
+// ---------------------------------------------------------------------------
+// BETA-023 (Issue #1930) — privacy-safe mailbox policy provisioning
+//
+// The on-chain Policies contract persists a four-field policy (including the
+// delivery-receipt preference). The off-chain `MailboxPolicy` deliberately
+// stays at three fields for backward compatibility with stored records and
+// existing callers; the delivery-receipt preference and the off-chain policy
+// version travel with the durable write intent that is scheduled for the
+// matching testnet contract write.
+// ---------------------------------------------------------------------------
+
+export const chainMailboxPolicySchema = z.object({
+  allowUnknown: z.boolean(),
+  minimumPostage: stroopAmountSchema,
+  requireReceipt: z.boolean(),
+  requireVerified: z.boolean(),
+});
+
+export const policyWriteStatusSchema = z.enum(["pending", "submitted", "confirmed", "failed"]);
+
+/**
+ * Durable intent to write a mailbox policy to the Policies contract on
+ * testnet. `offchainVersion` is the off-chain policy version: it is bumped
+ * only when the effective policy actually changes, never on a retry of the
+ * same policy — mirroring the contract's version-as-change-marker contract
+ * without re-submitting an identical write (which the contract would still
+ * count as a version bump).
+ *
+ * `lastError` is a redacted, bounded failure reason; wallet seeds, tokens and
+ * transaction payloads never appear in it.
+ */
+export const policyWriteIntentSchema = z.object({
+  owner: stellarAddressSchema,
+  policy: chainMailboxPolicySchema,
+  offchainVersion: z.number().int().nonnegative(),
+  status: policyWriteStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+});
+
 export const postageSchema = z.object({
   amount: stroopAmountSchema,
   createdAt: z.string().datetime(),
@@ -106,6 +161,9 @@ export function createReceiptSchema(options: ReceiptSchemaOptions = {}) {
 export const receiptSchema = createReceiptSchema();
 
 export type MailboxPolicy = z.infer<typeof mailboxPolicySchema>;
+export type ChainMailboxPolicy = z.infer<typeof chainMailboxPolicySchema>;
+export type PolicyWriteIntent = z.infer<typeof policyWriteIntentSchema>;
+export type PolicyWriteStatus = z.infer<typeof policyWriteStatusSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
@@ -255,6 +313,8 @@ export const sessionSchema = z.object({
   createdAt: z.string().datetime(),
   expiresAt: z.string().datetime(),
   lastActiveAt: z.string().datetime(),
+  absoluteExpiresAt: z.string().datetime().optional(),
+  rotatedFromSessionId: z.string().optional().nullable(),
   ipAddress: z.string().optional().nullable(),
   userAgent: z.string().optional().nullable(),
   deviceFingerprint: z.string().optional().nullable(),
@@ -266,10 +326,20 @@ export const publicSessionSchema = z.object({
   createdAt: z.string().datetime(),
   expiresAt: z.string().datetime(),
   lastActiveAt: z.string().datetime(),
+  absoluteExpiresAt: z.string().datetime().optional(),
+});
+
+export const retiredSessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  replacedBySessionId: z.string().min(1, "Replaced by Session ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  retiredAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
 });
 
 export type Session = z.infer<typeof sessionSchema>;
 export type PublicSession = z.infer<typeof publicSessionSchema>;
+export type RetiredSession = z.infer<typeof retiredSessionSchema>;
 
 export function toPublicSession(session: Session): PublicSession {
   return {
@@ -278,6 +348,7 @@ export function toPublicSession(session: Session): PublicSession {
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,
     lastActiveAt: session.lastActiveAt,
+    absoluteExpiresAt: session.absoluteExpiresAt,
   };
 }
 

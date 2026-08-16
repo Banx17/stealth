@@ -32,6 +32,8 @@ import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
+import { Route as ApiV1PoliciesOwnerProvisionRouteImport } from './routes/api/v1/policies/$owner/provision'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
@@ -152,6 +154,18 @@ const ApiV1PostageMessageIdRefundRoute =
     path: '/refund',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
+const ApiV1PoliciesOwnerReconciliationRoute =
+  ApiV1PoliciesOwnerReconciliationRouteImport.update({
+    id: '/reconciliation',
+    path: '/reconciliation',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
+const ApiV1PoliciesOwnerProvisionRoute =
+  ApiV1PoliciesOwnerProvisionRouteImport.update({
+    id: '/provision',
+    path: '/provision',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -180,6 +194,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
+  '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -206,6 +222,8 @@ export interface FileRoutesByTo {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
+  '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -233,6 +251,8 @@ export interface FileRoutesById {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
+  '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -261,6 +281,8 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/policies/$owner/provision'
+    | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -287,6 +309,8 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/postage'
     | '/api/v1/receipts'
+    | '/api/v1/policies/$owner/provision'
+    | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -313,6 +337,8 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/policies/$owner/provision'
+    | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -505,6 +531,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
+    '/api/v1/policies/$owner/reconciliation': {
+      id: '/api/v1/policies/$owner/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/api/v1/policies/$owner/reconciliation'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerReconciliationRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
+    '/api/v1/policies/$owner/provision': {
+      id: '/api/v1/policies/$owner/provision'
+      path: '/provision'
+      fullPath: '/api/v1/policies/$owner/provision'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerProvisionRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -516,10 +556,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface ApiV1PoliciesOwnerRouteChildren {
+  ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
+  ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 
 const ApiV1PoliciesOwnerRouteChildren: ApiV1PoliciesOwnerRouteChildren = {
+  ApiV1PoliciesOwnerProvisionRoute: ApiV1PoliciesOwnerProvisionRoute,
+  ApiV1PoliciesOwnerReconciliationRoute: ApiV1PoliciesOwnerReconciliationRoute,
   ApiV1PoliciesOwnerSendersSenderRoute: ApiV1PoliciesOwnerSendersSenderRoute,
 }
 
