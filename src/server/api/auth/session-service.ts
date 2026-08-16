@@ -68,7 +68,7 @@ export async function authenticateWithPassword(
   const rateLimitKey = `login:fail:${normalizedId}`;
   const failCount = await repo.getCounter(rateLimitKey);
   if (failCount >= MAX_LOGIN_ATTEMPTS) {
-    throw new ApiError(429, "rate_limited", "Too many login attempts. Please try again later");
+    throw new ApiError(429, "too_many_requests", "Too many login attempts. Please try again later");
   }
 
   // Lookup user by email or username
@@ -101,13 +101,13 @@ export async function authenticateWithPassword(
 
   // Account status checks
   if (user.status === "pending_verification") {
-    throw new ApiError(403, "unverified_account", "Account verification required");
+    throw new ApiError(403, "forbidden", "Account verification required");
   }
   if (user.status === "suspended") {
-    throw new ApiError(403, "account_suspended", "Account suspended");
+    throw new ApiError(403, "forbidden", "Account suspended");
   }
   if (user.status === "deactivated") {
-    throw new ApiError(403, "account_deactivated", "Account deactivated");
+    throw new ApiError(403, "forbidden", "Account deactivated");
   }
   if (user.status !== "active") {
     throw new ApiError(403, "forbidden", "Account is not active");
