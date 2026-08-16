@@ -147,4 +147,47 @@ describe("BETA-006: Auth API Routes (/api/v1/auth/*)", () => {
     const sessionResponse = await sessionHandler({ request: sessionRequest });
     expect(sessionResponse.status).toBe(401);
   });
+
+  it("POST /api/v1/auth/session renews session and rotates session ID", async () => {
+    // Login first
+    const loginHandler = (LoginRoute.options.server?.handlers as any).POST;
+    const loginRequest = new Request("https://stealth.mail/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identifier: "route_user",
+        password: testPassword,
+      }),
+    });
+    const loginResponse = await loginHandler({ request: loginRequest });
+    const oldCookieHeader = loginResponse.headers.get("Set-Cookie");
+    const oldCookieVal = oldCookieHeader?.split(";")[0];
+
+    // Renew session
+    const renewHandler = (SessionRoute.options.server?.handlers as any).POST;
+    const renewRequest = new Request("https://stealth.mail/api/v1/auth/session", {
+      method: "POST",
+      headers: { Cookie: oldCookieVal! },
+    });
+
+    const renewResponse = await renewHandler({ request: renewRequest });
+    expect(renewResponse.status).toBe(200);
+
+    const renewData = await renewResponse.json();
+    expect(renewData.data.session.sessionId).toBeDefined();
+
+    const newCookieHeader = renewResponse.headers.get("Set-Cookie");
+    expect(newCookieHeader).toContain("stealth_session=");
+    const newCookieVal = newCookieHeader?.split(";")[0];
+    expect(newCookieVal).not.toBe(oldCookieVal);
+
+    // Bootstrap GET with new session cookie should succeed
+    const getHandler = (SessionRoute.options.server?.handlers as any).GET;
+    const getRequest = new Request("https://stealth.mail/api/v1/auth/session", {
+      method: "GET",
+      headers: { Cookie: newCookieVal! },
+    });
+    const getResponse = await getHandler({ request: getRequest });
+    expect(getResponse.status).toBe(200);
+  });
 });

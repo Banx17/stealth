@@ -12,6 +12,7 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
@@ -197,6 +198,14 @@ export class HybridApiRepository implements ApiRepository {
 
   async deleteUserSessions(userId: string): Promise<void> {
     return this.getStub().deleteUserSessions(userId);
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return this.getStub().getRetiredSession(sessionId);
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    return this.getStub().createRetiredSession(retiredSession);
   }
 
   // Consistent layer delegated to Durable Object via RPC

@@ -451,6 +451,28 @@ export function runRepositoryContractTests(
         await repo.deleteUserSessions("usr_test_1");
         expect(await repo.getSession("sess_contract_101")).toBeNull();
       });
+
+      it("creates and retrieves a retired session record", async () => {
+        const retiredRecord = {
+          sessionId: "sess_old_1",
+          replacedBySessionId: "sess_new_2",
+          userId: "usr_test_1",
+          retiredAt: "2026-01-01T00:00:00.000Z",
+          expiresAt: "2026-01-08T00:00:00.000Z",
+        };
+
+        expect(await repo.getRetiredSession("sess_old_1")).toBeNull();
+
+        const created = await repo.createRetiredSession(retiredRecord);
+        expect(created.sessionId).toBe("sess_old_1");
+
+        const fetched = await repo.getRetiredSession("sess_old_1");
+        expect(fetched).toMatchObject({
+          sessionId: "sess_old_1",
+          replacedBySessionId: "sess_new_2",
+          userId: "usr_test_1",
+        });
+      });
     });
   });
 }

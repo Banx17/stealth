@@ -7,6 +7,7 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
@@ -138,12 +139,14 @@ export interface ApiRepository {
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
 
-  // BETA-006: Server-Side Session Domain Methods
+  // BETA-006 & BETA-007: Server-Side Session Domain Methods
   getSession(sessionId: string): Promise<Session | null>;
   createSession(session: Session): Promise<Session>;
   updateSession(session: Session): Promise<Session>;
   deleteSession(sessionId: string): Promise<void>;
   deleteUserSessions(userId: string): Promise<void>;
+  getRetiredSession(sessionId: string): Promise<RetiredSession | null>;
+  createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -464,6 +467,18 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.deleteUserSessions(userId);
   }
 
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    const raw = await this.inner.getRetiredSession(sessionId);
+    return raw ? validateRecord<RetiredSession>("retiredSession", raw) : null;
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    const result = await this.inner.createRetiredSession(
+      versionRecord("retiredSession", retiredSession),
+    );
+    return validateRecord<RetiredSession>("retiredSession", result);
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -556,6 +571,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setCredential",
   "getSession",
   "updateSession",
+  "getRetiredSession",
   "getEnvelope",
 ]);
 
@@ -745,6 +761,14 @@ export class RetryableApiRepository implements ApiRepository {
 
   deleteUserSessions(userId: string): Promise<void> {
     return this.inner.deleteUserSessions(userId);
+  }
+
+  getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return this.withRetry("getRetiredSession", () => this.inner.getRetiredSession(sessionId));
+  }
+
+  createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    return this.inner.createRetiredSession(retiredSession);
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {
