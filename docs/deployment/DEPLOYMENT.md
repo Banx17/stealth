@@ -26,6 +26,7 @@ bun run test:e2e
 ```
 
 Ensure all unit tests for the contracts pass:
+
 ```bash
 cd contracts/soroban
 cargo test
@@ -47,6 +48,7 @@ bun run scripts/stellar/deploy.ts \
 
 > [!CAUTION]
 > If deploying to **mainnet**, the script will refuse execution unless you explicitly pass the `--release-mode` flag.
+>
 > ```bash
 > bun run scripts/stellar/deploy.ts \
 >   --network mainnet \
@@ -56,6 +58,7 @@ bun run scripts/stellar/deploy.ts \
 > ```
 
 ### What the script does:
+
 1. Compiles contracts via `stellar contract build`.
 2. Optimizes WASM via `stellar contract optimize`.
 3. Deploys instances to the network.
@@ -78,13 +81,14 @@ If successful, you will see output indicating that all contracts (Policies, Post
 The Stealth web application enforces **Runtime Drift Validation**.
 When the application starts, `src/config/loader.ts` will parse your environment variables and compare them against `src/config/contract-manifest.json`.
 
-If your `.env` (or environment variables in your deployment environment) defines a `STEALTH_POSTAGE_CONTRACT_ID` or `STEALTH_REGISTRY_CONTRACT_ID` that does *not* match the manifest, the application will refuse to start in `preview` and `production` environments to prevent drift.
+If your `.env` (or environment variables in your deployment environment) defines a `STEALTH_POSTAGE_CONTRACT_ID` or `STEALTH_REGISTRY_CONTRACT_ID` that does _not_ match the manifest, the application will refuse to start in `preview` and `production` environments to prevent drift.
 
 **Important:** Ensure you update your `.env` files or deployment secrets with the new contract IDs generated in the manifest!
 
 ## Rollback Procedures
 
 If a deployment fails or introduces a critical bug:
+
 1. Review the `contract-manifest.json` history.
 2. The `contract-manifest.json` acts as your source of truth. You can restore the previous manifest file to roll back the application configuration, effectively pointing the application back to the previously deployed contract instances.
 3. For serious issues, you can update the `Lifecycle` configuration to reject all new policies until a patch is deployed.

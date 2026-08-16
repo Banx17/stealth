@@ -10,7 +10,9 @@ describe("Deployment Script Constraints", () => {
 
   it("fails if mainnet is used without release-mode", async () => {
     try {
-      await execAsync(`npx tsx ${scriptPath} --network mainnet --deployer SECRET --network-passphrase "Public Global Stellar Network ; September 2015"`);
+      await execAsync(
+        `npx tsx ${scriptPath} --network mainnet --deployer SECRET --network-passphrase "Public Global Stellar Network ; September 2015"`,
+      );
       expect.fail("Should have failed on mainnet without --release-mode");
     } catch (err: any) {
       expect(err.stderr).toContain("Refusing to deploy to mainnet without --release-mode flag");

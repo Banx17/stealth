@@ -49,7 +49,7 @@ describe("Runtime Registry Drift Validation", () => {
     vi.mocked(existsSync).mockReturnValue(false);
 
     expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(
-      /contract-manifest.json is missing/
+      /contract-manifest.json is missing/,
     );
   });
 
@@ -63,10 +63,12 @@ describe("Runtime Registry Drift Validation", () => {
   it("fails on network mismatch", () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(readFileSync).mockReturnValue(
-      JSON.stringify({ ...mockManifest, network: "mainnet" })
+      JSON.stringify({ ...mockManifest, network: "mainnet" }),
     );
 
-    expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(/does not match manifest network/);
+    expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(
+      /does not match manifest network/,
+    );
   });
 
   it("fails on postage contract ID mismatch", () => {
@@ -75,7 +77,7 @@ describe("Runtime Registry Drift Validation", () => {
       JSON.stringify({
         ...mockManifest,
         contracts: { ...mockManifest.contracts, postage: { contractId: "CBBBB2" } },
-      })
+      }),
     );
 
     expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(/STEALTH_POSTAGE_CONTRACT_ID/);
@@ -87,9 +89,11 @@ describe("Runtime Registry Drift Validation", () => {
       JSON.stringify({
         ...mockManifest,
         contracts: { ...mockManifest.contracts, lifecycle: { contractId: "CAAAA2" } },
-      })
+      }),
     );
 
-    expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(/STEALTH_REGISTRY_CONTRACT_ID/);
+    expect(() => validateRegistryDrift(mockConfigBase)).toThrowError(
+      /STEALTH_REGISTRY_CONTRACT_ID/,
+    );
   });
 });
