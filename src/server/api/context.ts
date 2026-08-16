@@ -9,6 +9,9 @@ import {
   receiptSchema,
   idempotencyRecordSchema,
   stellarAddressSchema,
+  userSchema,
+  profileSchema,
+  credentialSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -188,6 +191,9 @@ registerRecordSchema("mailboxPolicy", 1, mailboxPolicySchema);
 registerRecordSchema("senderRule", 1, senderRuleSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
+registerRecordSchema("user", 1, userSchema);
+registerRecordSchema("profile", 1, profileSchema);
+registerRecordSchema("credential", 1, credentialSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the
 // lease/response to the exact request payload that created it. Legacy
 // records predate this and never bore a client-supplied payload we can

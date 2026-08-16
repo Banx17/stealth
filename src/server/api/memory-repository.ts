@@ -1,12 +1,15 @@
 import type {
+  Credential,
   IdempotencyRecord,
   MailboxPolicy,
   Postage,
   PostageStatus,
+  Profile,
   Receipt,
   SenderRule,
+  User,
 } from "./domain";
-import type { ApiRepository, PostageTransitionResult } from "./repository";
+import type { ApiRepository, PostageTransitionResult, UpdateUserResult } from "./repository";
 import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
@@ -21,6 +24,14 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly receiptLocks = new Map<string, Promise<void>>();
+
+  // BETA-002: User Account, Profile, Credential storage & unique index maps
+  private readonly usersById = new Map<string, User>();
+  private readonly usersByEmail = new Map<string, string>();
+  private readonly usersByUsername = new Map<string, string>();
+  private readonly usersByAddress = new Map<string, string>();
+  private readonly profiles = new Map<string, Profile>();
+  private readonly credentials = new Map<string, Credential>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -76,10 +87,6 @@ export class MemoryApiRepository implements ApiRepository {
     expectedStatus: PostageStatus,
     nextStatus: PostageStatus,
   ): Promise<PostageTransitionResult> {
-    // No `await` occurs between the read and the write below, so this
-    // check-then-act sequence runs to completion within a single
-    // microtask and cannot interleave with a concurrent call for the
-    // same messageId, giving us the atomicity the interface requires.
     const current = this.postage.get(messageId);
     if (!current) {
       return { outcome: "not-found" };
@@ -128,10 +135,6 @@ export class MemoryApiRepository implements ApiRepository {
     actor: string,
     now = new Date(),
   ): Promise<import("./repository").MarkReceiptReadResult> {
-    // No `await` occurs between the read and the write below, so this
-    // check-then-act sequence runs to completion within a single
-    // microtask and cannot interleave with a concurrent call for the
-    // same messageId, giving us the atomicity the interface requires.
     const receipt = this.receipts.get(messageId);
     if (!receipt) {
       return { outcome: "not-found" };
@@ -145,6 +148,136 @@ export class MemoryApiRepository implements ApiRepository {
     const updated: Receipt = { ...receipt, readAt: now.toISOString() };
     this.receipts.set(messageId, updated);
     return { outcome: "marked", receipt: structuredClone(updated) };
+  }
+
+  // BETA-002 User Account, Profile, and Credential Domain Implementation
+  async getUserById(userId: string): Promise<User | null> {
+    return structuredClone(this.usersById.get(userId) ?? null);
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const userId = this.usersByEmail.get(email.toLowerCase().trim());
+    if (!userId) return null;
+    return structuredClone(this.usersById.get(userId) ?? null);
+  }
+
+  async getUserByUsername(username: string): Promise<User | null> {
+    const userId = this.usersByUsername.get(username.toLowerCase().trim());
+    if (!userId) return null;
+    return structuredClone(this.usersById.get(userId) ?? null);
+  }
+
+  async getUserByAddress(address: string): Promise<User | null> {
+    const userId = this.usersByAddress.get(address.toUpperCase().trim());
+    if (!userId) return null;
+    return structuredClone(this.usersById.get(userId) ?? null);
+  }
+
+  async createUser(user: User, credential?: Credential, profile?: Profile): Promise<User> {
+    if (this.usersById.has(user.userId)) {
+      throw new ApiError(409, "conflict", `User ID ${user.userId} already exists`);
+    }
+
+    const normEmail = user.email.toLowerCase().trim();
+    if (this.usersByEmail.has(normEmail)) {
+      throw new ApiError(409, "conflict", `User with email ${user.email} already exists`);
+    }
+
+    const normUsername = user.username.toLowerCase().trim();
+    if (this.usersByUsername.has(normUsername)) {
+      throw new ApiError(409, "conflict", `Username ${user.username} already in use`);
+    }
+
+    const normAddress = user.address.toUpperCase().trim();
+    if (this.usersByAddress.has(normAddress)) {
+      throw new ApiError(409, "conflict", `Stellar address ${user.address} is already bound`);
+    }
+
+    const clonedUser = structuredClone(user);
+    this.usersById.set(user.userId, clonedUser);
+    this.usersByEmail.set(normEmail, user.userId);
+    this.usersByUsername.set(normUsername, user.userId);
+    this.usersByAddress.set(normAddress, user.userId);
+
+    if (credential) {
+      this.credentials.set(user.userId, structuredClone(credential));
+    }
+    if (profile) {
+      this.profiles.set(user.userId, structuredClone(profile));
+    }
+
+    return structuredClone(clonedUser);
+  }
+
+  async updateUser(user: User, expectedVersion: number): Promise<UpdateUserResult> {
+    const current = this.usersById.get(user.userId);
+    if (!current) {
+      return { updated: false, current: null };
+    }
+
+    if (current.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(current) };
+    }
+
+    const normEmail = user.email.toLowerCase().trim();
+    const existingEmailOwner = this.usersByEmail.get(normEmail);
+    if (existingEmailOwner && existingEmailOwner !== user.userId) {
+      throw new ApiError(409, "conflict", `User with email ${user.email} already exists`);
+    }
+
+    const normUsername = user.username.toLowerCase().trim();
+    const existingUsernameOwner = this.usersByUsername.get(normUsername);
+    if (existingUsernameOwner && existingUsernameOwner !== user.userId) {
+      throw new ApiError(409, "conflict", `Username ${user.username} already in use`);
+    }
+
+    const normAddress = user.address.toUpperCase().trim();
+    const existingAddressOwner = this.usersByAddress.get(normAddress);
+    if (existingAddressOwner && existingAddressOwner !== user.userId) {
+      throw new ApiError(409, "conflict", `Stellar address ${user.address} is already bound`);
+    }
+
+    // Clean up old index entries if changed
+    if (current.email.toLowerCase().trim() !== normEmail) {
+      this.usersByEmail.delete(current.email.toLowerCase().trim());
+    }
+    if (current.username.toLowerCase().trim() !== normUsername) {
+      this.usersByUsername.delete(current.username.toLowerCase().trim());
+    }
+    if (current.address.toUpperCase().trim() !== normAddress) {
+      this.usersByAddress.delete(current.address.toUpperCase().trim());
+    }
+
+    const nextUser: User = {
+      ...user,
+      version: expectedVersion + 1,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.usersById.set(user.userId, structuredClone(nextUser));
+    this.usersByEmail.set(normEmail, user.userId);
+    this.usersByUsername.set(normUsername, user.userId);
+    this.usersByAddress.set(normAddress, user.userId);
+
+    return { updated: true, user: structuredClone(nextUser) };
+  }
+
+  async getProfile(userId: string): Promise<Profile | null> {
+    return structuredClone(this.profiles.get(userId) ?? null);
+  }
+
+  async setProfile(profile: Profile): Promise<Profile> {
+    this.profiles.set(profile.userId, structuredClone(profile));
+    return structuredClone(profile);
+  }
+
+  async getCredential(userId: string): Promise<Credential | null> {
+    return structuredClone(this.credentials.get(userId) ?? null);
+  }
+
+  async setCredential(credential: Credential): Promise<Credential> {
+    this.credentials.set(credential.userId, structuredClone(credential));
+    return structuredClone(credential);
   }
 
   async getRelayQueueDepth(_relayId: string) {
@@ -193,8 +326,6 @@ export class MemoryApiRepository implements ApiRepository {
     const now = Date.now();
 
     if (existing) {
-      // Same key, different payload: never block behind or replay a
-      // response for a different logical request (Issue #1498).
       if (existing.requestDigest !== requestDigest) {
         return { status: "conflict" };
       }
@@ -203,13 +334,11 @@ export class MemoryApiRepository implements ApiRepository {
         return { status: "completed", record: structuredClone(existing) };
       }
 
-      // existing is in_progress. Check if lease expired
       if (now < new Date(existing.recoveryExpiryAt).getTime()) {
         return { status: "in_progress" };
       }
     }
 
-    // Acquire the lock
     this.idempotency.set(key, {
       state: "in_progress",
       requestDigest,
@@ -236,5 +365,11 @@ export class MemoryApiRepository implements ApiRepository {
     this.counters.clear();
     this.idempotency.clear();
     this.receiptLocks.clear();
+    this.usersById.clear();
+    this.usersByEmail.clear();
+    this.usersByUsername.clear();
+    this.usersByAddress.clear();
+    this.profiles.clear();
+    this.credentials.clear();
   }
 }

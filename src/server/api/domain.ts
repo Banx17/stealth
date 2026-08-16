@@ -127,3 +127,115 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
 ]);
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
+
+// ---------------------------------------------------------------------------
+// BETA-002: Durable User Account, Profile, Credential & AccountStatus Domain
+// ---------------------------------------------------------------------------
+
+export const accountStatusSchema = z.enum([
+  "active",
+  "suspended",
+  "pending_verification",
+  "deactivated",
+]);
+
+export const emailSchema = z.string().trim().toLowerCase().email("Expected a valid email address");
+
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(
+    /^[a-z0-9_-]{3,30}$/,
+    "Username must be 3-30 lowercase alphanumeric characters, underscores, or hyphens",
+  );
+
+export const userSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  email: emailSchema,
+  username: usernameSchema,
+  status: accountStatusSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export const profileSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  username: usernameSchema,
+  displayName: z.string().trim().min(1, "Display name cannot be empty"),
+  avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const credentialAuthMethodSchema = z.enum([
+  "stellar_header",
+  "passkey",
+  "password_hash",
+  "delegation",
+]);
+
+export const credentialSchema = z.object({
+  credentialId: z.string().min(1, "Credential ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  authMethod: credentialAuthMethodSchema,
+  secretHash: z.string().min(1, "Secret hash cannot be empty"),
+  walletKeyRef: z.string().min(1, "Wallet key ref cannot be empty"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const publicUserSchema = z.object({
+  userId: z.string(),
+  address: stellarAddressSchema,
+  email: emailSchema,
+  username: usernameSchema,
+  status: accountStatusSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const publicProfileSchema = z.object({
+  userId: z.string(),
+  username: usernameSchema,
+  displayName: z.string(),
+  avatarUrl: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type AccountStatus = z.infer<typeof accountStatusSchema>;
+export type User = z.infer<typeof userSchema>;
+export type Profile = z.infer<typeof profileSchema>;
+export type Credential = z.infer<typeof credentialSchema>;
+export type CredentialAuthMethod = z.infer<typeof credentialAuthMethodSchema>;
+export type PublicUser = z.infer<typeof publicUserSchema>;
+export type PublicProfile = z.infer<typeof publicProfileSchema>;
+
+export function toPublicUser(user: User): PublicUser {
+  return {
+    userId: user.userId,
+    address: user.address,
+    email: user.email,
+    username: user.username,
+    status: user.status,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+export function toPublicProfile(profile: Profile): PublicProfile {
+  return {
+    userId: profile.userId,
+    username: profile.username,
+    displayName: profile.displayName,
+    avatarUrl: profile.avatarUrl ?? null,
+    bio: profile.bio ?? null,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+  };
+}
