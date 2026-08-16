@@ -83,8 +83,8 @@
           "STEALTH_STORAGE_SECRET",
           "STEALTH_SMTP_PASSWORD",
           "STEALTH_RPC_API_KEY",
-          "STEALTH_OPERATOR_SECRET"
-        ]
+          "STEALTH_OPERATOR_SECRET",
+        ],
       },
       "vars": {
         "STEALTH_ENV": "preview",
@@ -134,8 +134,8 @@
           "STEALTH_STORAGE_SECRET",
           "STEALTH_SMTP_PASSWORD",
           "STEALTH_RPC_API_KEY",
-          "STEALTH_OPERATOR_SECRET"
-        ]
+          "STEALTH_OPERATOR_SECRET",
+        ],
       },
       "vars": {
         "STEALTH_ENV": "production",
