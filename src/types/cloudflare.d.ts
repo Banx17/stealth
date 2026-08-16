@@ -75,8 +75,15 @@ interface R2PutOptions {
 }
 
 interface R2Bucket {
-  put(key: string, value: ArrayBuffer | ArrayBufferView | ReadableStream | string | null, options?: R2PutOptions): Promise<R2Object>;
-  get(key: string, options?: { range?: { offset: number; length: number } }): Promise<R2ObjectBody | null>;
+  put(
+    key: string,
+    value: ArrayBuffer | ArrayBufferView | ReadableStream | string | null,
+    options?: R2PutOptions,
+  ): Promise<R2Object>;
+  get(
+    key: string,
+    options?: { range?: { offset: number; length: number } },
+  ): Promise<R2ObjectBody | null>;
   head(key: string): Promise<R2Object | null>;
   delete(key: string): Promise<void>;
   list(options?: R2ListOptions): Promise<R2Objects>;
