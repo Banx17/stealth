@@ -20,6 +20,11 @@ interface DurableObjectState {
     get<T>(key: string): Promise<T | undefined>;
     put(key: string, value: any): Promise<void>;
     delete(key: string): Promise<boolean>;
+    list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<{
+      keys: Array<{ name: string }>;
+      list_complete: boolean;
+      cursor?: string;
+    }>;
   };
 }
 

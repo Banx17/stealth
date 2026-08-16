@@ -33,6 +33,7 @@ import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
+import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
@@ -159,6 +160,9 @@ const ApiV1WalletLinkChallengeRoute =
 const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
   id: '/api/v1/wallet/link/$address',
   path: '/api/v1/wallet/link/$address',
+const ApiV1AuthRegisterRoute = ApiV1AuthRegisterRouteImport.update({
+  id: '/api/v1/auth/register',
+  path: '/api/v1/auth/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
@@ -206,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -238,6 +243,7 @@ export interface FileRoutesByTo {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -271,6 +277,7 @@ export interface FileRoutesById {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -305,6 +312,7 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/auth/login'
+    | '/api/v1/auth/register'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
@@ -337,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/auth/login'
+    | '/api/v1/auth/register'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
@@ -369,6 +378,7 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/auth/login'
+    | '/api/v1/auth/register'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
@@ -402,6 +412,7 @@ export interface RootRouteChildren {
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
+  ApiV1AuthRegisterRoute: typeof ApiV1AuthRegisterRoute
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -589,6 +600,11 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/wallet/link/$address'
       fullPath: '/api/v1/wallet/link/$address'
       preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
+    '/api/v1/auth/register': {
+      id: '/api/v1/auth/register'
+      path: '/api/v1/auth/register'
+      fullPath: '/api/v1/auth/register'
+      preLoaderRoute: typeof ApiV1AuthRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/receipts/$messageId/read': {
@@ -688,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
+  ApiV1AuthRegisterRoute: ApiV1AuthRegisterRoute,
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
