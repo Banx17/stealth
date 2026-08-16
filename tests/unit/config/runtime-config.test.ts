@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   formatConfigMatrix,
   getPublicConfig,
   getRedactedConfig,
   loadRuntimeConfig,
 } from "../../../src/config";
+
+vi.mock("../../../src/config/registry", () => ({
+  validateRegistryDrift: vi.fn(),
+}));
 
 describe("BETA-001 :: Beta Runtime Configuration Contract", () => {
   describe("Profile Loading & Defaults", () => {
