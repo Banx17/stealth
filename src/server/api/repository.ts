@@ -198,6 +198,15 @@ export interface ApiRepository {
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
 
+  // BETA-006: Server-side session lifecycle methods.
+  getSession(sessionId: string): Promise<Session | null>;
+  createSession(session: Session): Promise<Session>;
+  updateSession(session: Session): Promise<Session>;
+  deleteSession(sessionId: string): Promise<void>;
+  deleteUserSessions(userId: string): Promise<void>;
+  getRetiredSession(sessionId: string): Promise<RetiredSession | null>;
+  createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession>;
+
   // BETA-005: Verification token lifecycle methods.
   // Each token is identified by its SHA-256 hash; plaintext tokens are never
   // accepted, stored, or returned by the persistence layer.
@@ -516,6 +525,41 @@ export class ValidatedApiRepository implements ApiRepository {
   async setCredential(credential: Credential): Promise<Credential> {
     const result = await this.inner.setCredential(versionRecord("credential", credential));
     return validateRecord<Credential>("credential", result);
+  }
+
+  async getSession(sessionId: string): Promise<Session | null> {
+    const raw = await this.inner.getSession(sessionId);
+    return raw ? validateRecord<Session>("session", raw) : null;
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    const result = await this.inner.createSession(versionRecord("session", session));
+    return validateRecord<Session>("session", result);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    const result = await this.inner.updateSession(versionRecord("session", session));
+    return validateRecord<Session>("session", result);
+  }
+
+  deleteSession(sessionId: string): Promise<void> {
+    return this.inner.deleteSession(sessionId);
+  }
+
+  deleteUserSessions(userId: string): Promise<void> {
+    return this.inner.deleteUserSessions(userId);
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    const raw = await this.inner.getRetiredSession(sessionId);
+    return raw ? validateRecord<RetiredSession>("retiredSession", raw) : null;
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    const result = await this.inner.createRetiredSession(
+      versionRecord("retiredSession", retiredSession),
+    );
+    return validateRecord<RetiredSession>("retiredSession", result);
   }
 
   async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
@@ -847,6 +891,34 @@ export class RetryableApiRepository implements ApiRepository {
 
   setCredential(credential: Credential): Promise<Credential> {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
+  }
+
+  getSession(sessionId: string): Promise<Session | null> {
+    return this.withRetry("getSession", () => this.inner.getSession(sessionId));
+  }
+
+  createSession(session: Session): Promise<Session> {
+    return this.inner.createSession(session);
+  }
+
+  updateSession(session: Session): Promise<Session> {
+    return this.withRetry("updateSession", () => this.inner.updateSession(session));
+  }
+
+  deleteSession(sessionId: string): Promise<void> {
+    return this.inner.deleteSession(sessionId);
+  }
+
+  deleteUserSessions(userId: string): Promise<void> {
+    return this.inner.deleteUserSessions(userId);
+  }
+
+  getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return this.withRetry("getRetiredSession", () => this.inner.getRetiredSession(sessionId));
+  }
+
+  createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    return this.inner.createRetiredSession(retiredSession);
   }
 
   getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {

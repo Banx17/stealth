@@ -225,6 +225,8 @@ export class HybridApiRepository implements ApiRepository {
     now: Date,
   ): Promise<import("./repository").RecordVerificationAttemptResult> {
     return this.getStub().recordVerificationAttempt(tokenHash, now);
+  }
+
   // BETA-006: Session DO stubs
   async getSession(sessionId: string): Promise<Session | null> {
     return this.getStub().getSession(sessionId);

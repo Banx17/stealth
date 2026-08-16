@@ -54,6 +54,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+  private readonly sessions = new Map<string, Session>();
+  private readonly retiredSessions = new Map<string, RetiredSession>();
 
   // BETA-005: Verification tokens keyed by SHA-256 hash, plus the active-token
   // index per (userId, purpose) and a per-key lock chain for atomic transitions.
@@ -357,6 +359,41 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(credential);
   }
 
+  async getSession(sessionId: string): Promise<Session | null> {
+    return structuredClone(this.sessions.get(sessionId) ?? null);
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return structuredClone(session);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return structuredClone(session);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    for (const [sessionId, session] of this.sessions.entries()) {
+      if (session.userId === userId) {
+        this.sessions.delete(sessionId);
+      }
+    }
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return structuredClone(this.retiredSessions.get(sessionId) ?? null);
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    this.retiredSessions.set(retiredSession.sessionId, structuredClone(retiredSession));
+    return structuredClone(retiredSession);
+  }
+
   // BETA-005 Verification Token Lifecycle Implementation
   async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
     return structuredClone(this.verificationTokens.get(tokenHash) ?? null);
@@ -594,6 +631,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.sessions.clear();
+    this.retiredSessions.clear();
     this.verificationTokens.clear();
     this.activeVerificationTokens.clear();
     this.verificationLocks.clear();

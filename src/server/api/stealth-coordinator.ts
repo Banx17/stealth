@@ -336,6 +336,59 @@ export class StealthCoordinator extends DurableObjectBase {
     return credential;
   }
 
+  async getSession(sessionId: string): Promise<Session | null> {
+    const session = (await this.ctx.storage.get(`session:${sessionId}`)) as Session | undefined;
+    return session ?? null;
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    await this.ctx.storage.put(`session:${session.sessionId}`, session);
+    await this.ctx.storage.put(`session:user:${session.userId}:${session.sessionId}`, true);
+    return session;
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    const current = await this.getSession(session.sessionId);
+    if (current && current.userId !== session.userId) {
+      await this.ctx.storage.delete(`session:user:${current.userId}:${session.sessionId}`);
+    }
+    await this.ctx.storage.put(`session:${session.sessionId}`, session);
+    await this.ctx.storage.put(`session:user:${session.userId}:${session.sessionId}`, true);
+    return session;
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    await this.ctx.storage.delete(`session:${sessionId}`);
+    if (session) {
+      await this.ctx.storage.delete(`session:user:${session.userId}:${sessionId}`);
+    }
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const deletes: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      deletes.push(key, `session:${key.slice(prefix.length)}`);
+    }
+    if (deletes.length > 0) {
+      await this.ctx.storage.delete(deletes);
+    }
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    const retiredSession = (await this.ctx.storage.get(`retired-session:${sessionId}`)) as
+      | RetiredSession
+      | undefined;
+    return retiredSession ?? null;
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    await this.ctx.storage.put(`retired-session:${retiredSession.sessionId}`, retiredSession);
+    return retiredSession;
+  }
+
   // BETA-005: Durable verification-token lifecycle methods
   async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
     const token = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
