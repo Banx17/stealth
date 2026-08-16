@@ -61,6 +61,54 @@ export function runRepositoryContractTests(
       });
     });
 
+    describe("policy write intents (BETA-023 / Issue #1930)", () => {
+      const intent = {
+        owner,
+        policy: {
+          allowUnknown: true,
+          requireVerified: false,
+          requireReceipt: false,
+          minimumPostage: "0",
+        },
+        offchainVersion: 1,
+        status: "pending" as const,
+        scheduledAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        failureCount: 0,
+        lastError: null,
+        txHash: null,
+      };
+
+      it("returns null for a missing write intent", async () => {
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toBeNull();
+      });
+
+      it("round-trips a policy write intent keyed by owner", async () => {
+        await repo.setPolicyWriteIntent(intent);
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toMatchObject({
+          owner,
+          offchainVersion: 1,
+          status: "pending",
+        });
+      });
+
+      it("overwrites an existing write intent and isolates per owner", async () => {
+        const otherOwner = `G${"C".repeat(55)}`;
+        await repo.setPolicyWriteIntent(intent);
+        await repo.setPolicyWriteIntent({
+          ...intent,
+          owner: otherOwner,
+          offchainVersion: 2,
+        });
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toMatchObject({
+          offchainVersion: 1,
+        });
+        await expect(repo.getPolicyWriteIntent(otherOwner)).resolves.toMatchObject({
+          offchainVersion: 2,
+        });
+      });
+    });
+
     describe("sender rules", () => {
       it("defaults to 'default' when no rule exists", async () => {
         await expect(repo.getSenderRule(owner, sender)).resolves.toBe("default");

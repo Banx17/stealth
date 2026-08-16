@@ -8,6 +8,7 @@ import type {
   Credential,
   IdempotencyRecord,
   MailboxPolicy,
+  PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
@@ -37,6 +38,16 @@ export class HybridApiRepository implements ApiRepository {
   async setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
     await this.kv.put(this.key("policy", owner), JSON.stringify(policy));
     return policy;
+  }
+
+  async getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null> {
+    const intent = await this.kv.get(this.key("policy-write", owner), "json");
+    return (intent as PolicyWriteIntent) ?? null;
+  }
+
+  async setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
+    await this.kv.put(this.key("policy-write", intent.owner), JSON.stringify(intent));
+    return intent;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
