@@ -234,7 +234,33 @@ export type ApiContext = AnonymousApiContext | AuthenticatedApiContext;
 
 const globalApi = globalThis as typeof globalThis & {
   __stealthApiRepository?: ApiRepository;
+  __stealthObjectStore?: unknown;
 };
+
+/**
+ * Returns the R2-backed object store bound to the Workers runtime. In dev and
+ * test environments (no binding), it returns `null` so callers fall back to the
+ * in-memory/other path; in production it lazily constructs the adapter from the
+ * STEALTH_OBJECT_STORE binding.
+ */
+export async function getObjectStore(): Promise<
+  import("@/services/storage/object-store").ObjectStoreAdapter | null
+> {
+  if (!import.meta.env.PROD) {
+    return globalApi.__stealthObjectStore as ReturnType<typeof getObjectStore> | null;
+  }
+  if (globalApi.__stealthObjectStore) {
+    return globalApi.__stealthObjectStore as ReturnType<typeof getObjectStore>;
+  }
+  const { env } = await import("cloudflare:workers");
+  if (!env.STEALTH_OBJECT_STORE) {
+    return null;
+  }
+  const { R2ObjectStoreAdapter } = await import("@/services/storage/r2-adapter");
+  const adapter = new R2ObjectStoreAdapter(env.STEALTH_OBJECT_STORE);
+  globalApi.__stealthObjectStore = adapter;
+  return adapter;
+}
 
 /**
  * Extract verified principal from incoming request headers.
@@ -306,6 +332,7 @@ export interface ApiConfig {
   isProd: boolean;
   kvBinding?: unknown;
   coordinatorBinding?: unknown;
+  objectStoreBinding?: unknown;
   cursorSecret?: string;
   supportedVersions: readonly string[];
 }
@@ -324,6 +351,11 @@ export function validateApiConfig(config: ApiConfig): void {
     if (!config.coordinatorBinding) {
       throw new Error(
         "Configuration error: STEALTH_COORDINATOR binding is not declared in wrangler.jsonc.",
+      );
+    }
+    if (!config.objectStoreBinding) {
+      throw new Error(
+        "Configuration error: STEALTH_OBJECT_STORE binding is not declared in wrangler.jsonc.",
       );
     }
     if (!config.cursorSecret) {
@@ -363,6 +395,7 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
       isProd: true,
       kvBinding: env.STEALTH_KV,
       coordinatorBinding: env.STEALTH_COORDINATOR,
+      objectStoreBinding: env.STEALTH_OBJECT_STORE,
       cursorSecret,
       supportedVersions: ["v1"],
     });
