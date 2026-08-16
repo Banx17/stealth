@@ -5,6 +5,7 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  Session,
   User,
 } from "./domain";
 import type {
@@ -321,6 +322,38 @@ export class StealthCoordinator extends DurableObjectBase {
   async setCredential(credential: Credential): Promise<Credential> {
     await this.ctx.storage.put(`credential:${credential.userId}`, credential);
     return credential;
+  }
+
+  // BETA-006: Durable Session Storage
+  async getSession(sessionId: string): Promise<Session | null> {
+    const session = (await this.ctx.storage.get(`session:${sessionId}`)) as Session | undefined;
+    return session ?? null;
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    await this.ctx.storage.put(`session:${session.sessionId}`, session);
+    return session;
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    await this.ctx.storage.put(`session:${session.sessionId}`, session);
+    return session;
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    await this.ctx.storage.delete(`session:${sessionId}`);
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    const sessionsMap = (await this.ctx.storage.list({ prefix: "session:" })) as Map<
+      string,
+      Session
+    >;
+    for (const [key, sess] of sessionsMap) {
+      if (sess && sess.userId === userId) {
+        await this.ctx.storage.delete(key);
+      }
+    }
   }
 
   async getCounter(key: string): Promise<number> {

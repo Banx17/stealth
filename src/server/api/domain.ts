@@ -239,3 +239,39 @@ export function toPublicProfile(profile: Profile): PublicProfile {
     updatedAt: profile.updatedAt,
   };
 }
+
+// ---------------------------------------------------------------------------
+// BETA-006: Server-Side Session Domain
+// ---------------------------------------------------------------------------
+
+export const sessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  lastActiveAt: z.string().datetime(),
+  ipAddress: z.string().optional().nullable(),
+  userAgent: z.string().optional().nullable(),
+  deviceFingerprint: z.string().optional().nullable(),
+});
+
+export const publicSessionSchema = z.object({
+  sessionId: z.string(),
+  userId: z.string(),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  lastActiveAt: z.string().datetime(),
+});
+
+export type Session = z.infer<typeof sessionSchema>;
+export type PublicSession = z.infer<typeof publicSessionSchema>;
+
+export function toPublicSession(session: Session): PublicSession {
+  return {
+    sessionId: session.sessionId,
+    userId: session.userId,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    lastActiveAt: session.lastActiveAt,
+  };
+}

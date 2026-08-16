@@ -130,6 +130,30 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A matching operation currently holds the idempotency lease.",
   },
+  rate_limited: {
+    status: 429,
+    message: "Too many login attempts. Please try again later",
+    retryable: true,
+    description: "Login rate limit exceeded due to multiple failed attempts.",
+  },
+  unverified_account: {
+    status: 403,
+    message: "Account verification required",
+    retryable: false,
+    description: "The account is pending email or identity verification.",
+  },
+  account_suspended: {
+    status: 403,
+    message: "Account suspended",
+    retryable: false,
+    description: "The user account has been suspended by an administrator.",
+  },
+  account_deactivated: {
+    status: 403,
+    message: "Account deactivated",
+    retryable: false,
+    description: "The user account has been deactivated.",
+  },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
 export type ApiErrorCode = keyof typeof API_ERROR_REGISTRY;

@@ -70,6 +70,7 @@ import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
+import { AuthModal } from "@/components/mail/AuthModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -134,6 +135,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [shortcutOverlayOpen, setShortcutOverlayOpen] = useState(false);
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
   const [proofInspectorQuery, setProofInspectorQuery] = useState("");
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
@@ -743,6 +745,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                   setFolder("inbox");
                   setFilters({ ...defaultMailFilters, unreadOnly: true });
                 }}
+                onOpenLogin={() => setAuthModalOpen(true)}
               />
               <div className="flex min-h-0 min-w-0 flex-1">
                 {folder === "requests" ? (
@@ -969,6 +972,12 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           onClose={() => setPreviewAttachment(null)}
           attachment={previewAttachment}
           senderAddress={selected?.email}
+        />
+
+        <AuthModal
+          open={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={(user) => showToast(`Signed in as ${user.username}`)}
         />
       </div>
     </MotionConfig>

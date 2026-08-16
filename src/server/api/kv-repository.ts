@@ -8,6 +8,7 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  Session,
   User,
 } from "./domain";
 import { ApiError } from "./errors";
@@ -169,6 +170,27 @@ export class HybridApiRepository implements ApiRepository {
 
   async setCredential(credential: Credential): Promise<Credential> {
     return this.getStub().setCredential(credential);
+  }
+
+  // BETA-006: Session DO stubs
+  async getSession(sessionId: string): Promise<Session | null> {
+    return this.getStub().getSession(sessionId);
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    return this.getStub().createSession(session);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    return this.getStub().updateSession(session);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    return this.getStub().deleteSession(sessionId);
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    return this.getStub().deleteUserSessions(userId);
   }
 
   // Consistent layer delegated to Durable Object via RPC

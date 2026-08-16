@@ -395,5 +395,61 @@ export function runRepositoryContractTests(
         });
       });
     });
+
+    describe("session CRUD", () => {
+      const sampleSession = {
+        sessionId: "sess_contract_100",
+        userId: "usr_test_1",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        lastActiveAt: "2026-01-01T00:00:00.000Z",
+        ipAddress: "127.0.0.1",
+        userAgent: "ContractAgent/1.0",
+        deviceFingerprint: "fp_12345",
+      };
+
+      it("returns null for non-existent session", async () => {
+        await expect(repo.getSession("sess_missing")).resolves.toBeNull();
+      });
+
+      it("creates and retrieves a session", async () => {
+        const created = await repo.createSession(sampleSession);
+        expect(created.sessionId).toBe("sess_contract_100");
+
+        const fetched = await repo.getSession("sess_contract_100");
+        expect(fetched).toMatchObject({
+          sessionId: "sess_contract_100",
+          userId: "usr_test_1",
+        });
+      });
+
+      it("updates a session", async () => {
+        await repo.createSession(sampleSession);
+        const updated = await repo.updateSession({
+          ...sampleSession,
+          lastActiveAt: "2026-01-02T12:00:00.000Z",
+        });
+
+        expect(updated.lastActiveAt).toBe("2026-01-02T12:00:00.000Z");
+
+        const fetched = await repo.getSession("sess_contract_100");
+        expect(fetched?.lastActiveAt).toBe("2026-01-02T12:00:00.000Z");
+      });
+
+      it("deletes a session and deletes all user sessions", async () => {
+        await repo.createSession(sampleSession);
+        await repo.createSession({
+          ...sampleSession,
+          sessionId: "sess_contract_101",
+        });
+
+        await repo.deleteSession("sess_contract_100");
+        expect(await repo.getSession("sess_contract_100")).toBeNull();
+        expect(await repo.getSession("sess_contract_101")).not.toBeNull();
+
+        await repo.deleteUserSessions("usr_test_1");
+        expect(await repo.getSession("sess_contract_101")).toBeNull();
+      });
+    });
   });
 }
