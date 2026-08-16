@@ -47,7 +47,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
     const record = (await this.ctx.storage.get(`idempotency:${key}`)) as
-      IdempotencyRecord | undefined;
+      | IdempotencyRecord
+      | undefined;
     return record ?? null;
   }
 
@@ -204,7 +205,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
     const envelope = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-      StoredEnvelope | undefined;
+      | StoredEnvelope
+      | undefined;
     return envelope ?? null;
   }
 
@@ -218,7 +220,8 @@ export class StealthCoordinator extends DurableObjectBase {
   async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
     return this.runExclusive(`envelope:${envelope.messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${envelope.messageId}`)) as
-        StoredEnvelope | undefined;
+        | StoredEnvelope
+        | undefined;
 
       if (existing) {
         // Byte-equality check — serialize both deterministically for comparison.
