@@ -1263,6 +1263,25 @@ function SecuritySettings() {
               Sessions currently signed in to your account
             </p>
           </div>
+          <button
+            onClick={() =>
+              setConfirmDialog({
+                title: "Revoke all sessions?",
+                description: "This will revoke all active sessions across all devices.",
+                onConfirm: async () => {
+                  try {
+                    await fetch("/api/v1/auth/logout-all", { method: "POST" });
+                  } catch {
+                    // Fallthrough safely
+                  }
+                  setConfirmDialog(null);
+                },
+              })
+            }
+            className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
+          >
+            Revoke all sessions
+          </button>
         </div>
         <div className="space-y-2">
           {sessions.map((session) => (
@@ -1292,7 +1311,14 @@ function SecuritySettings() {
                     setConfirmDialog({
                       title: "Revoke session?",
                       description: "This will sign out this device from your account.",
-                      onConfirm: () => setConfirmDialog(null),
+                      onConfirm: async () => {
+                        try {
+                          await fetch("/api/v1/auth/logout", { method: "POST" });
+                        } catch {
+                          // Fallthrough safely
+                        }
+                        setConfirmDialog(null);
+                      },
                     })
                   }
                   className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
