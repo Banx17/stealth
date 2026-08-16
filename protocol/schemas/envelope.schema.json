@@ -1,11 +1,22 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StealthEnvelope",
-  "description": "Cryptographic signature envelope for Stealth messages",
+  "description": "Cryptographic signature envelope for Stealth messages. Includes ciphertext and an immutable message_id for durable persistence (BETA-029 / Issue #1936).",
   "type": "object",
-  "required": ["payload", "signature"],
+  "required": ["message_id", "ciphertext", "payload", "signature"],
   "additionalProperties": false,
   "properties": {
+    "message_id": {
+      "description": "Immutable 32-byte lowercase hex message identifier. Used as the primary key in the encrypted-message repository.",
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ciphertext": {
+      "description": "Base64-encoded AES-256-GCM encrypted body. Plaintext is never stored.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/=]+$",
+      "minLength": 1
+    },
     "payload": {
       "type": "object",
       "required": [
@@ -58,6 +69,7 @@
           }
         },
         "content_commitment": {
+          "description": "SHA-256 hex commitment over the plaintext body for integrity verification.",
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },

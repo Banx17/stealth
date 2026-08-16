@@ -35,6 +35,7 @@ type TopbarProps = {
   onQuickAction: (action: "proofs" | "later" | "files") => void;
   onViewNotifications: () => void;
   onSignOut?: () => void;
+  onOpenLogin?: () => void;
 };
 
 const quickActions: {
@@ -60,6 +61,7 @@ export function Topbar({
   onQuickAction,
   onViewNotifications,
   onSignOut,
+  onOpenLogin,
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -360,7 +362,7 @@ export function Topbar({
           <button
             onClick={() => setAccountOpen(!accountOpen)}
             className={cn(
-              "flex items-center gap-2 rounded-[6px] border border-white/5 bg-white/[0.04] px-2 py-1.5 text-xs text-foreground transition hover:bg-white/[0.08]",
+              "glow-ring flex items-center gap-2 rounded-[6px] border border-white/5 bg-white/[0.04] px-2 py-1.5 text-xs text-foreground transition hover:bg-white/[0.08]",
               accountOpen && "bg-white/[0.08]",
             )}
           >
@@ -435,8 +437,18 @@ export function Topbar({
                             current === "personal" ? "protocol" : "personal",
                           );
                           onShowToast(
-                            `Switched to ${account === "personal" ? "Protocol" : "Personal"} mailbox`,
+                            `Switched to ${
+                              account === "personal" ? "Protocol" : "Personal"
+                            } mailbox`,
                           );
+                        }}
+                      />
+                      <AccountMenuItem
+                        icon={User}
+                        label="Sign in with password"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onOpenLogin?.();
                         }}
                       />
                       <div className="my-1 border-t border-white/5" />
@@ -494,7 +506,7 @@ function IconBtn({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "rounded-[6px] p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground",
+        "glow-ring rounded-[6px] p-2 text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground",
         "inline-flex items-center gap-1.5",
         active && "bg-white/[0.06] text-foreground",
       )}
@@ -525,7 +537,7 @@ function QuickAction({
       whileTap={{ scale: 0.94 }}
       aria-label={label}
       onClick={onClick}
-      className="group glass-tile flex h-9 items-center gap-2 rounded-[6px] px-2.5 text-xs text-muted-foreground transition hover:text-foreground"
+      className="group glow-ring glass-tile flex h-9 items-center gap-2 rounded-[6px] px-2.5 text-xs text-muted-foreground transition hover:text-foreground"
     >
       <Icon className="h-4 w-4" />
       <span className="hidden 2xl:inline">{label}</span>

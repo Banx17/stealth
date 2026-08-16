@@ -3,5 +3,42 @@
   "name": "stealth-mail",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
+  "kv_namespaces": [
+    {
+      "binding": "STEALTH_KV",
+      "id": "stealth-kv-beta-prod-id",
+      "preview_id": "stealth-kv-beta-preview-id",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "STEALTH_OBJECT_STORE",
+      "bucket_name": "stealth-mail-object-store",
+      "preview_bucket_name": "stealth-mail-object-store-preview",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "STEALTH_COORDINATOR",
+        "class_name": "StealthCoordinator",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["StealthCoordinator"],
+    },
+  ],
+  "vars": {
+    "STEALTH_ENV": "production",
+    "STEALTH_STELLAR_NETWORK": "testnet",
+    "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
+    "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
+    "STEALTH_RELAY_URL": "https://relay-testnet.stealth.mail",
+    "STEALTH_APP_URL": "https://app.stealth.mail",
+    "STEALTH_CORS_ALLOWED_ORIGINS": "https://app.stealth.mail",
+  },
 }

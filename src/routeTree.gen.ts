@@ -17,6 +17,10 @@ import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
+import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
+import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
+import { Route as ApiV1RelayHealthRouteImport } from './routes/api/v1/relay/health'
 import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
 import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
@@ -26,9 +30,14 @@ import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
+import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
+import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
+import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
+import { Route as ApiV1PoliciesOwnerProvisionRouteImport } from './routes/api/v1/policies/$owner/provision'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
@@ -69,6 +78,26 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
+  id: '/api/v1/relay/version',
+  path: '/api/v1/relay/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayReadinessRoute = ApiV1RelayReadinessRouteImport.update({
+  id: '/api/v1/relay/readiness',
+  path: '/api/v1/relay/readiness',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayMessagesRoute = ApiV1RelayMessagesRouteImport.update({
+  id: '/api/v1/relay/messages',
+  path: '/api/v1/relay/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayHealthRoute = ApiV1RelayHealthRouteImport.update({
+  id: '/api/v1/relay/health',
+  path: '/api/v1/relay/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
@@ -115,6 +144,19 @@ const ApiV1WalletLinkChallengeRoute =
 const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
   id: '/api/v1/wallet/link/$address',
   path: '/api/v1/wallet/link/$address',
+const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
+  id: '/api/v1/auth/session',
+  path: '/api/v1/auth/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthLogoutRoute = ApiV1AuthLogoutRouteImport.update({
+  id: '/api/v1/auth/logout',
+  path: '/api/v1/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
+  id: '/api/v1/auth/login',
+  path: '/api/v1/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
@@ -135,6 +177,18 @@ const ApiV1PostageMessageIdRefundRoute =
     path: '/refund',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
+const ApiV1PoliciesOwnerReconciliationRoute =
+  ApiV1PoliciesOwnerReconciliationRouteImport.update({
+    id: '/reconciliation',
+    path: '/reconciliation',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
+const ApiV1PoliciesOwnerProvisionRoute =
+  ApiV1PoliciesOwnerProvisionRouteImport.update({
+    id: '/provision',
+    path: '/provision',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -149,13 +203,22 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
+  '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
+  '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -172,13 +235,22 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
+  '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
+  '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -196,13 +268,22 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
+  '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
+  '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -221,13 +302,22 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/auth/login'
+    | '/api/v1/auth/logout'
+    | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/policies/$owner/provision'
+    | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -244,13 +334,22 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/auth/login'
+    | '/api/v1/auth/logout'
+    | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage'
     | '/api/v1/receipts'
+    | '/api/v1/policies/$owner/provision'
+    | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -267,13 +366,22 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/auth/login'
+    | '/api/v1/auth/logout'
+    | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/policies/$owner/provision'
+    | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -291,11 +399,18 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
+  ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
+  ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
   ApiV1PostageQuoteRoute: typeof ApiV1PostageQuoteRoute
   ApiV1ReceiptsMessageIdRoute: typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  ApiV1RelayHealthRoute: typeof ApiV1RelayHealthRoute
+  ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
+  ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
+  ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
@@ -362,6 +477,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/relay/version': {
+      id: '/api/v1/relay/version'
+      path: '/api/v1/relay/version'
+      fullPath: '/api/v1/relay/version'
+      preLoaderRoute: typeof ApiV1RelayVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/readiness': {
+      id: '/api/v1/relay/readiness'
+      path: '/api/v1/relay/readiness'
+      fullPath: '/api/v1/relay/readiness'
+      preLoaderRoute: typeof ApiV1RelayReadinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/messages': {
+      id: '/api/v1/relay/messages'
+      path: '/api/v1/relay/messages'
+      fullPath: '/api/v1/relay/messages'
+      preLoaderRoute: typeof ApiV1RelayMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/health': {
+      id: '/api/v1/relay/health'
+      path: '/api/v1/relay/health'
+      fullPath: '/api/v1/relay/health'
+      preLoaderRoute: typeof ApiV1RelayHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId': {
       id: '/api/v1/receipts/$messageId'
       path: '/api/v1/receipts/$messageId'
@@ -423,6 +566,25 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/wallet/link/$address'
       fullPath: '/api/v1/wallet/link/$address'
       preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
+    '/api/v1/auth/session': {
+      id: '/api/v1/auth/session'
+      path: '/api/v1/auth/session'
+      fullPath: '/api/v1/auth/session'
+      preLoaderRoute: typeof ApiV1AuthSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/logout': {
+      id: '/api/v1/auth/logout'
+      path: '/api/v1/auth/logout'
+      fullPath: '/api/v1/auth/logout'
+      preLoaderRoute: typeof ApiV1AuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/login': {
+      id: '/api/v1/auth/login'
+      path: '/api/v1/auth/login'
+      fullPath: '/api/v1/auth/login'
+      preLoaderRoute: typeof ApiV1AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/receipts/$messageId/read': {
@@ -446,6 +608,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
+    '/api/v1/policies/$owner/reconciliation': {
+      id: '/api/v1/policies/$owner/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/api/v1/policies/$owner/reconciliation'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerReconciliationRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
+    '/api/v1/policies/$owner/provision': {
+      id: '/api/v1/policies/$owner/provision'
+      path: '/provision'
+      fullPath: '/api/v1/policies/$owner/provision'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerProvisionRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -457,10 +633,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface ApiV1PoliciesOwnerRouteChildren {
+  ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
+  ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 
 const ApiV1PoliciesOwnerRouteChildren: ApiV1PoliciesOwnerRouteChildren = {
+  ApiV1PoliciesOwnerProvisionRoute: ApiV1PoliciesOwnerProvisionRoute,
+  ApiV1PoliciesOwnerReconciliationRoute: ApiV1PoliciesOwnerReconciliationRoute,
   ApiV1PoliciesOwnerSendersSenderRoute: ApiV1PoliciesOwnerSendersSenderRoute,
 }
 
@@ -503,11 +683,18 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
+  ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
+  ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
   ApiV1PostageQuoteRoute: ApiV1PostageQuoteRoute,
   ApiV1ReceiptsMessageIdRoute: ApiV1ReceiptsMessageIdRouteWithChildren,
+  ApiV1RelayHealthRoute: ApiV1RelayHealthRoute,
+  ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
+  ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
+  ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,

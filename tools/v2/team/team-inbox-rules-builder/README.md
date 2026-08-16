@@ -2,7 +2,7 @@
 
 A self-contained team tool for visually building and managing automated inbox rules.
 
-## Ownership Boundary
+## Ownership boundary
 
 All work for this tool must stay inside:
 
@@ -49,3 +49,15 @@ team-inbox-rules-builder/
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the complete architecture plan.
+
+## Security
+
+See:
+
+- docs/SECURITY.md
+
+## Performance
+
+See:
+
+- docs/PERFORMANCE.md
