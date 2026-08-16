@@ -9,6 +9,7 @@ import {
   receiptSchema,
   idempotencyRecordSchema,
   stellarAddressSchema,
+  storedEnvelopeSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -197,6 +198,10 @@ registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
   1: (data: any) => ({ ...data, requestDigest: "legacy:unrecoverable" }),
 });
+// Issue #1936 (BETA-029): register StoredEnvelope schema so that
+// ValidatedApiRepository can detect tampered or structurally invalid
+// envelope records at the adapter boundary before they reach any caller.
+registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

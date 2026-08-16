@@ -1,4 +1,4 @@
-import type { ApiRepository, PostageTransitionResult } from "./repository";
+import type { ApiRepository, InsertEnvelopeResult, PostageTransitionResult } from "./repository";
 import type {
   MailboxPolicy,
   SenderRule,
@@ -6,6 +6,7 @@ import type {
   PostageStatus,
   Receipt,
   IdempotencyRecord,
+  StoredEnvelope,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -184,5 +185,42 @@ export class HybridApiRepository implements ApiRepository {
 
   async getRelayDeadLetterCount(_relayId: string): Promise<number> {
     return 0;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1936 (BETA-029) — Durable encrypted envelope persistence
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Reads from KV as the fast path, then falls back to the coordinator.
+   * Plaintext is never stored; ciphertext + headers are retrieved as-is.
+   */
+  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    const kvResult = await this.kv.get(this.key("envelope", messageId), "json");
+    if (kvResult) return kvResult as StoredEnvelope;
+
+    // KV miss — the coordinator is the authoritative source.
+    const coordResult = await this.getStub().getEnvelope(messageId);
+    if (coordResult) {
+      // Write-back to KV so subsequent reads hit the fast path.
+      await this.kv.put(this.key("envelope", messageId), JSON.stringify(coordResult));
+    }
+    return coordResult;
+  }
+
+  /**
+   * Delegates the atomic insert to the coordinator (the source of truth for
+   * insert-once semantics), then mirrors a successful insert to KV for fast
+   * subsequent reads. The coordinator's 409 conflict error propagates unchanged
+   * to the caller — it is never swallowed.
+   */
+  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    // The coordinator enforces byte-identical idempotency and conflict detection.
+    const result = await this.getStub().insertEnvelope(envelope);
+    if (result.outcome === "inserted" || result.outcome === "duplicate") {
+      // Mirror to KV so getEnvelope hits the fast path on subsequent reads.
+      await this.kv.put(this.key("envelope", envelope.messageId), JSON.stringify(result.envelope));
+    }
+    return result;
   }
 }

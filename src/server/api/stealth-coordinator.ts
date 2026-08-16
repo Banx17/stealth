@@ -1,5 +1,10 @@
-import type { IdempotencyRecord, Postage, PostageStatus, Receipt } from "./domain";
-import type { AcquireIdempotencyResult, PostageTransitionResult } from "./repository";
+import type { IdempotencyRecord, Postage, PostageStatus, Receipt, StoredEnvelope } from "./domain";
+import type {
+  AcquireIdempotencyResult,
+  InsertEnvelopeResult,
+  PostageTransitionResult,
+} from "./repository";
+import { ApiError } from "./errors";
 
 const DurableObjectBase: any = import.meta.env.PROD
   ? (await import("cloudflare:workers")).DurableObject
@@ -42,8 +47,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
     const record = (await this.ctx.storage.get(`idempotency:${key}`)) as
-      | IdempotencyRecord
-      | undefined;
+      IdempotencyRecord | undefined;
     return record ?? null;
   }
 
@@ -191,6 +195,48 @@ export class StealthCoordinator extends DurableObjectBase {
 
       await this.ctx.storage.put(`counter:${key}`, filtered);
       return filtered.length;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1936 (BETA-029) — Durable encrypted envelope store
+  // ---------------------------------------------------------------------------
+
+  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    const envelope = (await this.ctx.storage.get(`envelope:${messageId}`)) as
+      StoredEnvelope | undefined;
+    return envelope ?? null;
+  }
+
+  /**
+   * Atomically insert an envelope, enforcing immutable-ID semantics.
+   *
+   * runExclusive serializes concurrent inserts for the same messageId so
+   * two racing callers cannot both observe "absent" and both write — exactly
+   * one gets "inserted" and the other gets "duplicate" or "conflict".
+   */
+  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    return this.runExclusive(`envelope:${envelope.messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`envelope:${envelope.messageId}`)) as
+        StoredEnvelope | undefined;
+
+      if (existing) {
+        // Byte-equality check — serialize both deterministically for comparison.
+        const existingBytes = JSON.stringify(existing);
+        const incomingBytes = JSON.stringify(envelope);
+        if (existingBytes === incomingBytes) {
+          return { outcome: "duplicate" as const, envelope: existing };
+        }
+        // Different payload for same ID: reject. Prior record is authoritative.
+        throw new ApiError(
+          409,
+          "conflict",
+          `An envelope with a different payload already exists for message ${envelope.messageId}`,
+        );
+      }
+
+      await this.ctx.storage.put(`envelope:${envelope.messageId}`, envelope);
+      return { outcome: "inserted" as const, envelope };
     });
   }
 }

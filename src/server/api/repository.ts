@@ -6,6 +6,7 @@ import type {
   PostageStatus,
   Receipt,
   SenderRule,
+  StoredEnvelope,
 } from "./domain";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
@@ -62,6 +63,22 @@ export type MarkReceiptReadResult =
   | { outcome: "already-read"; readAt: string }
   | { outcome: "marked"; receipt: Receipt };
 
+/**
+ * Outcome of an atomic envelope insert.
+ *
+ * - "inserted"  : first time this messageId was seen; the record is now durable.
+ * - "duplicate" : an identical byte-for-byte record already exists for this
+ *                 messageId. The operation is idempotent; callers may treat this
+ *                 as success (retry-safe resubmission).
+ * - "conflict"  : a *different* record (differing ciphertext or headers) already
+ *                 exists for the same messageId. Callers must treat this as an
+ *                 unrecoverable integrity violation — the prior record wins.
+ */
+export type InsertEnvelopeResult =
+  | { outcome: "inserted"; envelope: StoredEnvelope }
+  | { outcome: "duplicate"; envelope: StoredEnvelope }
+  | { outcome: "conflict" };
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -110,6 +127,36 @@ export interface ApiRepository {
   getRelayDeadLetterCount(relayId: string): Promise<number>;
   getCounter(key: string): Promise<number>;
   incrementCounter(key: string, windowSeconds: number, amount?: number): Promise<number>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1936 (BETA-029) — Durable encrypted envelope repository
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Retrieves a stored envelope by its immutable message ID.
+   * Returns null when no envelope exists for the given ID.
+   * Plaintext is never stored or returned by this method.
+   */
+  getEnvelope(messageId: string): Promise<StoredEnvelope | null>;
+
+  /**
+   * Insert-only: persists a new encrypted envelope under an immutable message ID.
+   *
+   * Idempotency contract
+   * --------------------
+   * - "inserted" : first successful write for this messageId.
+   * - "duplicate": byte-identical payload already exists (safe retry).
+   * - "conflict" : a *different* payload is already stored (unrecoverable).
+   *
+   * Implementations MUST guarantee that concurrent inserts yield exactly one
+   * "inserted" outcome; all racing duplicates receive either "duplicate" or
+   * "conflict" depending on their byte content. A plain get-then-put is
+   * vulnerable to lost-update races and MUST NOT be used here.
+   *
+   * Plaintext MUST NOT be passed to this method; ciphertext only.
+   */
+  insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
   reset?(): void;
 }
 
@@ -338,6 +385,21 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.incrementCounter(key, windowSeconds, amount);
   }
 
+  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    const raw = await this.inner.getEnvelope(messageId);
+    return raw ? validateRecord<StoredEnvelope>("storedEnvelope", raw) : null;
+  }
+
+  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    // Version the record before handing it to the inner adapter so that the
+    // byte-equality check in each implementation uses versioned payloads.
+    const result = await this.inner.insertEnvelope(versionRecord("storedEnvelope", envelope));
+    if (result.outcome === "inserted" || result.outcome === "duplicate") {
+      result.envelope = validateRecord<StoredEnvelope>("storedEnvelope", result.envelope);
+    }
+    return result;
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -378,6 +440,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setIdempotencyRecord",
   "transitionPostage",
   "markReceiptRead",
+  // Issue #1936: envelope reads are idempotent and safe to retry.
+  "getEnvelope",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -540,6 +604,19 @@ export class RetryableApiRepository implements ApiRepository {
 
   incrementCounter(key: string, windowSeconds: number, amount?: number): Promise<number> {
     return this.inner.incrementCounter(key, windowSeconds, amount);
+  }
+
+  // Issue #1936: reads are retry-safe; inserts are not (insert-once semantics).
+  getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    return this.withRetry("getEnvelope", () => this.inner.getEnvelope(messageId));
+  }
+
+  insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    // Never retry: a partial insert could succeed server-side but time out
+    // client-side. On retry, the stored record would be the authoritative one
+    // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
+    // bytes). Callers should handle those outcomes explicitly.
+    return this.inner.insertEnvelope(envelope);
   }
 
   reset(): void {
@@ -765,6 +842,18 @@ export const PAGINATED_QUERY_ORDERINGS = {
   listPostage: declareOrdering<Postage>([{ field: "createdAt", direction: "desc" }], "messageId"),
   listReceipts: declareOrdering<Receipt>(
     [{ field: "deliveredAt", direction: "desc" }],
+    "messageId",
+  ),
+  /**
+   * Issue #1936: Recipient-indexed envelope listing.
+   * Ordered by insertion time descending so a mailbox sync walk returns the
+   * newest messages first. The tie-breaker is messageId so the walk is stable
+   * even when two envelopes share the exact same createdAt millisecond.
+   * recipientId is NOT a sort key here — callers filter by recipientId before
+   * passing the collection to `paginate`, keeping plaintext out of the ordering.
+   */
+  listEnvelopes: declareOrdering<StoredEnvelope>(
+    [{ field: "createdAt", direction: "desc" }],
     "messageId",
   ),
 } as const;
