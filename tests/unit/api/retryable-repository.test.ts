@@ -212,6 +212,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteUserSessions");
     return this.inner.deleteUserSessions(userId);
   }
+  async getEnvelope(messageId: string) {
+    this.maybeFail("getEnvelope");
+    return this.inner.getEnvelope(messageId);
+  }
+  async insertEnvelope(envelope: import("../../../src/server/api/domain").StoredEnvelope) {
+    this.maybeFail("insertEnvelope");
+    return this.inner.insertEnvelope(envelope);
+  }
   reset(): void {
     this.inner.reset();
   }

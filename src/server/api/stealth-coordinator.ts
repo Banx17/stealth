@@ -6,6 +6,7 @@ import type {
   Profile,
   Receipt,
   Session,
+  StoredEnvelope,
   User,
 } from "./domain";
 import type {

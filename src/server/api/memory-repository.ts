@@ -8,6 +8,7 @@ import type {
   Receipt,
   SenderRule,
   Session,
+  StoredEnvelope,
   User,
 } from "./domain";
 import type {

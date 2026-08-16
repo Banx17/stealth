@@ -280,3 +280,46 @@ export function toPublicSession(session: Session): PublicSession {
     lastActiveAt: session.lastActiveAt,
   };
 }
+
+// ---------------------------------------------------------------------------
+// StoredEnvelope — durable encrypted-message record (Issue #1936 / BETA-029)
+// ---------------------------------------------------------------------------
+
+export const storedEnvelopeProtectedHeadersSchema = z
+  .object({
+    algorithm: z.string().optional(),
+    ephemeral_public_key: z.string().optional(),
+    nonce: z
+      .string()
+      .regex(/^[0-9a-fA-F]*$/)
+      .refine((val) => val.length % 2 === 0, "Nonce must be even hex")
+      .optional(),
+    mac: z.string().optional(),
+    version: z
+      .string()
+      .regex(/^v\d+$/, "Version must be v<digit>")
+      .optional(),
+    alg: z.string().optional(),
+    kid: z.string().optional(),
+    typ: z.string().optional(),
+  })
+  .catchall(z.unknown());
+
+export const storedEnvelopeSchema = z.object({
+  envelopeId: z.string().optional(),
+  messageId: hash32Schema,
+  senderId: stellarAddressSchema,
+  recipientId: stellarAddressSchema,
+  ciphertext: z
+    .string()
+    .min(1, "Ciphertext cannot be empty")
+    .max(20 * 1024 * 1024, "Ciphertext exceeds 20 MiB limit")
+    .regex(/^[A-Za-z0-9+/=]+$/, "Ciphertext must be base64 encoded"),
+  protectedHeaders: storedEnvelopeProtectedHeadersSchema,
+  contentCommitment: hash32Schema.optional(),
+  createdAt: z.string().datetime(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;
+export type StoredEnvelope = z.infer<typeof storedEnvelopeSchema>;

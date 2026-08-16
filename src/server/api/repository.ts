@@ -9,6 +9,7 @@ import type {
   Receipt,
   SenderRule,
   Session,
+  StoredEnvelope,
   User,
 } from "./domain";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -555,6 +556,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setCredential",
   "getSession",
   "updateSession",
+  "getEnvelope",
 ]);
 
 function isRetryableError(error: unknown): boolean {
