@@ -21,7 +21,9 @@ export async function registerWithPassword(
 ): Promise<RegistrationResponse> {
   const rateLimitKey = `signup:${ip}`;
   if ((await apiContext.repository.getCounter(rateLimitKey)) >= MAX_SIGNUPS_PER_IP) {
-    throw new ApiError("too_many_requests", { retryAfterSeconds: SIGNUP_RATE_LIMIT_WINDOW_SECONDS });
+    throw new ApiError("too_many_requests", {
+      retryAfterSeconds: SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+    });
   }
 
   const now = new Date().toISOString();
