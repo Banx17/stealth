@@ -25,15 +25,29 @@ describe("validateApiConfig", () => {
         coordinatorBinding: {},
         objectStoreBinding: {},
         cursorSecret: "secret-value",
+        smtpPassword: "smtp-secret-value",
+        relayApiKey: "relay-secret-value",
+        storageSecret: "storage-secret-value",
+        rpcApiKey: "rpc-secret-value",
+        operatorSecret: "operator-secret-value",
         supportedVersions: ["v1"],
       }),
     ).not.toThrow();
   });
 
   it("fails when production is missing the KV binding", () => {
-    expect(() => validateApiConfig({ isProd: true, supportedVersions: ["v1"] })).toThrow(
-      /STEALTH_KV/,
-    );
+    expect(() =>
+      validateApiConfig({
+        isProd: true,
+        supportedVersions: ["v1"],
+        cursorSecret: "secret-value",
+        smtpPassword: "smtp-secret-value",
+        relayApiKey: "relay-secret-value",
+        storageSecret: "storage-secret-value",
+        rpcApiKey: "rpc-secret-value",
+        operatorSecret: "operator-secret-value",
+      }),
+    ).toThrow(/STEALTH_KV/);
   });
 
   it("fails when production is missing the coordinator binding", () => {
@@ -42,6 +56,12 @@ describe("validateApiConfig", () => {
         isProd: true,
         kvBinding: {},
         supportedVersions: ["v1"],
+        cursorSecret: "secret-value",
+        smtpPassword: "smtp-secret-value",
+        relayApiKey: "relay-secret-value",
+        storageSecret: "storage-secret-value",
+        rpcApiKey: "rpc-secret-value",
+        operatorSecret: "operator-secret-value",
       }),
     ).toThrow(/STEALTH_COORDINATOR/);
   });
@@ -53,6 +73,12 @@ describe("validateApiConfig", () => {
         kvBinding: {},
         coordinatorBinding: {},
         supportedVersions: ["v1"],
+        cursorSecret: "secret-value",
+        smtpPassword: "smtp-secret-value",
+        relayApiKey: "relay-secret-value",
+        storageSecret: "storage-secret-value",
+        rpcApiKey: "rpc-secret-value",
+        operatorSecret: "operator-secret-value",
       }),
     ).toThrow(/STEALTH_OBJECT_STORE/);
   });
@@ -64,6 +90,11 @@ describe("validateApiConfig", () => {
         kvBinding: {},
         coordinatorBinding: {},
         objectStoreBinding: {},
+        smtpPassword: "smtp-secret-value",
+        relayApiKey: "relay-secret-value",
+        storageSecret: "storage-secret-value",
+        rpcApiKey: "rpc-secret-value",
+        operatorSecret: "operator-secret-value",
         supportedVersions: ["v1"],
       }),
     ).toThrow(/STEALTH_CURSOR_SECRET/);
@@ -78,6 +109,11 @@ describe("validateApiConfig", () => {
         coordinatorBinding: {},
         objectStoreBinding: {},
         cursorSecret: "super-secret-do-not-leak",
+        smtpPassword: "smtp-secret-value",
+        relayApiKey: "relay-secret-value",
+        storageSecret: "storage-secret-value",
+        rpcApiKey: "rpc-secret-value",
+        operatorSecret: "operator-secret-value",
         supportedVersions: ["v1"],
       });
     } catch (error) {

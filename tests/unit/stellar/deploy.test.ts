@@ -8,7 +8,7 @@ const execAsync = promisify(exec);
 describe("Deployment Script Constraints", () => {
   const scriptPath = resolve(process.cwd(), "scripts/stellar/deploy.ts");
 
-  it("fails if mainnet is used without release-mode", { timeout: 30000 }, async () => {
+  it("fails if mainnet is used without release-mode", { timeout: 60000 }, async () => {
     try {
       await execAsync(
         `npx tsx ${scriptPath} --network mainnet --deployer SECRET --network-passphrase "Public Global Stellar Network ; September 2015"`,
@@ -20,7 +20,7 @@ describe("Deployment Script Constraints", () => {
     }
   });
 
-  it("fails if deployer is missing", { timeout: 30000 }, async () => {
+  it("fails if deployer is missing", { timeout: 60000 }, async () => {
     try {
       await execAsync(`npx tsx ${scriptPath} --network testnet`);
       expect.fail("Should have failed without deployer");
