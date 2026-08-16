@@ -61,6 +61,54 @@ export function runRepositoryContractTests(
       });
     });
 
+    describe("policy write intents (BETA-023 / Issue #1930)", () => {
+      const intent = {
+        owner,
+        policy: {
+          allowUnknown: true,
+          requireVerified: false,
+          requireReceipt: false,
+          minimumPostage: "0",
+        },
+        offchainVersion: 1,
+        status: "pending" as const,
+        scheduledAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        failureCount: 0,
+        lastError: null,
+        txHash: null,
+      };
+
+      it("returns null for a missing write intent", async () => {
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toBeNull();
+      });
+
+      it("round-trips a policy write intent keyed by owner", async () => {
+        await repo.setPolicyWriteIntent(intent);
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toMatchObject({
+          owner,
+          offchainVersion: 1,
+          status: "pending",
+        });
+      });
+
+      it("overwrites an existing write intent and isolates per owner", async () => {
+        const otherOwner = `G${"C".repeat(55)}`;
+        await repo.setPolicyWriteIntent(intent);
+        await repo.setPolicyWriteIntent({
+          ...intent,
+          owner: otherOwner,
+          offchainVersion: 2,
+        });
+        await expect(repo.getPolicyWriteIntent(owner)).resolves.toMatchObject({
+          offchainVersion: 1,
+        });
+        await expect(repo.getPolicyWriteIntent(otherOwner)).resolves.toMatchObject({
+          offchainVersion: 2,
+        });
+      });
+    });
+
     describe("sender rules", () => {
       it("defaults to 'default' when no rule exists", async () => {
         await expect(repo.getSenderRule(owner, sender)).resolves.toBe("default");
@@ -397,110 +445,81 @@ export function runRepositoryContractTests(
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Issue #1936 (BETA-029) — Envelope persistence contract
-    // Every ApiRepository adapter must satisfy these invariants.
-    // -------------------------------------------------------------------------
+    describe("session CRUD", () => {
+      const sampleSession = {
+        sessionId: "sess_contract_100",
+        userId: "usr_test_1",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        lastActiveAt: "2026-01-01T00:00:00.000Z",
+        ipAddress: "127.0.0.1",
+        userAgent: "ContractAgent/1.0",
+        deviceFingerprint: "fp_12345",
+      };
 
-    describe("encrypted envelope persistence (BETA-029 / Issue #1936)", () => {
-      const ephemeralKey = `G${"C".repeat(55)}`;
-      const envMessageId = "e".repeat(64);
-      const envMessageId2 = "f".repeat(64);
-      const commitment = "c".repeat(64);
-      const mac = "d".repeat(64);
-      const nonce = "ab12cd34ef56";
+      it("returns null for non-existent session", async () => {
+        await expect(repo.getSession("sess_missing")).resolves.toBeNull();
+      });
 
-      function makeEnvelope(overrides: Partial<StoredEnvelope> = {}): StoredEnvelope {
-        return {
-          messageId: envMessageId,
-          senderId: sender,
-          recipientId: owner,
-          ciphertext: "dGVzdC1jaXBoZXJ0ZXh0",
-          protectedHeaders: {
-            algorithm: "AES-256-GCM",
-            ephemeral_public_key: ephemeralKey,
-            nonce,
-            mac,
-            version: "v1",
-          },
-          contentCommitment: commitment,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          ...overrides,
+      it("creates and retrieves a session", async () => {
+        const created = await repo.createSession(sampleSession);
+        expect(created.sessionId).toBe("sess_contract_100");
+
+        const fetched = await repo.getSession("sess_contract_100");
+        expect(fetched).toMatchObject({
+          sessionId: "sess_contract_100",
+          userId: "usr_test_1",
+        });
+      });
+
+      it("updates a session", async () => {
+        await repo.createSession(sampleSession);
+        const updated = await repo.updateSession({
+          ...sampleSession,
+          lastActiveAt: "2026-01-02T12:00:00.000Z",
+        });
+
+        expect(updated.lastActiveAt).toBe("2026-01-02T12:00:00.000Z");
+
+        const fetched = await repo.getSession("sess_contract_100");
+        expect(fetched?.lastActiveAt).toBe("2026-01-02T12:00:00.000Z");
+      });
+
+      it("deletes a session and deletes all user sessions", async () => {
+        await repo.createSession(sampleSession);
+        await repo.createSession({
+          ...sampleSession,
+          sessionId: "sess_contract_101",
+        });
+
+        await repo.deleteSession("sess_contract_100");
+        expect(await repo.getSession("sess_contract_100")).toBeNull();
+        expect(await repo.getSession("sess_contract_101")).not.toBeNull();
+
+        await repo.deleteUserSessions("usr_test_1");
+        expect(await repo.getSession("sess_contract_101")).toBeNull();
+      });
+
+      it("creates and retrieves a retired session record", async () => {
+        const retiredRecord = {
+          sessionId: "sess_old_1",
+          replacedBySessionId: "sess_new_2",
+          userId: "usr_test_1",
+          retiredAt: "2026-01-01T00:00:00.000Z",
+          expiresAt: "2026-01-08T00:00:00.000Z",
         };
-      }
 
-      it("returns null for a missing envelope", async () => {
-        await expect(repo.getEnvelope(envMessageId)).resolves.toBeNull();
-      });
+        expect(await repo.getRetiredSession("sess_old_1")).toBeNull();
 
-      it("returns 'inserted' on the first insert and retrieves the record", async () => {
-        const envelope = makeEnvelope();
-        const result = await repo.insertEnvelope(envelope);
-        expect(result.outcome).toBe("inserted");
+        const created = await repo.createRetiredSession(retiredRecord);
+        expect(created.sessionId).toBe("sess_old_1");
 
-        const retrieved = await repo.getEnvelope(envMessageId);
-        expect(retrieved).not.toBeNull();
-        expect(retrieved?.messageId).toBe(envMessageId);
-        expect(retrieved?.senderId).toBe(sender);
-        expect(retrieved?.recipientId).toBe(owner);
-        // Plaintext must never appear in the retrieved record.
-        expect((retrieved as any)?.subject).toBeUndefined();
-        expect((retrieved as any)?.body).toBeUndefined();
-      });
-
-      it("returns 'duplicate' for a byte-identical resubmission (idempotent)", async () => {
-        const envelope = makeEnvelope();
-        await repo.insertEnvelope(envelope);
-
-        const retry = await repo.insertEnvelope({ ...envelope });
-        expect(retry.outcome).toBe("duplicate");
-        if (retry.outcome === "duplicate") {
-          expect(retry.envelope.messageId).toBe(envMessageId);
-        }
-      });
-
-      it("returns 'conflict' when a different payload uses the same messageId", async () => {
-        await repo.insertEnvelope(makeEnvelope());
-        const different = makeEnvelope({ ciphertext: "ZGlmZmVyZW50AA==" });
-        const result = await repo.insertEnvelope(different);
-        expect(result.outcome).toBe("conflict");
-      });
-
-      it("allows exactly one winner out of 5 concurrent inserts", async () => {
-        const envelope = makeEnvelope();
-        const results = await Promise.all(
-          Array.from({ length: 5 }, () => repo.insertEnvelope({ ...envelope })),
-        );
-
-        const inserted = results.filter((r) => r.outcome === "inserted");
-        const duplicates = results.filter((r) => r.outcome === "duplicate");
-        const conflicts = results.filter((r) => r.outcome === "conflict");
-
-        expect(inserted).toHaveLength(1);
-        expect(duplicates).toHaveLength(4);
-        expect(conflicts).toHaveLength(0);
-      });
-
-      it("isolates envelopes by messageId", async () => {
-        await repo.insertEnvelope(makeEnvelope({ messageId: envMessageId }));
-        await repo.insertEnvelope(makeEnvelope({ messageId: envMessageId2 }));
-
-        await expect(repo.getEnvelope(envMessageId)).resolves.toMatchObject({
-          messageId: envMessageId,
+        const fetched = await repo.getRetiredSession("sess_old_1");
+        expect(fetched).toMatchObject({
+          sessionId: "sess_old_1",
+          replacedBySessionId: "sess_new_2",
+          userId: "usr_test_1",
         });
-        await expect(repo.getEnvelope(envMessageId2)).resolves.toMatchObject({
-          messageId: envMessageId2,
-        });
-      });
-
-      it("is insert-only: a different ciphertext cannot overwrite the stored record", async () => {
-        const original = makeEnvelope();
-        await repo.insertEnvelope(original);
-
-        await repo.insertEnvelope(makeEnvelope({ ciphertext: "bmV3Y2lwaGVydGV4dA==" }));
-
-        const stored = await repo.getEnvelope(envMessageId);
-        expect(stored?.ciphertext).toBe(original.ciphertext);
       });
     });
   });

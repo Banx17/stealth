@@ -3,13 +3,13 @@ import { expect, describe, it, beforeEach } from "vitest";
 import { MemoryApiRepository } from "@/server/api/memory-repository";
 import {
   getProvisioningProgress,
+  initializeMailboxPolicyDefaults,
   MAX_PROVISIONING_ATTEMPTS,
   PROVISIONING_STEPS,
   provisionAccount,
   retryAccountProvisioning,
   USERNAME_RESERVATION_LEASE_MS,
 } from "@/server/api/account-provisioning";
-import { defaultMailboxPolicy } from "@/server/api/repository";
 import { ApiError } from "@/server/api/errors";
 import type { ApiRepository, UsernameReservationResult } from "@/server/api/repository";
 import type { User } from "@/server/api/domain";
@@ -109,7 +109,7 @@ describe("provisionAccount", () => {
     expect(wallet?.address).toBe(ADDR_A);
 
     const policy = await repo.getPolicy(ADDR_A);
-    expect(policy).toEqual(defaultMailboxPolicy);
+    expect(policy).toEqual({ allowUnknown: true, requireVerified: false, minimumPostage: "0" });
 
     // The claim is released once the username is permanently bound.
     expect(await repo.getUsernameReservation("alice_dev")).toBeNull();
@@ -199,7 +199,7 @@ describe("failure and compensation paths", () => {
     ["username_reservation", "createUser"],
     ["profile_defaults", "setProfile"],
     ["wallet_creation", "createWallet"],
-    ["mailbox_policy_init", "initializePolicyIfAbsent"],
+    ["mailbox_policy_init", "setPolicy"],
   ] as const)(
     "transient failure at %s step -> retryable, compensated, account stays pending",
     async (step, method) => {
@@ -484,5 +484,101 @@ describe("username reservation repository contract", () => {
     expect(await repo.releaseUsernameReservation("alice_dev", "usr_alice")).toBe(false);
     expect(await repo.releaseUsernameReservation("alice_dev", "usr_bob")).toBe(true);
     expect(await repo.releaseUsernameReservation("alice_dev", "usr_bob")).toBe(false);
+  });
+});
+
+import {
+  betaDefaultMailboxPolicy,
+  getMailboxPolicy,
+  getPolicyWriteIntent,
+} from "../../../src/server/api/policy-service";
+
+const owner = `G${"A".repeat(55)}`;
+
+describe("initializeMailboxPolicyDefaults (BETA-023 / Issue #1930)", () => {
+  it("provisions the privacy-safe beta default on first run", async () => {
+    const repository = new MemoryApiRepository();
+
+    const result = await initializeMailboxPolicyDefaults(repository, owner);
+
+    expect(result).toMatchObject({
+      provisioned: true,
+      source: "default",
+      offchainVersion: 1,
+      scheduled: true,
+      policy: betaDefaultMailboxPolicy,
+    });
+
+    await expect(getMailboxPolicy(repository, owner)).resolves.toMatchObject({
+      policy: {
+        allowUnknown: true,
+        requireVerified: false,
+        minimumPostage: "0",
+      },
+      source: "configured",
+    });
+  });
+
+  it("schedules a matching testnet contract write at version 1", async () => {
+    const repository = new MemoryApiRepository();
+
+    await initializeMailboxPolicyDefaults(repository, owner);
+
+    const intent = await getPolicyWriteIntent(repository, owner);
+    expect(intent).toMatchObject({
+      status: "pending",
+      offchainVersion: 1,
+      policy: betaDefaultMailboxPolicy,
+    });
+  });
+
+  it("is idempotent: a retry never bumps the version or re-schedules", async () => {
+    const repository = new MemoryApiRepository();
+
+    await initializeMailboxPolicyDefaults(repository, owner);
+    const second = await initializeMailboxPolicyDefaults(repository, owner);
+    const third = await initializeMailboxPolicyDefaults(repository, owner);
+
+    expect(second).toMatchObject({ provisioned: false, scheduled: false });
+    expect(third).toMatchObject({ provisioned: false, scheduled: false });
+
+    const intent = await getPolicyWriteIntent(repository, owner);
+    expect(intent?.offchainVersion).toBe(1);
+  });
+
+  it("never overwrites a user-customized policy", async () => {
+    const repository = new MemoryApiRepository();
+
+    const { setMailboxPolicy } = await import("../../../src/server/api/policy-service");
+    await setMailboxPolicy(repository, owner, {
+      allowUnknown: false,
+      requireVerified: true,
+      minimumPostage: "250",
+    });
+
+    const result = await initializeMailboxPolicyDefaults(repository, owner);
+
+    expect(result).toMatchObject({
+      provisioned: false,
+      source: "configured",
+      scheduled: false,
+      offchainVersion: 1,
+    });
+
+    await expect(getMailboxPolicy(repository, owner)).resolves.toMatchObject({
+      policy: {
+        allowUnknown: false,
+        requireVerified: true,
+        minimumPostage: "250",
+      },
+    });
+  });
+
+  it("reports the beta default as the scheduled policy", async () => {
+    const repository = new MemoryApiRepository();
+
+    const result = await initializeMailboxPolicyDefaults(repository, owner);
+
+    expect(result.policy).toEqual(betaDefaultMailboxPolicy);
   });
 });

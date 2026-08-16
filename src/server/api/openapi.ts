@@ -115,6 +115,176 @@ export const openApiDocument = {
           },
         },
       },
+      ChainMailboxPolicy: {
+        type: "object",
+        required: ["allowUnknown", "minimumPostage", "requireReceipt", "requireVerified"],
+        properties: {
+          allowUnknown: {
+            type: "boolean",
+          },
+          minimumPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
+          requireReceipt: {
+            type: "boolean",
+            description: "Delivery-receipt preference, mapped to on-chain require_receipt.",
+          },
+          requireVerified: {
+            type: "boolean",
+          },
+        },
+      },
+      MailboxPolicyWriteRequest: {
+        type: "object",
+        required: ["allowUnknown", "minimumPostage", "requireVerified"],
+        properties: {
+          allowUnknown: {
+            type: "boolean",
+          },
+          minimumPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
+          requireReceipt: {
+            type: "boolean",
+            description:
+              "Optional delivery-receipt preference; defaults to false and is carried into the scheduled on-chain write.",
+          },
+          requireVerified: {
+            type: "boolean",
+          },
+        },
+      },
+      PolicyWriteIntent: {
+        type: "object",
+        required: ["owner", "policy", "offchainVersion", "status", "scheduledAt", "updatedAt"],
+        properties: {
+          owner: {
+            $ref: "#/components/schemas/StellarAddress",
+          },
+          policy: {
+            $ref: "#/components/schemas/ChainMailboxPolicy",
+          },
+          offchainVersion: {
+            type: "integer",
+            minimum: 0,
+            description:
+              "Off-chain policy version; bumped only on an effective policy change, never on retries.",
+          },
+          status: {
+            type: "string",
+            enum: ["pending", "submitted", "confirmed", "failed"],
+          },
+          scheduledAt: {
+            type: "string",
+            format: "date-time",
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+          failureCount: {
+            type: "integer",
+            minimum: 0,
+          },
+          lastError: {
+            type: "string",
+            nullable: true,
+            description: "Redacted failure reason; never contains secrets.",
+          },
+        },
+      },
+      InitializePolicyDefaultsResult: {
+        type: "object",
+        required: ["provisioned", "policy", "source", "offchainVersion", "scheduled"],
+        properties: {
+          provisioned: {
+            type: "boolean",
+            description: "False when the owner already had a policy; no version bump occurs.",
+          },
+          policy: {
+            $ref: "#/components/schemas/ChainMailboxPolicy",
+          },
+          source: {
+            type: "string",
+            enum: ["default", "configured"],
+          },
+          offchainVersion: {
+            type: "integer",
+            minimum: 0,
+            nullable: true,
+          },
+          scheduled: {
+            type: "boolean",
+            description: "Whether a testnet contract write was scheduled.",
+          },
+        },
+      },
+      PolicyReconciliationState: {
+        type: "string",
+        enum: ["not_provisioned", "pending_write", "synced", "chain_ahead", "diverged"],
+      },
+      PolicyReconciliation: {
+        type: "object",
+        required: ["owner", "state", "offchain", "chain", "writeIntent"],
+        properties: {
+          owner: {
+            $ref: "#/components/schemas/StellarAddress",
+          },
+          state: {
+            $ref: "#/components/schemas/PolicyReconciliationState",
+          },
+          offchain: {
+            type: "object",
+            required: ["policy", "source", "version"],
+            properties: {
+              policy: {
+                $ref: "#/components/schemas/MailboxPolicy",
+              },
+              source: {
+                type: "string",
+                enum: ["default", "configured"],
+                nullable: true,
+              },
+              version: {
+                type: "integer",
+                minimum: 0,
+                nullable: true,
+              },
+            },
+          },
+          chain: {
+            type: "object",
+            required: ["policy", "version"],
+            properties: {
+              policy: {
+                $ref: "#/components/schemas/MailboxPolicy",
+              },
+              version: {
+                type: "integer",
+                minimum: 0,
+                nullable: true,
+              },
+            },
+          },
+          writeIntent: {
+            allOf: [
+              {
+                $ref: "#/components/schemas/PolicyWriteIntent",
+              },
+              {
+                type: "object",
+                properties: {
+                  version: {
+                    type: "integer",
+                    minimum: 0,
+                  },
+                },
+              },
+            ],
+            nullable: true,
+          },
+        },
+      },
       ValidationErrorItem: {
         type: "object",
         required: ["path", "rule", "message"],
@@ -684,6 +854,153 @@ export const openApiDocument = {
           },
           "401": {
             description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/policies/{owner}/provision": {
+      post: {
+        operationId: "initializeMailboxPolicyDefaults",
+        "x-max-body-bytes": 4 * 1024,
+        summary: "Initialize privacy-safe mailbox policy defaults (BETA-023)",
+        description:
+          "Idempotently initializes the beta mailbox policy defaults for the owner, persisting the off-chain policy and scheduling the matching testnet contract write. A retry never re-submits an identical write and never bumps the on-chain policy version.",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning result",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/InitializePolicyDefaultsResult",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict (idempotency)",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/policies/{owner}/reconciliation": {
+      get: {
+        operationId: "getPolicyReconciliation",
+        summary: "Read mailbox policy reconciliation state (BETA-023)",
+        description:
+          "Exposes the reconciliation state between the durable off-chain policy and the on-chain Policies contract. When the chain client is unavailable, reconciliation is derived from the durable write intent alone (pending write surfaced as testnet synchronization pending).",
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "chainVersion",
+            in: "query",
+            required: false,
+            schema: {
+              type: "integer",
+              minimum: 0,
+            },
+            description:
+              "On-chain policy version reported by the Policies contract; supplied by the chain client wired by BETA-017.",
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Reconciliation state",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/PolicyReconciliation",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
             content: {
               "application/json": {
                 schema: {

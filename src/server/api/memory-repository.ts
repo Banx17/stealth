@@ -2,12 +2,15 @@ import type {
   Credential,
   IdempotencyRecord,
   MailboxPolicy,
+  PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
   ProvisioningRecord,
   Receipt,
+  RetiredSession,
   SenderRule,
+  Session,
   StoredEnvelope,
   User,
   UsernameReservation,
@@ -30,6 +33,7 @@ function key(owner: string, sender: string) {
 
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
+  private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
   private readonly senderRules = new Map<string, SenderRule>();
@@ -73,6 +77,9 @@ export class MemoryApiRepository implements ApiRepository {
       }
     }
   }
+  // BETA-006: Session storage
+  private readonly sessions = new Map<string, Session>();
+  private readonly retiredSessions = new Map<string, RetiredSession>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -121,6 +128,15 @@ export class MemoryApiRepository implements ApiRepository {
   async setPolicy(owner: string, policy: MailboxPolicy) {
     this.policies.set(owner, structuredClone(policy));
     return structuredClone(policy);
+  }
+
+  async getPolicyWriteIntent(owner: string) {
+    return structuredClone(this.policyWriteIntents.get(owner) ?? null);
+  }
+
+  async setPolicyWriteIntent(intent: PolicyWriteIntent) {
+    this.policyWriteIntents.set(intent.owner, structuredClone(intent));
+    return structuredClone(intent);
   }
 
   async getSenderRule(owner: string, sender: string) {
@@ -462,6 +478,42 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  // BETA-006: Session CRUD Methods
+  async getSession(sessionId: string): Promise<Session | null> {
+    return structuredClone(this.sessions.get(sessionId) ?? null);
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return structuredClone(session);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return structuredClone(session);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    for (const [id, sess] of Array.from(this.sessions.entries())) {
+      if (sess.userId === userId) {
+        this.sessions.delete(id);
+      }
+    }
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return structuredClone(this.retiredSessions.get(sessionId) ?? null);
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    this.retiredSessions.set(retiredSession.sessionId, structuredClone(retiredSession));
+    return structuredClone(retiredSession);
+  }
+
   async getRelayQueueDepth(_relayId: string) {
     return 0;
   }
@@ -576,6 +628,7 @@ export class MemoryApiRepository implements ApiRepository {
 
   reset() {
     this.policies.clear();
+    this.policyWriteIntents.clear();
     this.postage.clear();
     this.receipts.clear();
     this.senderRules.clear();
@@ -594,5 +647,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.usernameReservations.clear();
     this.wallets.clear();
     this.keyLocks.clear();
+    this.sessions.clear();
   }
 }
