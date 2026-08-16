@@ -5,10 +5,12 @@ import type {
   PostageStatus,
   Profile,
   Receipt,
+  StoredEnvelope,
   User,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
+  InsertEnvelopeResult,
   PostageTransitionResult,
   UpdateUserResult,
 } from "./repository";

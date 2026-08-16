@@ -12,6 +12,7 @@ import {
   userSchema,
   profileSchema,
   credentialSchema,
+  storedEnvelopeSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 

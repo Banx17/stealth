@@ -7,9 +7,15 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  StoredEnvelope,
   User,
 } from "./domain";
-import type { ApiRepository, PostageTransitionResult, UpdateUserResult } from "./repository";
+import type {
+  ApiRepository,
+  InsertEnvelopeResult,
+  PostageTransitionResult,
+  UpdateUserResult,
+} from "./repository";
 import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
@@ -423,6 +429,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.counters.clear();
     this.idempotency.clear();
     this.receiptLocks.clear();
+    this.envelopes.clear();
+    this.envelopeLocks.clear();
     this.usersById.clear();
     this.usersByEmail.clear();
     this.usersByUsername.clear();

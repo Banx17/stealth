@@ -192,6 +192,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setCredential");
     return this.inner.setCredential(credential);
   }
+  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    this.maybeFail("getEnvelope");
+    return this.inner.getEnvelope(messageId);
+  }
+  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    this.maybeFail("insertEnvelope");
+    return this.inner.insertEnvelope(envelope);
+  }
   reset(): void {
     this.inner.reset();
   }

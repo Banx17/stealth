@@ -8,9 +8,24 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  StoredEnvelope,
   User,
 } from "./domain";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
+
+/**
+ * Outcome of an insert-only encrypted envelope persistence operation.
+ *
+ * - "inserted" : the record was stored for the first time; it is now durable.
+ * - "duplicate": a byte-identical envelope is already durably stored under this
+ *                messageId. Safe to treat as a successful write (idempotent).
+ * - "conflict" : a record with the same messageId already exists with *different*
+ *                payload bytes. The prior record wins; this insert is rejected.
+ */
+export type InsertEnvelopeResult =
+  | { outcome: "inserted"; envelope: StoredEnvelope }
+  | { outcome: "duplicate"; envelope: StoredEnvelope }
+  | { outcome: "conflict" };
 
 /**
  * Outcome of an atomic compare-and-swap postage state transition.
@@ -508,6 +523,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setProfile",
   "getCredential",
   "setCredential",
+  "getEnvelope",
 ]);
 
 function isRetryableError(error: unknown): boolean {

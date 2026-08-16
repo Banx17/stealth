@@ -1,4 +1,9 @@
-import type { ApiRepository, PostageTransitionResult, UpdateUserResult } from "./repository";
+import type {
+  ApiRepository,
+  InsertEnvelopeResult,
+  PostageTransitionResult,
+  UpdateUserResult,
+} from "./repository";
 import type {
   Credential,
   IdempotencyRecord,
@@ -8,6 +13,7 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  StoredEnvelope,
   User,
 } from "./domain";
 import { ApiError } from "./errors";
