@@ -17,6 +17,10 @@ import type {
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
+import { identityRecordFamilies, selectFamilies } from "../migrations/adapters";
+import { createDurableObjectMigrationStorage } from "../migrations/durable-object-storage";
+import { dryRun, forward, integrityCheck, rollback } from "../migrations/runner";
+import type { MigrationCommand, MigrationReport, MigrationRunOptions } from "../migrations/types";
 
 const DurableObjectBase: any = import.meta.env.PROD
   ? (await import("cloudflare:workers")).DurableObject
@@ -356,6 +360,35 @@ export class StealthCoordinator extends DurableObjectBase {
       if (sess && sess.userId === userId) {
         await this.ctx.storage.delete(key);
       }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // BETA-024 (Issue #1931) — identity schema-governance commands.
+  //
+  // Operators invoke these commands on the production DO instance so the
+  // migrations run in-process against the exact records the API persists
+  // (a separate migration worker cannot share Durable Object storage). The
+  // engine is the same code exercised by the Miniflare emulation tests.
+  // ---------------------------------------------------------------------------
+
+  async runIdentityMigrations(
+    command: MigrationCommand,
+    options: MigrationRunOptions = {},
+  ): Promise<MigrationReport> {
+    const storage = createDurableObjectMigrationStorage(this.ctx);
+    const families = selectFamilies(identityRecordFamilies, options);
+    switch (command) {
+      case "dry-run":
+        return dryRun(storage, families, options);
+      case "forward":
+        return forward(storage, families, options);
+      case "rollback":
+        return rollback(storage, families, options);
+      case "integrity-check":
+        return integrityCheck(storage, families, options);
+      default:
+        throw new Error(`Unknown migration command: ${String(command)}`);
     }
   }
 
