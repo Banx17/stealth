@@ -174,7 +174,9 @@ interface StepFailure {
 /**
  * A taken username is a *deterministic* conflict: no retry can make it
  * available, so the flow must land in terminal "failed" even though the
- * generic `conflict` code is registered as retryable.
+ * generic `conflict` code is registered as retryable. The 409 + `conflict`
+ * surface mirrors the coordinator/memory-repository convention for usernames
+ * already bound to another account.
  */
 class ProvisionUsernameConflictError extends ApiError {
   constructor(username: string) {
