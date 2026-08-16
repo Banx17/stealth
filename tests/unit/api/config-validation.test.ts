@@ -19,6 +19,7 @@ describe("validateApiConfig", () => {
         isProd: true,
         kvBinding: {},
         coordinatorBinding: {},
+        objectStoreBinding: {},
         cursorSecret: "secret-value",
         supportedVersions: ["v1"],
       }),
@@ -41,12 +42,24 @@ describe("validateApiConfig", () => {
     ).toThrow(/STEALTH_COORDINATOR/);
   });
 
+  it("fails when production is missing the object store binding", () => {
+    expect(() =>
+      validateApiConfig({
+        isProd: true,
+        kvBinding: {},
+        coordinatorBinding: {},
+        supportedVersions: ["v1"],
+      }),
+    ).toThrow(/STEALTH_OBJECT_STORE/);
+  });
+
   it("fails when production is missing the cursor secret", () => {
     expect(() =>
       validateApiConfig({
         isProd: true,
         kvBinding: {},
         coordinatorBinding: {},
+        objectStoreBinding: {},
         supportedVersions: ["v1"],
       }),
     ).toThrow(/STEALTH_CURSOR_SECRET/);
@@ -59,6 +72,7 @@ describe("validateApiConfig", () => {
         isProd: true,
         kvBinding: {},
         coordinatorBinding: {},
+        objectStoreBinding: {},
         cursorSecret: "super-secret-do-not-leak",
         supportedVersions: ["v1"],
       });
