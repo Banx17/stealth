@@ -77,7 +77,7 @@ export async function authenticateWithPassword(
     user = await repo.getUserByUsername(normalizedId);
   }
 
-  let credential = user ? await repo.getCredential(user.userId) : null;
+  const credential = user ? await repo.getCredential(user.userId) : null;
 
   let isValidPassword = false;
   if (user && credential && credential.authMethod === "password_hash") {
