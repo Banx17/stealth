@@ -442,6 +442,136 @@
             "description": "A matching operation currently holds the idempotency lease."
           }
         }
+      },
+      "RelayHealth": {
+        "type": "object",
+        "required": ["status", "service", "version", "time"],
+        "additionalProperties": false,
+        "description": "Relay liveness payload. Never contains secrets or user data.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok"]
+          },
+          "service": {
+            "type": "string",
+            "description": "Service name."
+          },
+          "version": {
+            "type": "string",
+            "description": "Build version string."
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RelayReadiness": {
+        "type": "object",
+        "required": ["ready", "dependencies", "timeoutMs"],
+        "additionalProperties": false,
+        "description": "Relay readiness payload. Dependency details never include URLs, keys, or user data.",
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "dependencies": {
+            "type": "object",
+            "required": ["storage", "queue", "network"],
+            "additionalProperties": false,
+            "properties": {
+              "storage": {
+                "type": "string",
+                "enum": ["ok", "unavailable", "timeout"]
+              },
+              "queue": {
+                "type": "string",
+                "enum": ["ok", "unavailable", "timeout"]
+              },
+              "network": {
+                "type": "string",
+                "enum": ["ok", "unavailable", "timeout"]
+              }
+            }
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "description": "Readiness probe timeout."
+          }
+        }
+      },
+      "RelayVersion": {
+        "type": "object",
+        "required": ["app", "apiVersion", "protocolVersion", "build"],
+        "additionalProperties": false,
+        "properties": {
+          "app": {
+            "type": "string",
+            "enum": ["stealth-relay"]
+          },
+          "apiVersion": {
+            "type": "string",
+            "description": "Stealth Mail API version."
+          },
+          "protocolVersion": {
+            "type": "string",
+            "description": "Protocol version."
+          },
+          "build": {
+            "type": "string",
+            "description": "Build version string."
+          }
+        }
+      },
+      "RelaySubmissionRequest": {
+        "type": "object",
+        "required": ["messageId", "sender", "recipient", "recipientDomain", "payload"],
+        "additionalProperties": false,
+        "properties": {
+          "messageId": {
+            "$ref": "#/components/schemas/Hash32"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "recipientDomain": {
+            "type": "string",
+            "description": "Public destination domain of the recipient's relay."
+          },
+          "payload": {
+            "type": "string",
+            "description": "Opaque encrypted message payload. The server never parses it."
+          },
+          "ttlMs": {
+            "type": "integer",
+            "description": "Delivery TTL in milliseconds."
+          }
+        }
+      },
+      "RelaySubmissionResult": {
+        "type": "object",
+        "required": ["accepted", "messageId", "queueDepth", "service"],
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "messageId": {
+            "$ref": "#/components/schemas/Hash32"
+          },
+          "queueDepth": {
+            "type": "integer"
+          },
+          "service": {
+            "type": "string",
+            "description": "Service name."
+          }
+        }
       }
     }
   },
@@ -1598,6 +1728,268 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/relay/health": {
+      "get": {
+        "operationId": "getRelayHealth",
+        "summary": "Read relay liveness",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RelayHealth"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/relay/readiness": {
+      "get": {
+        "operationId": "getRelayReadiness",
+        "summary": "Read relay readiness",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RelayReadiness"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not Ready — a required dependency is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/relay/version": {
+      "get": {
+        "operationId": "getRelayVersion",
+        "summary": "Read relay version descriptor",
+        "x-stability": "stable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RelayVersion"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/relay/messages": {
+      "post": {
+        "operationId": "submitRelayMessage",
+        "summary": "Submit an encrypted message to the relay",
+        "x-max-body-bytes": 2097152,
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "stable",
+        "requestBody": {
+          "description": "Encrypted relay message submission.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelaySubmissionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RelaySubmissionResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity — Request payload validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not Ready — a required dependency is unavailable",
             "content": {
               "application/json": {
                 "schema": {

@@ -37,6 +37,10 @@ describe("OpenAPI route coverage", () => {
         "/receipts",
         "/receipts/{messageId}",
         "/receipts/{messageId}/read",
+        "/relay/health",
+        "/relay/readiness",
+        "/relay/version",
+        "/relay/messages",
       ]),
     );
   });

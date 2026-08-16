@@ -6,6 +6,7 @@ Deployment runbooks, environment setup, Cloudflare notes, network configuration,
 - [Prometheus Alert Rules](alerts.yaml) - Prometheus alerting rules configuration for anomalies.
 - [Service-Level Objectives & SLIs](SLO.md) - Service-level indicators, targets, formulas, traffic exclusions, and alerting guidance.
 - [Schema Migrations](MIGRATIONS.md) - Migration order and rollback guidance for durable storage.
+- [R2 Encrypted Object Storage](R2.md) - R2 bucket setup, deterministic object naming, integrity checks, and orphan cleanup.
 
 ## Beta Runtime Configuration Contract (BETA-001)
 

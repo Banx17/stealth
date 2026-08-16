@@ -98,6 +98,7 @@ describe("body-limit registry (#1487)", () => {
       "submitPostageProof",
       "quotePostage",
       "recordDelivery",
+      "submitRelayMessage",
     ]) {
       expect(documented.get(opId), `${opId} documents x-max-body-bytes`).toBeGreaterThan(0);
     }

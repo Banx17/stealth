@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import type { StoredEnvelope } from "../../../src/server/api/domain";
 import type { ApiRepository } from "../../../src/server/api/repository";
 
 // Issue #1494: one reusable repository conformance suite that every adapter must

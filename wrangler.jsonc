@@ -11,6 +11,13 @@
       "preview_id": "stealth-kv-beta-preview-id",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "STEALTH_OBJECT_STORE",
+      "bucket_name": "stealth-mail-object-store",
+      "preview_bucket_name": "stealth-mail-object-store-preview",
+    },
+  ],
   "durable_objects": {
     "bindings": [
       {

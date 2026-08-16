@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+// ---------------------------------------------------------------------------
+// StoredEnvelope — durable encrypted-message record (Issue #1936 BETA-029)
+// Plaintext (subject, body) is intentionally absent from this schema.
+// ---------------------------------------------------------------------------
+
 export const stellarAddressSchema = z
   .string()
   .trim()

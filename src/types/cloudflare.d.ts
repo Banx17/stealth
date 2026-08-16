@@ -23,10 +23,77 @@ interface DurableObjectState {
   };
 }
 
+interface R2HttpMetadata {
+  contentType?: string;
+  contentLanguage?: string;
+  contentDisposition?: string;
+  contentEncoding?: string;
+  cacheControl?: string;
+  cacheExpiry?: Date;
+}
+
+interface R2ObjectMetadata {
+  key: string;
+  size: number;
+  uploaded: Date;
+  etag: string;
+  httpMetadata: R2HttpMetadata;
+  customMetadata: Record<string, string>;
+}
+
+interface R2Object extends R2ObjectMetadata {
+  checksums: Record<string, string>;
+}
+
+interface R2ObjectBody extends R2Object {
+  body: ReadableStream;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  text(): Promise<string>;
+  json<T>(): Promise<T>;
+}
+
+interface R2ListOptions {
+  prefix?: string;
+  limit?: number;
+  cursor?: string;
+  delimiter?: string;
+  include?: string[];
+}
+
+interface R2Objects {
+  objects: R2Object[];
+  truncated: boolean;
+  cursor?: string;
+  delimitedPrefixes: string[];
+}
+
+interface R2PutOptions {
+  httpMetadata?: R2HttpMetadata;
+  customMetadata?: Record<string, string>;
+  sha256?: string;
+  onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string };
+}
+
+interface R2Bucket {
+  put(
+    key: string,
+    value: ArrayBuffer | ArrayBufferView | ReadableStream | string | null,
+    options?: R2PutOptions,
+  ): Promise<R2Object>;
+  get(
+    key: string,
+    options?: { range?: { offset: number; length: number } },
+  ): Promise<R2ObjectBody | null>;
+  head(key: string): Promise<R2Object | null>;
+  delete(key: string): Promise<void>;
+  list(options?: R2ListOptions): Promise<R2Objects>;
+}
+
 declare module "cloudflare:workers" {
   export const env: {
     STEALTH_KV?: KVNamespace;
     STEALTH_COORDINATOR?: DurableObjectNamespace;
+    STEALTH_OBJECT_STORE?: R2Bucket;
   };
   export class DurableObject {
     ctx: DurableObjectState;
