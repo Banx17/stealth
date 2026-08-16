@@ -5,16 +5,22 @@ import type {
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   Receipt,
   SenderRule,
   StoredEnvelope,
   User,
+  UsernameReservation,
+  Wallet,
 } from "./domain";
 import type {
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  UpdateProvisioningResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import { ApiError } from "./errors";
 
@@ -41,6 +47,32 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+
+  // BETA-014: Account-provisioning storage
+  private readonly provisioning = new Map<string, ProvisioningRecord>();
+  private readonly usernameReservations = new Map<string, UsernameReservation>();
+  private readonly wallets = new Map<string, Wallet>();
+  private readonly keyLocks = new Map<string, Promise<void>>();
+
+  private async withKeyLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.keyLocks.get(lockKey) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.keyLocks.set(lockKey, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.keyLocks.get(lockKey) === queued) {
+        this.keyLocks.delete(lockKey);
+      }
+    }
+  }
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -309,6 +341,127 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(credential);
   }
 
+  // BETA-014: Transactional account-provisioning implementation
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return structuredClone(this.provisioning.get(userId) ?? null);
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.withKeyLock(`provisioning:${record.userId}`, async () => {
+      const existing = this.provisioning.get(record.userId);
+      if (existing) {
+        return { created: false, record: structuredClone(existing) };
+      }
+      this.provisioning.set(record.userId, structuredClone(record));
+      return { created: true, record: structuredClone(record) };
+    });
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.withKeyLock(`provisioning:${record.userId}`, async () => {
+      const current = this.provisioning.get(record.userId);
+      if (!current) {
+        return { updated: false, current: null };
+      }
+      if (current.version !== expectedVersion) {
+        return { updated: false, current: structuredClone(current) };
+      }
+      const next: ProvisioningRecord = {
+        ...record,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      this.provisioning.set(record.userId, structuredClone(next));
+      return { updated: true, record: structuredClone(next) };
+    });
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const norm = username.toLowerCase().trim();
+    return structuredClone(this.usernameReservations.get(norm) ?? null);
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const norm = username.toLowerCase().trim();
+    return this.withKeyLock(`username-reservation:${norm}`, async () => {
+      const boundUser = this.usersByUsername.get(norm);
+      if (boundUser && boundUser !== userId) {
+        return { outcome: "unavailable" };
+      }
+
+      const existing = this.usernameReservations.get(norm);
+      const now = Date.now();
+
+      if (existing) {
+        if (existing.userId === userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "already-reserved", reservation: structuredClone(existing) };
+        }
+        if (existing.userId !== userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "unavailable" };
+        }
+      }
+
+      const reservation: UsernameReservation = {
+        username: norm,
+        userId,
+        reservedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + leaseMs).toISOString(),
+      };
+      this.usernameReservations.set(norm, structuredClone(reservation));
+      return { outcome: "reserved", reservation: structuredClone(reservation) };
+    });
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    const norm = username.toLowerCase().trim();
+    return this.withKeyLock(`username-reservation:${norm}`, async () => {
+      const existing = this.usernameReservations.get(norm);
+      if (!existing) return false;
+      if (existing.userId !== userId) return false;
+      this.usernameReservations.delete(norm);
+      return true;
+    });
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    return structuredClone(this.wallets.get(userId) ?? null);
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.withKeyLock(`wallet:${wallet.userId}`, async () => {
+      const existing = this.wallets.get(wallet.userId);
+      if (existing) {
+        return { outcome: "already-exists", wallet: structuredClone(existing) };
+      }
+      this.wallets.set(wallet.userId, structuredClone(wallet));
+      return { outcome: "created", wallet: structuredClone(wallet) };
+    });
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const normOwner = owner.toUpperCase().trim();
+    return this.withKeyLock(`policy-init:${normOwner}`, async () => {
+      const existing = this.policies.get(normOwner);
+      if (existing) {
+        return { created: false, policy: structuredClone(existing) };
+      }
+      this.policies.set(normOwner, structuredClone(policy));
+      return { created: true, policy: structuredClone(policy) };
+    });
+  }
+
   async getRelayQueueDepth(_relayId: string) {
     return 0;
   }
@@ -437,5 +590,9 @@ export class MemoryApiRepository implements ApiRepository {
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.provisioning.clear();
+    this.usernameReservations.clear();
+    this.wallets.clear();
+    this.keyLocks.clear();
   }
 }

@@ -2,7 +2,10 @@ import type {
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  UpdateProvisioningResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import type {
   Credential,
@@ -11,10 +14,13 @@ import type {
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   Receipt,
   SenderRule,
   StoredEnvelope,
   User,
+  UsernameReservation,
+  Wallet,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -175,6 +181,60 @@ export class HybridApiRepository implements ApiRepository {
 
   async setCredential(credential: Credential): Promise<Credential> {
     return this.getStub().setCredential(credential);
+  }
+
+  // BETA-014: Provisioning state is coordinated by the DO (single authority);
+  // KV holds no provisioning mirror because every write is a CAS transition.
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return this.getStub().getProvisioningRecord(userId);
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.getStub().createProvisioningRecord(record);
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.getStub().setProvisioningRecord(record, expectedVersion);
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    return this.getStub().reserveUsername(username, userId, leaseMs);
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    return this.getStub().getUsernameReservation(username);
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.getStub().releaseUsernameReservation(username, userId);
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    return this.getStub().getWallet(userId);
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.getStub().createWallet(wallet);
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const result = await this.getStub().initializePolicyIfAbsent(owner, policy);
+    if (result.created) {
+      await this.kv.put(this.key("policy", owner), JSON.stringify(result.policy));
+    }
+    return result;
   }
 
   // Consistent layer delegated to Durable Object via RPC

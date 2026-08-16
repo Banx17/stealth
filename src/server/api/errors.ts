@@ -100,6 +100,13 @@ export const API_ERROR_REGISTRY = {
     retryable: false,
     description: "The resource cannot transition from its current state as requested.",
   },
+  username_unavailable: {
+    status: 409,
+    message: "The requested username is not available",
+    retryable: false,
+    description:
+      "The username is held by another account or claim; no amount of retrying can make it available.",
+  },
   insufficient_postage: {
     status: 422,
     message: "The postage amount is below the required minimum",
@@ -197,6 +204,12 @@ export class ApiError extends Error {
       this.retryClassification = "conflict";
       this.retryable = true;
     } else if (code === "internal_error" || code === "data_integrity_error") {
+      this.retryClassification = "transient";
+      this.retryable = true;
+    } else if (code === "dependency_unavailable") {
+      // Registered as transient in the registry; align the constructed
+      // classification so callers (e.g. provisioning compensation policy)
+      // treat an unavailable dependency as recoverable.
       this.retryClassification = "transient";
       this.retryable = true;
     } else {

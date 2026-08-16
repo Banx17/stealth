@@ -17,6 +17,7 @@ import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
 import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
@@ -26,9 +27,11 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/accounts/provisioning'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
@@ -69,6 +72,11 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
+  id: '/api/v1/accounts/',
+  path: '/api/v1/accounts/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
@@ -116,6 +124,12 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AccountsProvisioningRoute =
+  ApiV1AccountsProvisioningRouteImport.update({
+    id: '/api/v1/accounts/provisioning',
+    path: '/api/v1/accounts/provisioning',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -134,6 +148,12 @@ const ApiV1PostageMessageIdRefundRoute =
     path: '/refund',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
+const ApiV1AccountsProvisioningRetryRoute =
+  ApiV1AccountsProvisioningRetryRouteImport.update({
+    id: '/retry',
+    path: '/retry',
+    getParentRoute: () => ApiV1AccountsProvisioningRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -148,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -157,8 +178,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -171,6 +194,7 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -180,8 +204,10 @@ export interface FileRoutesByTo {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -195,6 +221,7 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -204,8 +231,10 @@ export interface FileRoutesById {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
@@ -220,6 +249,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/accounts/provisioning'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -229,8 +259,10 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/accounts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -243,6 +275,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/accounts/provisioning'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -252,8 +285,10 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/accounts'
     | '/api/v1/postage'
     | '/api/v1/receipts'
+    | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -266,6 +301,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/accounts/provisioning'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -275,8 +311,10 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/accounts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
@@ -290,6 +328,7 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1AccountsProvisioningRoute: typeof ApiV1AccountsProvisioningRouteWithChildren
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -299,6 +338,7 @@ export interface RootRouteChildren {
   ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
   ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
+  ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
 }
@@ -359,6 +399,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/postage'
       fullPath: '/api/v1/postage/'
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/': {
+      id: '/api/v1/accounts/'
+      path: '/api/v1/accounts'
+      fullPath: '/api/v1/accounts/'
+      preLoaderRoute: typeof ApiV1AccountsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/relay/version': {
@@ -424,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/accounts/provisioning': {
+      id: '/api/v1/accounts/provisioning'
+      path: '/api/v1/accounts/provisioning'
+      fullPath: '/api/v1/accounts/provisioning'
+      preLoaderRoute: typeof ApiV1AccountsProvisioningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId/read': {
       id: '/api/v1/receipts/$messageId/read'
       path: '/read'
@@ -445,6 +499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
+    '/api/v1/accounts/provisioning/retry': {
+      id: '/api/v1/accounts/provisioning/retry'
+      path: '/retry'
+      fullPath: '/api/v1/accounts/provisioning/retry'
+      preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
+      parentRoute: typeof ApiV1AccountsProvisioningRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -454,6 +515,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ApiV1AccountsProvisioningRouteChildren {
+  ApiV1AccountsProvisioningRetryRoute: typeof ApiV1AccountsProvisioningRetryRoute
+}
+
+const ApiV1AccountsProvisioningRouteChildren: ApiV1AccountsProvisioningRouteChildren =
+  {
+    ApiV1AccountsProvisioningRetryRoute: ApiV1AccountsProvisioningRetryRoute,
+  }
+
+const ApiV1AccountsProvisioningRouteWithChildren =
+  ApiV1AccountsProvisioningRoute._addFileChildren(
+    ApiV1AccountsProvisioningRouteChildren,
+  )
 
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -502,6 +577,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
@@ -511,6 +587,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
   ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
+  ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
 }

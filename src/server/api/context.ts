@@ -13,6 +13,9 @@ import {
   profileSchema,
   credentialSchema,
   storedEnvelopeSchema,
+  provisioningRecordSchema,
+  usernameReservationSchema,
+  walletSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -208,6 +211,12 @@ registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
 // ValidatedApiRepository can detect tampered or structurally invalid
 // envelope records at the adapter boundary before they reach any caller.
 registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
+// Issue #1921 (BETA-014): provisioning state machine, username claims and
+// wallet records are versioned and validated at the adapter boundary like
+// every other durable record.
+registerRecordSchema("provisioning", 1, provisioningRecordSchema);
+registerRecordSchema("usernameReservation", 1, usernameReservationSchema);
+registerRecordSchema("wallet", 1, walletSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

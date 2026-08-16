@@ -232,6 +232,83 @@ export const openApiDocument = {
         enum: ["permanent", "transient", "rate_limit", "conflict"],
         description: "Stable machine-readable classification of retry eligibility.",
       },
+      ProvisioningStatus: {
+        type: "string",
+        enum: ["pending", "retryable", "active", "failed"],
+        description: "State of the transactional account-provisioning state machine.",
+      },
+      ProvisioningStep: {
+        type: "string",
+        enum: [
+          "username_reservation",
+          "profile_defaults",
+          "wallet_creation",
+          "mailbox_policy_init",
+        ],
+        description: "A single idempotent step of the provisioning flow.",
+      },
+      ProvisioningFailure: {
+        type: "object",
+        required: ["step", "code", "message", "failedAt"],
+        properties: {
+          step: {
+            $ref: "#/components/schemas/ProvisioningStep",
+          },
+          code: {
+            type: "string",
+            description: "Stable domain error code of the failing step.",
+          },
+          message: {
+            type: "string",
+            description: "Human-readable failure explanation.",
+          },
+          failedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
+      ProvisioningProgress: {
+        type: "object",
+        required: ["status", "requestedUsername", "completedSteps", "currentStep", "attempts"],
+        properties: {
+          status: {
+            $ref: "#/components/schemas/ProvisioningStatus",
+          },
+          requestedUsername: {
+            type: "string",
+            pattern: "^[a-z0-9_-]{3,30}$",
+          },
+          completedSteps: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/ProvisioningStep",
+            },
+          },
+          currentStep: {
+            $ref: "#/components/schemas/ProvisioningStep",
+          },
+          attempts: {
+            type: "integer",
+            minimum: 0,
+            description: "Number of flow runs attempted so far.",
+          },
+          failure: {
+            allOf: [
+              {
+                $ref: "#/components/schemas/ProvisioningFailure",
+              },
+              {
+                nullable: true,
+              },
+            ],
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
       ErrorEnvelope: {
         type: "object",
         required: ["error", "meta"],
@@ -1741,6 +1818,272 @@ export const openApiDocument = {
           },
           "503": {
             description: "Not Ready — a required dependency is unavailable",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts": {
+      post: {
+        operationId: "provisionAccount",
+        summary: "Provision an account (username, profile, wallet, policy)",
+        description:
+          "Idempotently runs the transactional account-provisioning state machine: username reservation, profile defaults, wallet creation and mailbox policy initialization converge without leaving a partial active account. Repeated calls are safe against duplicate requests; an optional x-idempotency-key enables strict replay semantics.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          description:
+            "Provisioning intent. Email and username are required only when no account exists for the actor yet.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  email: {
+                    type: "string",
+                    format: "email",
+                  },
+                  username: {
+                    type: "string",
+                    pattern: "^[a-z0-9_-]{3,30}$",
+                  },
+                  displayName: {
+                    type: "string",
+                    maxLength: 80,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress after a completed or resumed run",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ProvisioningProgress",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — username unavailable or provisioning previously failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts/provisioning": {
+      get: {
+        operationId: "getAccountProvisioningProgress",
+        summary: "Read provisioning progress for the authenticated account",
+        description:
+          "Safe progress projection: provisioning state, completed steps, attempts and the last failure. Never exposes credentials, wallet seeds, or hashes.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress and account status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["provisioning", "accountStatus"],
+                  properties: {
+                    provisioning: {
+                      $ref: "#/components/schemas/ProvisioningProgress",
+                    },
+                    accountStatus: {
+                      type: "string",
+                      enum: ["active", "suspended", "pending_verification", "deactivated"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found — no account or provisioning record",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/accounts/provisioning/retry": {
+      post: {
+        operationId: "retryAccountProvisioning",
+        summary: "Retry a failed provisioning run",
+        description:
+          "Restarts a retryable provisioning flow from its first incomplete step. Only retryable flows may be restarted; active and in-flight flows are rejected with a deterministic 409.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Provisioning progress after the retry run",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ProvisioningProgress",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found — no account or provisioning record",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — provisioning in flight, already active, or attempts exhausted",
             content: {
               "application/json": {
                 schema: {

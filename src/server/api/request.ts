@@ -44,6 +44,8 @@ export const ROUTE_BODY_LIMITS = {
   "PUT /policies/{owner}/senders/{sender}": "standard",
   "POST /policies/evaluate": "compact",
   "POST /relay/messages": "relay",
+  "POST /accounts": "standard",
+  "POST /accounts/provisioning/retry": "minimal",
 } as const satisfies Record<string, BodyLimitCategory>;
 
 export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;
