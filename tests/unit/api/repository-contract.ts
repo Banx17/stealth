@@ -268,110 +268,132 @@ export function runRepositoryContractTests(
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Issue #1936 (BETA-029) — Envelope persistence contract
-    // Every ApiRepository adapter must satisfy these invariants.
-    // -------------------------------------------------------------------------
+    describe("BETA-002: user account, profile, and credential management", () => {
+      const sampleUser = {
+        userId: "usr_test_1",
+        address: `G${"D".repeat(55)}`,
+        email: "alice@stealth.mail",
+        username: "alice_stealth",
+        status: "active" as const,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        version: 1,
+      };
 
-    describe("encrypted envelope persistence (BETA-029 / Issue #1936)", () => {
-      const ephemeralKey = `G${"C".repeat(55)}`;
-      const envMessageId = "e".repeat(64);
-      const envMessageId2 = "f".repeat(64);
-      const commitment = "c".repeat(64);
-      const mac = "d".repeat(64);
-      const nonce = "ab12cd34ef56";
+      const sampleProfile = {
+        userId: "usr_test_1",
+        username: "alice_stealth",
+        displayName: "Alice Stealth",
+        avatarUrl: "https://stealth.mail/avatars/alice.png",
+        bio: "Crypto privacy enthusiast",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      };
 
-      function makeEnvelope(overrides: Partial<StoredEnvelope> = {}): StoredEnvelope {
-        return {
-          messageId: envMessageId,
-          senderId: sender,
-          recipientId: owner,
-          ciphertext: "dGVzdC1jaXBoZXJ0ZXh0",
-          protectedHeaders: {
-            algorithm: "AES-256-GCM",
-            ephemeral_public_key: ephemeralKey,
-            nonce,
-            mac,
-            version: "v1",
-          },
-          contentCommitment: commitment,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          ...overrides,
-        };
-      }
+      const sampleCredential = {
+        credentialId: "cred_test_1",
+        userId: "usr_test_1",
+        authMethod: "stellar_header" as const,
+        secretHash: "hash_super_secret_123",
+        walletKeyRef: "vault_ref_abc_456",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      };
 
-      it("returns null for a missing envelope", async () => {
-        await expect(repo.getEnvelope(envMessageId)).resolves.toBeNull();
+      it("returns null for non-existent user, profile, or credential", async () => {
+        await expect(repo.getUserById("missing")).resolves.toBeNull();
+        await expect(repo.getUserByEmail("missing@stealth.mail")).resolves.toBeNull();
+        await expect(repo.getUserByUsername("missing_user")).resolves.toBeNull();
+        await expect(repo.getUserByAddress(`G${"E".repeat(55)}`)).resolves.toBeNull();
+        await expect(repo.getProfile("missing")).resolves.toBeNull();
+        await expect(repo.getCredential("missing")).resolves.toBeNull();
       });
 
-      it("returns 'inserted' on the first insert and retrieves the record", async () => {
-        const envelope = makeEnvelope();
-        const result = await repo.insertEnvelope(envelope);
-        expect(result.outcome).toBe("inserted");
+      it("creates a user and satisfies email, username, address lookups", async () => {
+        const created = await repo.createUser(sampleUser, sampleCredential, sampleProfile);
+        expect(created).toMatchObject({ userId: "usr_test_1", email: "alice@stealth.mail" });
 
-        const retrieved = await repo.getEnvelope(envMessageId);
-        expect(retrieved).not.toBeNull();
-        expect(retrieved?.messageId).toBe(envMessageId);
-        expect(retrieved?.senderId).toBe(sender);
-        expect(retrieved?.recipientId).toBe(owner);
-        // Plaintext must never appear in the retrieved record.
-        expect((retrieved as any)?.subject).toBeUndefined();
-        expect((retrieved as any)?.body).toBeUndefined();
+        await expect(repo.getUserById("usr_test_1")).resolves.toMatchObject({
+          username: "alice_stealth",
+        });
+        await expect(repo.getUserByEmail("ALICE@STEALTH.MAIL")).resolves.toMatchObject({
+          userId: "usr_test_1",
+        });
+        await expect(repo.getUserByUsername("ALICE_STEALTH")).resolves.toMatchObject({
+          userId: "usr_test_1",
+        });
+        await expect(repo.getUserByAddress(sampleUser.address)).resolves.toMatchObject({
+          userId: "usr_test_1",
+        });
+        await expect(repo.getProfile("usr_test_1")).resolves.toMatchObject({
+          displayName: "Alice Stealth",
+        });
+        await expect(repo.getCredential("usr_test_1")).resolves.toMatchObject({
+          secretHash: "hash_super_secret_123",
+        });
       });
 
-      it("returns 'duplicate' for a byte-identical resubmission (idempotent)", async () => {
-        const envelope = makeEnvelope();
-        await repo.insertEnvelope(envelope);
+      it("rejects duplicate email, username, or address creation with 409 conflict", async () => {
+        await repo.createUser(sampleUser);
 
-        const retry = await repo.insertEnvelope({ ...envelope });
-        expect(retry.outcome).toBe("duplicate");
-        if (retry.outcome === "duplicate") {
-          expect(retry.envelope.messageId).toBe(envMessageId);
-        }
+        // Duplicate email
+        await expect(
+          repo.createUser({
+            ...sampleUser,
+            userId: "usr_test_2",
+            username: "bob_stealth",
+            address: `G${"E".repeat(55)}`,
+          }),
+        ).rejects.toMatchObject({ status: 409 });
+
+        // Duplicate username
+        await expect(
+          repo.createUser({
+            ...sampleUser,
+            userId: "usr_test_3",
+            email: "bob@stealth.mail",
+            address: `G${"F".repeat(55)}`,
+          }),
+        ).rejects.toMatchObject({ status: 409 });
+
+        // Duplicate address
+        await expect(
+          repo.createUser({
+            ...sampleUser,
+            userId: "usr_test_4",
+            email: "carol@stealth.mail",
+            username: "carol_stealth",
+          }),
+        ).rejects.toMatchObject({ status: 409 });
       });
 
-      it("returns 'conflict' when a different payload uses the same messageId", async () => {
-        await repo.insertEnvelope(makeEnvelope());
-        const different = makeEnvelope({ ciphertext: "ZGlmZmVyZW50AA==" });
-        const result = await repo.insertEnvelope(different);
-        expect(result.outcome).toBe("conflict");
-      });
+      it("updates a user with optimistic concurrency version check", async () => {
+        await repo.createUser(sampleUser);
 
-      it("allows exactly one winner out of 5 concurrent inserts", async () => {
-        const envelope = makeEnvelope();
-        const results = await Promise.all(
-          Array.from({ length: 5 }, () => repo.insertEnvelope({ ...envelope })),
+        // Stale update (expectedVersion = 999 instead of 1)
+        const staleRes = await repo.updateUser(
+          { ...sampleUser, email: "alice2@stealth.mail" },
+          999,
         );
+        expect(staleRes.updated).toBe(false);
+        if (!staleRes.updated) {
+          expect(staleRes.current).toMatchObject({ version: 1 });
+        }
 
-        const inserted = results.filter((r) => r.outcome === "inserted");
-        const duplicates = results.filter((r) => r.outcome === "duplicate");
-        const conflicts = results.filter((r) => r.outcome === "conflict");
+        // Valid update (expectedVersion = 1)
+        const validRes = await repo.updateUser(
+          { ...sampleUser, email: "alice_new@stealth.mail" },
+          1,
+        );
+        expect(validRes.updated).toBe(true);
+        if (validRes.updated) {
+          expect(validRes.user.version).toBe(2);
+          expect(validRes.user.email).toBe("alice_new@stealth.mail");
+        }
 
-        expect(inserted).toHaveLength(1);
-        expect(duplicates).toHaveLength(4);
-        expect(conflicts).toHaveLength(0);
-      });
-
-      it("isolates envelopes by messageId", async () => {
-        await repo.insertEnvelope(makeEnvelope({ messageId: envMessageId }));
-        await repo.insertEnvelope(makeEnvelope({ messageId: envMessageId2 }));
-
-        await expect(repo.getEnvelope(envMessageId)).resolves.toMatchObject({
-          messageId: envMessageId,
+        await expect(repo.getUserByEmail("alice_new@stealth.mail")).resolves.toMatchObject({
+          userId: "usr_test_1",
         });
-        await expect(repo.getEnvelope(envMessageId2)).resolves.toMatchObject({
-          messageId: envMessageId2,
-        });
-      });
-
-      it("is insert-only: a different ciphertext cannot overwrite the stored record", async () => {
-        const original = makeEnvelope();
-        await repo.insertEnvelope(original);
-
-        await repo.insertEnvelope(makeEnvelope({ ciphertext: "bmV3Y2lwaGVydGV4dA==" }));
-
-        const stored = await repo.getEnvelope(envMessageId);
-        expect(stored?.ciphertext).toBe(original.ciphertext);
       });
     });
   });

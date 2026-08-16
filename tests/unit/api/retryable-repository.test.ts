@@ -148,13 +148,49 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("markReceiptRead");
     return this.inner.markReceiptRead(messageId, actor, now);
   }
-  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
-    this.maybeFail("getEnvelope");
-    return this.inner.getEnvelope(messageId);
+  async getUserById(userId: string) {
+    this.maybeFail("getUserById");
+    return this.inner.getUserById(userId);
   }
-  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
-    this.maybeFail("insertEnvelope");
-    return this.inner.insertEnvelope(envelope);
+  async getUserByEmail(email: string) {
+    this.maybeFail("getUserByEmail");
+    return this.inner.getUserByEmail(email);
+  }
+  async getUserByUsername(username: string) {
+    this.maybeFail("getUserByUsername");
+    return this.inner.getUserByUsername(username);
+  }
+  async getUserByAddress(address: string) {
+    this.maybeFail("getUserByAddress");
+    return this.inner.getUserByAddress(address);
+  }
+  async createUser(
+    user: import("../../../src/server/api/domain").User,
+    credential?: import("../../../src/server/api/domain").Credential,
+    profile?: import("../../../src/server/api/domain").Profile,
+  ) {
+    this.maybeFail("createUser");
+    return this.inner.createUser(user, credential, profile);
+  }
+  async updateUser(user: import("../../../src/server/api/domain").User, expectedVersion: number) {
+    this.maybeFail("updateUser");
+    return this.inner.updateUser(user, expectedVersion);
+  }
+  async getProfile(userId: string) {
+    this.maybeFail("getProfile");
+    return this.inner.getProfile(userId);
+  }
+  async setProfile(profile: import("../../../src/server/api/domain").Profile) {
+    this.maybeFail("setProfile");
+    return this.inner.setProfile(profile);
+  }
+  async getCredential(userId: string) {
+    this.maybeFail("getCredential");
+    return this.inner.getCredential(userId);
+  }
+  async setCredential(credential: import("../../../src/server/api/domain").Credential) {
+    this.maybeFail("setCredential");
+    return this.inner.setCredential(credential);
   }
   reset(): void {
     this.inner.reset();

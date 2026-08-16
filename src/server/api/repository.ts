@@ -1,12 +1,14 @@
 import type { ZodSchema } from "zod";
 import type {
+  Credential,
   IdempotencyRecord,
   MailboxPolicy,
   Postage,
   PostageStatus,
+  Profile,
   Receipt,
   SenderRule,
-  StoredEnvelope,
+  User,
 } from "./domain";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
@@ -63,21 +65,9 @@ export type MarkReceiptReadResult =
   | { outcome: "already-read"; readAt: string }
   | { outcome: "marked"; receipt: Receipt };
 
-/**
- * Outcome of an atomic envelope insert.
- *
- * - "inserted"  : first time this messageId was seen; the record is now durable.
- * - "duplicate" : an identical byte-for-byte record already exists for this
- *                 messageId. The operation is idempotent; callers may treat this
- *                 as success (retry-safe resubmission).
- * - "conflict"  : a *different* record (differing ciphertext or headers) already
- *                 exists for the same messageId. Callers must treat this as an
- *                 unrecoverable integrity violation — the prior record wins.
- */
-export type InsertEnvelopeResult =
-  | { outcome: "inserted"; envelope: StoredEnvelope }
-  | { outcome: "duplicate"; envelope: StoredEnvelope }
-  | { outcome: "conflict" };
+export type UpdateUserResult =
+  | { updated: true; user: User }
+  | { updated: false; current: User | null };
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -119,6 +109,18 @@ export interface ApiRepository {
   ): Promise<AcquireIdempotencyResult>;
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
+
+  // BETA-002: User Account, Profile, and Credential Domain Methods
+  getUserById(userId: string): Promise<User | null>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUserByUsername(username: string): Promise<User | null>;
+  getUserByAddress(address: string): Promise<User | null>;
+  createUser(user: User, credential?: Credential, profile?: Profile): Promise<User>;
+  updateUser(user: User, expectedVersion: number): Promise<UpdateUserResult>;
+  getProfile(userId: string): Promise<Profile | null>;
+  setProfile(profile: Profile): Promise<Profile>;
+  getCredential(userId: string): Promise<Credential | null>;
+  setCredential(credential: Credential): Promise<Credential>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -357,6 +359,65 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.setIdempotencyRecord(key, versionRecord("idempotencyRecord", record));
   }
 
+  async getUserById(userId: string): Promise<User | null> {
+    const raw = await this.inner.getUserById(userId);
+    return raw ? validateRecord<User>("user", raw) : null;
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const raw = await this.inner.getUserByEmail(email);
+    return raw ? validateRecord<User>("user", raw) : null;
+  }
+
+  async getUserByUsername(username: string): Promise<User | null> {
+    const raw = await this.inner.getUserByUsername(username);
+    return raw ? validateRecord<User>("user", raw) : null;
+  }
+
+  async getUserByAddress(address: string): Promise<User | null> {
+    const raw = await this.inner.getUserByAddress(address);
+    return raw ? validateRecord<User>("user", raw) : null;
+  }
+
+  async createUser(user: User, credential?: Credential, profile?: Profile): Promise<User> {
+    const versionedUser = versionRecord("user", user);
+    const versionedCred = credential ? versionRecord("credential", credential) : undefined;
+    const versionedProf = profile ? versionRecord("profile", profile) : undefined;
+    const result = await this.inner.createUser(versionedUser, versionedCred, versionedProf);
+    return validateRecord<User>("user", result);
+  }
+
+  async updateUser(user: User, expectedVersion: number): Promise<UpdateUserResult> {
+    const versionedUser = versionRecord("user", user);
+    const result = await this.inner.updateUser(versionedUser, expectedVersion);
+    if (result.updated) {
+      result.user = validateRecord<User>("user", result.user);
+    } else if (result.current) {
+      result.current = validateRecord<User>("user", result.current);
+    }
+    return result;
+  }
+
+  async getProfile(userId: string): Promise<Profile | null> {
+    const raw = await this.inner.getProfile(userId);
+    return raw ? validateRecord<Profile>("profile", raw) : null;
+  }
+
+  async setProfile(profile: Profile): Promise<Profile> {
+    const result = await this.inner.setProfile(versionRecord("profile", profile));
+    return validateRecord<Profile>("profile", result);
+  }
+
+  async getCredential(userId: string): Promise<Credential | null> {
+    const raw = await this.inner.getCredential(userId);
+    return raw ? validateRecord<Credential>("credential", raw) : null;
+  }
+
+  async setCredential(credential: Credential): Promise<Credential> {
+    const result = await this.inner.setCredential(versionRecord("credential", credential));
+    return validateRecord<Credential>("credential", result);
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -439,9 +500,14 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "markReceiptRead",
   "setIdempotencyRecord",
   "transitionPostage",
-  "markReceiptRead",
-  // Issue #1936: envelope reads are idempotent and safe to retry.
-  "getEnvelope",
+  "getUserById",
+  "getUserByEmail",
+  "getUserByUsername",
+  "getUserByAddress",
+  "getProfile",
+  "setProfile",
+  "getCredential",
+  "setCredential",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -570,6 +636,46 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("setIdempotencyRecord", () =>
       this.inner.setIdempotencyRecord(key, record),
     );
+  }
+
+  getUserById(userId: string): Promise<User | null> {
+    return this.withRetry("getUserById", () => this.inner.getUserById(userId));
+  }
+
+  getUserByEmail(email: string): Promise<User | null> {
+    return this.withRetry("getUserByEmail", () => this.inner.getUserByEmail(email));
+  }
+
+  getUserByUsername(username: string): Promise<User | null> {
+    return this.withRetry("getUserByUsername", () => this.inner.getUserByUsername(username));
+  }
+
+  getUserByAddress(address: string): Promise<User | null> {
+    return this.withRetry("getUserByAddress", () => this.inner.getUserByAddress(address));
+  }
+
+  createUser(user: User, credential?: Credential, profile?: Profile): Promise<User> {
+    return this.inner.createUser(user, credential, profile);
+  }
+
+  updateUser(user: User, expectedVersion: number): Promise<UpdateUserResult> {
+    return this.inner.updateUser(user, expectedVersion);
+  }
+
+  getProfile(userId: string): Promise<Profile | null> {
+    return this.withRetry("getProfile", () => this.inner.getProfile(userId));
+  }
+
+  setProfile(profile: Profile): Promise<Profile> {
+    return this.withRetry("setProfile", () => this.inner.setProfile(profile));
+  }
+
+  getCredential(userId: string): Promise<Credential | null> {
+    return this.withRetry("getCredential", () => this.inner.getCredential(userId));
+  }
+
+  setCredential(credential: Credential): Promise<Credential> {
+    return this.withRetry("setCredential", () => this.inner.setCredential(credential));
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {

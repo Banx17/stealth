@@ -1,12 +1,14 @@
-import type { ApiRepository, InsertEnvelopeResult, PostageTransitionResult } from "./repository";
+import type { ApiRepository, PostageTransitionResult, UpdateUserResult } from "./repository";
 import type {
+  Credential,
+  IdempotencyRecord,
   MailboxPolicy,
-  SenderRule,
   Postage,
   PostageStatus,
+  Profile,
   Receipt,
-  IdempotencyRecord,
-  StoredEnvelope,
+  SenderRule,
+  User,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -52,18 +54,10 @@ export class HybridApiRepository implements ApiRepository {
 
   async setPostage(postage: Postage): Promise<Postage> {
     await this.kv.put(this.key("postage", postage.messageId), JSON.stringify(postage));
-    // Mirror into the coordinator, whose transactional storage is the
-    // source of truth for settlement transitions (see transitionPostage).
-    // KV alone cannot provide the compare-and-swap guarantee settlement
-    // needs, since Workers KV writes are not atomic or strongly consistent.
     await this.getStub().setPostage(postage);
     return postage;
   }
 
-  // Settling/refunding postage must be atomic: two concurrent requests
-  // racing on the same messageId must not both succeed. KV get-then-put
-  // cannot guarantee that, so the compare-and-swap is delegated to the
-  // Durable Object coordinator, then mirrored back into KV for fast reads.
   async transitionPostage(
     messageId: string,
     expectedStatus: PostageStatus,
@@ -136,6 +130,47 @@ export class HybridApiRepository implements ApiRepository {
     return result;
   }
 
+  // BETA-002: Durable User Account, Profile & Credential DO stubs
+  async getUserById(userId: string): Promise<User | null> {
+    return this.getStub().getUserById(userId);
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.getStub().getUserByEmail(email);
+  }
+
+  async getUserByUsername(username: string): Promise<User | null> {
+    return this.getStub().getUserByUsername(username);
+  }
+
+  async getUserByAddress(address: string): Promise<User | null> {
+    return this.getStub().getUserByAddress(address);
+  }
+
+  async createUser(user: User, credential?: Credential, profile?: Profile): Promise<User> {
+    return this.getStub().createUser(user, credential, profile);
+  }
+
+  async updateUser(user: User, expectedVersion: number): Promise<UpdateUserResult> {
+    return this.getStub().updateUser(user, expectedVersion);
+  }
+
+  async getProfile(userId: string): Promise<Profile | null> {
+    return this.getStub().getProfile(userId);
+  }
+
+  async setProfile(profile: Profile): Promise<Profile> {
+    return this.getStub().setProfile(profile);
+  }
+
+  async getCredential(userId: string): Promise<Credential | null> {
+    return this.getStub().getCredential(userId);
+  }
+
+  async setCredential(credential: Credential): Promise<Credential> {
+    return this.getStub().setCredential(credential);
+  }
+
   // Consistent layer delegated to Durable Object via RPC
   private getStub() {
     const id = this.coordinator.idFromName("global-stealth-coordinator");
@@ -166,7 +201,6 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().incrementCounter(key, windowSeconds, amount);
   }
 
-  // Relay stats stubs matching MemoryApiRepository exactly
   async getRelayQueueDepth(_relayId: string): Promise<number> {
     return 0;
   }
