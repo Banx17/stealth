@@ -77,7 +77,14 @@
         },
       ],
       "secrets": {
-        "required": ["STEALTH_CURSOR_SECRET"],
+        "required": [
+          "STEALTH_CURSOR_SECRET",
+          "STEALTH_RELAY_API_KEY",
+          "STEALTH_STORAGE_SECRET",
+          "STEALTH_SMTP_PASSWORD",
+          "STEALTH_RPC_API_KEY",
+          "STEALTH_OPERATOR_SECRET"
+        ]
       },
       "vars": {
         "STEALTH_ENV": "preview",
@@ -121,7 +128,14 @@
         },
       ],
       "secrets": {
-        "required": ["STEALTH_CURSOR_SECRET"],
+        "required": [
+          "STEALTH_CURSOR_SECRET",
+          "STEALTH_RELAY_API_KEY",
+          "STEALTH_STORAGE_SECRET",
+          "STEALTH_SMTP_PASSWORD",
+          "STEALTH_RPC_API_KEY",
+          "STEALTH_OPERATOR_SECRET"
+        ]
       },
       "vars": {
         "STEALTH_ENV": "production",
