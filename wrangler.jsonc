@@ -7,22 +7,31 @@
   "kv_namespaces": [
     {
       "binding": "STEALTH_KV",
-      "id": "placeholder-prod-id",
-      "preview_id": "placeholder-preview-id",
-    },
+      "id": "stealth-kv-beta-prod-id",
+      "preview_id": "stealth-kv-beta-preview-id"
+    }
   ],
   "durable_objects": {
     "bindings": [
       {
         "name": "STEALTH_COORDINATOR",
-        "class_name": "StealthCoordinator",
-      },
-    ],
+        "class_name": "StealthCoordinator"
+      }
+    ]
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["StealthCoordinator"],
-    },
+      "new_sqlite_classes": ["StealthCoordinator"]
+    }
   ],
+  "vars": {
+    "STEALTH_ENV": "production",
+    "STEALTH_STELLAR_NETWORK": "testnet",
+    "STEALTH_HORIZON_URL": "https://horizon-testnet.stellar.org",
+    "STEALTH_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
+    "STEALTH_RELAY_URL": "https://relay-testnet.stealth.mail",
+    "STEALTH_APP_URL": "https://app.stealth.mail",
+    "STEALTH_CORS_ALLOWED_ORIGINS": "https://app.stealth.mail"
+  }
 }

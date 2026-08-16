@@ -294,6 +294,8 @@ export function createApiContext(
  * fail clearly before serving partial or unsafe API behavior. Dev vs prod
  * requirements are distinguished, and secret values are never logged.
  */
+import { loadRuntimeConfig } from "../../config";
+
 export interface ApiConfig {
   isProd: boolean;
   kvBinding?: unknown;
@@ -303,6 +305,12 @@ export interface ApiConfig {
 }
 
 export function validateApiConfig(config: ApiConfig): void {
+  if (config.supportedVersions.length === 0) {
+    throw new Error(
+      "Configuration error: at least one supported protocol version must be configured.",
+    );
+  }
+
   if (config.isProd) {
     if (!config.kvBinding) {
       throw new Error("Configuration error: STEALTH_KV binding is not declared in wrangler.jsonc.");
@@ -318,11 +326,15 @@ export function validateApiConfig(config: ApiConfig): void {
     }
   }
 
-  if (config.supportedVersions.length === 0) {
-    throw new Error(
-      "Configuration error: at least one supported protocol version must be configured.",
-    );
-  }
+  // Execute full 6-domain beta runtime configuration validation
+  loadRuntimeConfig({
+    profile: config.isProd ? "production" : "development",
+    env: {
+      STEALTH_KV: config.kvBinding,
+      STEALTH_COORDINATOR: config.coordinatorBinding,
+      STEALTH_CURSOR_SECRET: config.cursorSecret,
+    },
+  });
 }
 
 export async function getApiContext(request?: Request): Promise<ApiContext> {
