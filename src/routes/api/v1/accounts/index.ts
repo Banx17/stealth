@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/v1/accounts/")({
                 },
                 input,
                 provision,
-                // Deterministic conflicts (username_unavailable, terminal
+                // Deterministic conflicts (409 username conflicts, terminal
                 // invalid_state_transition) are safe to cache and replay;
                 // transient failures must never be cached so the same key
                 // can be retried immediately.

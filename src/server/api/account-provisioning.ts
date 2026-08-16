@@ -171,9 +171,21 @@ interface StepFailure {
   message: string;
 }
 
+/**
+ * A taken username is a *deterministic* conflict: no retry can make it
+ * available, so the flow must land in terminal "failed" even though the
+ * generic `conflict` code is registered as retryable.
+ */
+class ProvisionUsernameConflictError extends ApiError {
+  constructor(username: string) {
+    super(409, "conflict", `Username "${username}" is not available`);
+  }
+}
+
 function classifyFailure(error: unknown): StepFailure {
   if (error instanceof ApiError) {
-    return { permanent: !error.retryable, code: error.code, message: error.message };
+    const permanent = !error.retryable || error instanceof ProvisionUsernameConflictError;
+    return { permanent, code: error.code, message: error.message };
   }
   return {
     permanent: false,
@@ -404,7 +416,7 @@ async function reserveUsernameStep(
     USERNAME_RESERVATION_LEASE_MS,
   );
   if (reservation.outcome === "unavailable") {
-    throw new ApiError(409, "username_unavailable", `Username "${username}" is not available`);
+    throw new ProvisionUsernameConflictError(username);
   }
 
   try {
@@ -422,7 +434,7 @@ async function reserveUsernameStep(
     if (error instanceof ApiError && error.code === "conflict") {
       // The reservation said the username was claimable, so a conflict means
       // the account is in an inconsistent state — no retry fixes that.
-      throw new ApiError(409, "username_unavailable", `Username "${username}" is not available`);
+      throw new ProvisionUsernameConflictError(username);
     }
     throw error;
   }

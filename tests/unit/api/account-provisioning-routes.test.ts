@@ -206,7 +206,7 @@ describe("POST /api/v1/accounts (provision)", () => {
     expect(response.status).toBe(200);
     const body = await parseJson(response);
     expect(body.data.status).toBe("failed");
-    expect(body.data.failure.code).toBe("username_unavailable");
+    expect(body.data.failure.code).toBe("conflict");
     // No account was created for the loser address.
     expect(await repo.getUserByAddress(owner)).toBeNull();
   });

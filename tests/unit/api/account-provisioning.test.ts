@@ -243,7 +243,7 @@ describe("failure and compensation paths", () => {
 
     expect(progress.status).toBe("failed");
     expect(progress.attempts).toBe(1);
-    expect(progress.failure?.code).toBe("username_unavailable");
+    expect(progress.failure?.code).toBe("conflict");
     expect(await repo.getUserByAddress(ADDR_A)).toBeNull();
     expect(await repo.getUsernameReservation("taken_name")).toBeNull();
   });

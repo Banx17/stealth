@@ -100,13 +100,6 @@ export const API_ERROR_REGISTRY = {
     retryable: false,
     description: "The resource cannot transition from its current state as requested.",
   },
-  username_unavailable: {
-    status: 409,
-    message: "The requested username is not available",
-    retryable: false,
-    description:
-      "The username is held by another account or claim; no amount of retrying can make it available.",
-  },
   insufficient_postage: {
     status: 422,
     message: "The postage amount is below the required minimum",

@@ -86,7 +86,6 @@
               "challenge_not_yet_valid",
               "idempotency_mismatch",
               "invalid_state_transition",
-              "username_unavailable",
               "insufficient_postage",
               "duplicate_receipt",
               "duplicate_postage",
@@ -519,7 +518,6 @@
                   "challenge_not_yet_valid",
                   "idempotency_mismatch",
                   "invalid_state_transition",
-                  "username_unavailable",
                   "insufficient_postage",
                   "duplicate_receipt",
                   "duplicate_postage",
@@ -657,12 +655,6 @@
             "message": "The requested state transition is invalid",
             "retryable": false,
             "description": "The resource cannot transition from its current state as requested."
-          },
-          "username_unavailable": {
-            "status": 409,
-            "message": "The requested username is not available",
-            "retryable": false,
-            "description": "The username is held by another account or claim; no amount of retrying can make it available."
           },
           "insufficient_postage": {
             "status": 422,
