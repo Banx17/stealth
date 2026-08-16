@@ -27,6 +27,8 @@ import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/posta
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
+import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
+import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
 import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
@@ -131,6 +133,16 @@ const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
   path: '/api/v1/auth/session',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthRegisterRoute = ApiV1AuthRegisterRouteImport.update({
+  id: '/api/v1/auth/register',
+  path: '/api/v1/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthLogoutAllRoute = ApiV1AuthLogoutAllRouteImport.update({
+  id: '/api/v1/auth/logout-all',
+  path: '/api/v1/auth/logout-all',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthLogoutRoute = ApiV1AuthLogoutRouteImport.update({
   id: '/api/v1/auth/logout',
   path: '/api/v1/auth/logout',
@@ -210,8 +222,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
-  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
+  '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
+  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
@@ -243,8 +256,9 @@ export interface FileRoutesByTo {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
-  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
+  '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
+  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
@@ -277,8 +291,9 @@ export interface FileRoutesById {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
-  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
+  '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
+  '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
@@ -312,8 +327,9 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/auth/login'
-    | '/api/v1/auth/register'
     | '/api/v1/auth/logout'
+    | '/api/v1/auth/logout-all'
+    | '/api/v1/auth/register'
     | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
@@ -345,8 +361,9 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/auth/login'
-    | '/api/v1/auth/register'
     | '/api/v1/auth/logout'
+    | '/api/v1/auth/logout-all'
+    | '/api/v1/auth/register'
     | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
@@ -378,8 +395,9 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/auth/login'
-    | '/api/v1/auth/register'
     | '/api/v1/auth/logout'
+    | '/api/v1/auth/logout-all'
+    | '/api/v1/auth/register'
     | '/api/v1/auth/session'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
@@ -412,8 +430,9 @@ export interface RootRouteChildren {
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
-  ApiV1AuthRegisterRoute: typeof ApiV1AuthRegisterRoute
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
+  ApiV1AuthLogoutAllRoute: typeof ApiV1AuthLogoutAllRoute
+  ApiV1AuthRegisterRoute: typeof ApiV1AuthRegisterRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
@@ -560,6 +579,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AuthSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/register': {
+      id: '/api/v1/auth/register'
+      path: '/api/v1/auth/register'
+      fullPath: '/api/v1/auth/register'
+      preLoaderRoute: typeof ApiV1AuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/logout-all': {
+      id: '/api/v1/auth/logout-all'
+      path: '/api/v1/auth/logout-all'
+      fullPath: '/api/v1/auth/logout-all'
+      preLoaderRoute: typeof ApiV1AuthLogoutAllRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/auth/logout': {
       id: '/api/v1/auth/logout'
       path: '/api/v1/auth/logout'
@@ -704,8 +737,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
-  ApiV1AuthRegisterRoute: ApiV1AuthRegisterRoute,
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
+  ApiV1AuthLogoutAllRoute: ApiV1AuthLogoutAllRoute,
+  ApiV1AuthRegisterRoute: ApiV1AuthRegisterRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,

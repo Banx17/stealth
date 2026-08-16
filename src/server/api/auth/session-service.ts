@@ -1,6 +1,7 @@
 import type { ApiContext } from "../context";
 import type { RetiredSession, Session, User } from "../domain";
 import { ApiError } from "../errors";
+import { recordAuditEvent } from "../audit";
 import { dummyVerifyPassword, verifyPassword } from "./password";
 
 export const SESSION_COOKIE_NAME = "stealth_session";
@@ -24,6 +25,12 @@ export interface SessionOptions {
   now?: () => Date;
   idleTtlSeconds?: number;
   absoluteTtlSeconds?: number;
+}
+
+export interface LogoutOptions {
+  isProd?: boolean;
+  domain?: string;
+  host?: string;
 }
 
 export function parseSessionCookie(cookieHeader: string | null | undefined): string | null {
@@ -53,9 +60,19 @@ export function buildSessionCookie(
   return `${SESSION_COOKIE_NAME}=${sessionId}; HttpOnly; ${secureFlag}SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}`;
 }
 
-export function buildClearSessionCookie(isProd = false): string {
+export function buildClearSessionCookie(isProd = false, domain?: string): string {
   const secureFlag = isProd ? "Secure; " : "";
-  return `${SESSION_COOKIE_NAME}=; HttpOnly; ${secureFlag}SameSite=Lax; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  const domainFlag = domain ? `Domain=${domain}; ` : "";
+  return `${SESSION_COOKIE_NAME}=; HttpOnly; ${secureFlag}${domainFlag}SameSite=Lax; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+}
+
+export function buildClearSessionCookies(isProd = false, domain?: string): string[] {
+  const primary = buildClearSessionCookie(isProd);
+  if (!domain) return [primary];
+
+  const cleanDomain = domain.split(":")[0];
+  const domainCookie = buildClearSessionCookie(isProd, cleanDomain);
+  return primary === domainCookie ? [primary] : [primary, domainCookie];
 }
 
 /**
@@ -328,15 +345,62 @@ export async function rotateSession(
 }
 
 /**
- * Logout session by revoking the session token and generating a clearing cookie.
+ * Logout session by revoking the session token, generating clear cookies, and logging audit event.
  */
 export async function logoutSession(
   apiContext: ApiContext,
   sessionId: string | null,
-): Promise<{ cookieHeader: string }> {
+  options: LogoutOptions = {},
+): Promise<{ cookieHeader: string; cookieHeaders: string[] }> {
+  let userId: string | null = null;
   if (sessionId) {
+    const session = await apiContext.repository.getSession(sessionId);
+    if (session) {
+      userId = session.userId;
+    }
     await apiContext.repository.deleteSession(sessionId);
   }
-  const isProd = import.meta.env?.PROD ?? false;
-  return { cookieHeader: buildClearSessionCookie(isProd) };
+
+  const isProd = options.isProd ?? import.meta.env?.PROD ?? false;
+  const domain = options.domain ?? (options.host ? options.host.split(":")[0] : undefined);
+  const cookieHeaders = buildClearSessionCookies(isProd, domain);
+  const cookieHeader = cookieHeaders[0];
+
+  recordAuditEvent({
+    actor: userId ?? apiContext.principal?.address ?? "anonymous",
+    action: "auth.logout",
+    targetType: "session",
+    safeTargetReference: sessionId ? `${sessionId.substring(0, 12)}...` : "none",
+    result: "success",
+    requestId: apiContext.requestId ?? "unknown",
+  });
+
+  return { cookieHeader, cookieHeaders };
+}
+
+/**
+ * Revokes all active sessions for a given user ID, generating clear cookies and logging audit event.
+ */
+export async function revokeAllSessions(
+  apiContext: ApiContext,
+  userId: string,
+  options: LogoutOptions = {},
+): Promise<{ cookieHeader: string; cookieHeaders: string[] }> {
+  await apiContext.repository.deleteUserSessions(userId);
+
+  const isProd = options.isProd ?? import.meta.env?.PROD ?? false;
+  const domain = options.domain ?? (options.host ? options.host.split(":")[0] : undefined);
+  const cookieHeaders = buildClearSessionCookies(isProd, domain);
+  const cookieHeader = cookieHeaders[0];
+
+  recordAuditEvent({
+    actor: userId,
+    action: "auth.logout_all",
+    targetType: "account_sessions",
+    safeTargetReference: userId,
+    result: "success",
+    requestId: apiContext.requestId ?? "unknown",
+  });
+
+  return { cookieHeader, cookieHeaders };
 }
