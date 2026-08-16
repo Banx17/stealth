@@ -4,6 +4,7 @@ import {
   type ConfigProfile,
   type PublicConfig,
 } from "./schema";
+import { validateRegistryDrift } from "./registry";
 
 const DEFAULT_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"];
 
@@ -256,6 +257,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
       .join("; ");
     throw new Error(`Configuration validation failed: ${formattedErrors}`);
   }
+
+  validateRegistryDrift(parsed.data);
 
   return parsed.data;
 }

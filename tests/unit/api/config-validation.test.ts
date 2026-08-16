@@ -1,6 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { validateApiConfig } from "../../../src/server/api/context";
+
+vi.mock("../../../src/config/registry", () => ({
+  validateRegistryDrift: vi.fn(),
+}));
 
 // Issue #1516: startup configuration validation gate.
 describe("validateApiConfig", () => {
