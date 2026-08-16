@@ -17,6 +17,10 @@ import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
+import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
+import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
+import { Route as ApiV1RelayHealthRouteImport } from './routes/api/v1/relay/health'
 import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
 import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
@@ -65,6 +69,26 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
+  id: '/api/v1/relay/version',
+  path: '/api/v1/relay/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayReadinessRoute = ApiV1RelayReadinessRouteImport.update({
+  id: '/api/v1/relay/readiness',
+  path: '/api/v1/relay/readiness',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayMessagesRoute = ApiV1RelayMessagesRouteImport.update({
+  id: '/api/v1/relay/messages',
+  path: '/api/v1/relay/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayHealthRoute = ApiV1RelayHealthRouteImport.update({
+  id: '/api/v1/relay/health',
+  path: '/api/v1/relay/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
@@ -129,6 +153,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
@@ -148,6 +176,10 @@ export interface FileRoutesByTo {
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
@@ -168,6 +200,10 @@ export interface FileRoutesById {
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
   '/api/v1/postage/quote': typeof ApiV1PostageQuoteRoute
   '/api/v1/receipts/$messageId': typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  '/api/v1/relay/health': typeof ApiV1RelayHealthRoute
+  '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
+  '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
+  '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
@@ -189,6 +225,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/postage/$messageId/refund'
@@ -208,6 +248,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/postage/$messageId/refund'
@@ -227,6 +271,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId'
     | '/api/v1/postage/quote'
     | '/api/v1/receipts/$messageId'
+    | '/api/v1/relay/health'
+    | '/api/v1/relay/messages'
+    | '/api/v1/relay/readiness'
+    | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/postage/$messageId/refund'
@@ -247,6 +295,10 @@ export interface RootRouteChildren {
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
   ApiV1PostageQuoteRoute: typeof ApiV1PostageQuoteRoute
   ApiV1ReceiptsMessageIdRoute: typeof ApiV1ReceiptsMessageIdRouteWithChildren
+  ApiV1RelayHealthRoute: typeof ApiV1RelayHealthRoute
+  ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
+  ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
+  ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
 }
@@ -307,6 +359,34 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/postage'
       fullPath: '/api/v1/postage/'
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/version': {
+      id: '/api/v1/relay/version'
+      path: '/api/v1/relay/version'
+      fullPath: '/api/v1/relay/version'
+      preLoaderRoute: typeof ApiV1RelayVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/readiness': {
+      id: '/api/v1/relay/readiness'
+      path: '/api/v1/relay/readiness'
+      fullPath: '/api/v1/relay/readiness'
+      preLoaderRoute: typeof ApiV1RelayReadinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/messages': {
+      id: '/api/v1/relay/messages'
+      path: '/api/v1/relay/messages'
+      fullPath: '/api/v1/relay/messages'
+      preLoaderRoute: typeof ApiV1RelayMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/health': {
+      id: '/api/v1/relay/health'
+      path: '/api/v1/relay/health'
+      fullPath: '/api/v1/relay/health'
+      preLoaderRoute: typeof ApiV1RelayHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/receipts/$messageId': {
@@ -427,6 +507,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
   ApiV1PostageQuoteRoute: ApiV1PostageQuoteRoute,
   ApiV1ReceiptsMessageIdRoute: ApiV1ReceiptsMessageIdRouteWithChildren,
+  ApiV1RelayHealthRoute: ApiV1RelayHealthRoute,
+  ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
+  ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
+  ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
 }

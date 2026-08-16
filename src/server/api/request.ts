@@ -22,6 +22,8 @@ export const BODY_LIMIT_CATEGORIES = {
   standard: 64 * 1024,
   /** Larger batch or list submissions. */
   bulk: 256 * 1024,
+  /** Encrypted relay message submissions (Issue #1935 BETA-028). */
+  relay: 2 * 1024 * 1024,
 } as const satisfies Record<string, number>;
 
 export type BodyLimitCategory = keyof typeof BODY_LIMIT_CATEGORIES;
@@ -41,6 +43,7 @@ export const ROUTE_BODY_LIMITS = {
   "PUT /policies/{owner}": "standard",
   "PUT /policies/{owner}/senders/{sender}": "standard",
   "POST /policies/evaluate": "compact",
+  "POST /relay/messages": "relay",
 } as const satisfies Record<string, BodyLimitCategory>;
 
 export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;
