@@ -7,11 +7,16 @@ import type {
   Receipt,
   StoredEnvelope,
   User,
+  VerificationPurpose,
+  VerificationToken,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
+  ConsumeVerificationTokenResult,
   InsertEnvelopeResult,
+  IssueVerificationTokenResult,
   PostageTransitionResult,
+  RecordVerificationAttemptResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -323,6 +328,123 @@ export class StealthCoordinator extends DurableObjectBase {
   async setCredential(credential: Credential): Promise<Credential> {
     await this.ctx.storage.put(`credential:${credential.userId}`, credential);
     return credential;
+  }
+
+  // BETA-005: Durable verification-token lifecycle methods
+  async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    const token = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
+      | VerificationToken
+      | undefined;
+    return token ?? null;
+  }
+
+  async getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    const tokenHash = (await this.ctx.storage.get(
+      `verification-token:active:${userId}:${purpose}`,
+    )) as string | undefined;
+    if (!tokenHash) return null;
+    return this.getVerificationToken(tokenHash);
+  }
+
+  async issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    return this.runExclusive(
+      `verification-token:user:${token.userId}:${token.purpose}`,
+      async () => {
+        const existingHash = (await this.ctx.storage.get(
+          `verification-token:hash:${token.tokenHash}`,
+        )) as VerificationToken | undefined;
+        if (existingHash) {
+          return { outcome: "conflict", token: existingHash };
+        }
+
+        const activeHash = (await this.ctx.storage.get(
+          `verification-token:active:${token.userId}:${token.purpose}`,
+        )) as string | undefined;
+        let replacedToken: VerificationToken | null = null;
+        if (activeHash && activeHash !== token.tokenHash) {
+          const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
+            | VerificationToken
+            | undefined;
+          if (current && current.consumedAt === null && current.replacedAt === null) {
+            const invalidated: VerificationToken = {
+              ...current,
+              replacedAt: now.toISOString(),
+              replacedByTokenHash: token.tokenHash,
+            };
+            await this.ctx.storage.put(`verification-token:hash:${activeHash}`, invalidated);
+            replacedToken = invalidated;
+          }
+        }
+
+        await this.ctx.storage.put(`verification-token:hash:${token.tokenHash}`, token);
+        await this.ctx.storage.put(
+          `verification-token:active:${token.userId}:${token.purpose}`,
+          token.tokenHash,
+        );
+        return { outcome: "issued", token, replacedToken };
+      },
+    );
+  }
+
+  async consumeVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<ConsumeVerificationTokenResult> {
+    return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
+      const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
+        | VerificationToken
+        | undefined;
+      if (!current) {
+        return { outcome: "not-found" as const };
+      }
+      if (current.consumedAt !== null) {
+        return { outcome: "already-consumed" as const, token: current };
+      }
+      if (current.replacedAt !== null) {
+        return { outcome: "replaced" as const, token: current };
+      }
+      if (current.attemptCount >= current.maxAttempts) {
+        return { outcome: "brute-force-blocked" as const, token: current };
+      }
+      if (Date.parse(current.expiresAt) <= now.getTime()) {
+        return { outcome: "expired" as const, token: current };
+      }
+      const consumed: VerificationToken = {
+        ...current,
+        consumedAt: now.toISOString(),
+      };
+      await this.ctx.storage.put(`verification-token:hash:${tokenHash}`, consumed);
+      return { outcome: "consumed" as const, token: consumed };
+    });
+  }
+
+  async recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
+      const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
+        | VerificationToken
+        | undefined;
+      if (!current) {
+        return { recorded: false, token: null };
+      }
+      if (current.consumedAt !== null || current.replacedAt !== null) {
+        return { recorded: false, token: current };
+      }
+      const updated: VerificationToken = {
+        ...current,
+        attemptCount: current.attemptCount + 1,
+      };
+      await this.ctx.storage.put(`verification-token:hash:${tokenHash}`, updated);
+      return { recorded: true, token: updated };
+    });
   }
 
   async getCounter(key: string): Promise<number> {

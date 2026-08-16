@@ -92,6 +92,49 @@ export const originConfigSchema = z.object({
 export type OriginConfig = z.infer<typeof originConfigSchema>;
 
 /**
+ * 7. Notifications Domain Schema (BETA-005)
+ *
+ * Delivery of account verification messages. The transport is pluggable:
+ * - "sink" captures messages in memory for local development (never used in
+ *   the production path).
+ * - "smtp" delivers through a self-hosted SMTP server; no third-party mail
+ *   vendor is required.
+ */
+export const notificationTransportSchema = z.enum(["sink", "smtp"]);
+export type NotificationTransport = z.infer<typeof notificationTransportSchema>;
+
+export const smtpConfigSchema = z.object({
+  host: z.string().min(1, "SMTP host cannot be empty"),
+  port: z.number().int().positive("SMTP port must be a positive integer"),
+  secure: z.boolean(),
+  startTls: z.boolean(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+export type SmtpConfig = z.infer<typeof smtpConfigSchema>;
+
+export const verificationPolicySchema = z.object({
+  tokenLifetimeMs: z
+    .number()
+    .int()
+    .positive("Verification token lifetime must be a positive integer"),
+  resendCooldownMs: z
+    .number()
+    .int()
+    .positive("Verification resend cooldown must be a positive integer"),
+  maxAttempts: z.number().int().positive("Verification max attempts must be a positive integer"),
+});
+export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
+
+export const notificationsConfigSchema = z.object({
+  transport: notificationTransportSchema,
+  fromAddress: z.string().min(1, "Notification from-address cannot be empty"),
+  verification: verificationPolicySchema,
+  smtp: smtpConfigSchema,
+});
+export type NotificationsConfig = z.infer<typeof notificationsConfigSchema>;
+
+/**
  * Public Configuration (Client-safe subset with ZERO secrets)
  */
 export const publicConfigSchema = z.object({
@@ -113,6 +156,17 @@ export const publicConfigSchema = z.object({
   }),
   contract: contractConfigSchema,
   origin: originConfigSchema,
+  notifications: z.object({
+    transport: notificationTransportSchema,
+    fromAddress: z.string(),
+    verification: verificationPolicySchema,
+    smtp: z.object({
+      host: z.string(),
+      port: z.number(),
+      secure: z.boolean(),
+      startTls: z.boolean(),
+    }),
+  }),
 });
 export type PublicConfig = z.infer<typeof publicConfigSchema>;
 
@@ -122,6 +176,8 @@ export type PublicConfig = z.infer<typeof publicConfigSchema>;
 export const secretConfigSchema = z.object({
   cursorSecret: z.string(),
   relayApiKey: z.string().optional(),
+  smtpUsername: z.string().optional(),
+  smtpPassword: z.string().optional(),
 });
 export type SecretConfig = z.infer<typeof secretConfigSchema>;
 
@@ -136,6 +192,7 @@ export const runtimeConfigSchema = z.object({
   relay: relayConfigSchema,
   contract: contractConfigSchema,
   origin: originConfigSchema,
+  notifications: notificationsConfigSchema,
 });
 export type BetaRuntimeConfig = z.infer<typeof runtimeConfigSchema>;
 export type RuntimeConfig = BetaRuntimeConfig;

@@ -15,6 +15,8 @@ import type {
   SenderRule,
   StoredEnvelope,
   User,
+  VerificationPurpose,
+  VerificationToken,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -175,6 +177,41 @@ export class HybridApiRepository implements ApiRepository {
 
   async setCredential(credential: Credential): Promise<Credential> {
     return this.getStub().setCredential(credential);
+  }
+
+  // BETA-005: Verification token lifecycle delegated to the Durable Object
+  // so the single-winner transitions (issue/consume/attempt) execute under
+  // the coordinator's per-key exclusive locks.
+  async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    return this.getStub().getVerificationToken(tokenHash);
+  }
+
+  async getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    return this.getStub().getActiveVerificationToken(userId, purpose);
+  }
+
+  async issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<import("./repository").IssueVerificationTokenResult> {
+    return this.getStub().issueVerificationToken(token, now);
+  }
+
+  async consumeVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<import("./repository").ConsumeVerificationTokenResult> {
+    return this.getStub().consumeVerificationToken(tokenHash, now);
+  }
+
+  async recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<import("./repository").RecordVerificationAttemptResult> {
+    return this.getStub().recordVerificationAttempt(tokenHash, now);
   }
 
   // Consistent layer delegated to Durable Object via RPC

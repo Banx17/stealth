@@ -26,6 +26,8 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
+import { Route as ApiV1AuthResendVerificationRouteImport } from './routes/api/v1/auth/resend-verification'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
@@ -116,6 +118,17 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthVerifyRoute = ApiV1AuthVerifyRouteImport.update({
+  id: '/api/v1/auth/verify',
+  path: '/api/v1/auth/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthResendVerificationRoute =
+  ApiV1AuthResendVerificationRouteImport.update({
+    id: '/api/v1/auth/resend-verification',
+    path: '/api/v1/auth/resend-verification',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -148,6 +161,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
+  '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -171,6 +186,8 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
+  '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -195,6 +212,8 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
+  '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -220,6 +239,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/auth/resend-verification'
+    | '/api/v1/auth/verify'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -243,6 +264,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/auth/resend-verification'
+    | '/api/v1/auth/verify'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -266,6 +289,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/auth/resend-verification'
+    | '/api/v1/auth/verify'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -290,6 +315,8 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1AuthResendVerificationRoute: typeof ApiV1AuthResendVerificationRoute
+  ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -424,6 +451,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/verify': {
+      id: '/api/v1/auth/verify'
+      path: '/api/v1/auth/verify'
+      fullPath: '/api/v1/auth/verify'
+      preLoaderRoute: typeof ApiV1AuthVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/resend-verification': {
+      id: '/api/v1/auth/resend-verification'
+      path: '/api/v1/auth/resend-verification'
+      fullPath: '/api/v1/auth/resend-verification'
+      preLoaderRoute: typeof ApiV1AuthResendVerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId/read': {
       id: '/api/v1/receipts/$messageId/read'
       path: '/read'
@@ -502,6 +543,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1AuthResendVerificationRoute: ApiV1AuthResendVerificationRoute,
+  ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,

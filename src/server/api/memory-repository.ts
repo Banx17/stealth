@@ -9,17 +9,26 @@ import type {
   SenderRule,
   StoredEnvelope,
   User,
+  VerificationPurpose,
+  VerificationToken,
 } from "./domain";
 import type {
   ApiRepository,
+  ConsumeVerificationTokenResult,
   InsertEnvelopeResult,
+  IssueVerificationTokenResult,
   PostageTransitionResult,
+  RecordVerificationAttemptResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
   return `${owner}:${sender}`;
+}
+
+function activeTokenKey(userId: string, purpose: string) {
+  return `${userId}:${purpose}`;
 }
 
 export class MemoryApiRepository implements ApiRepository {
@@ -41,6 +50,32 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+
+  // BETA-005: Verification tokens keyed by SHA-256 hash, plus the active-token
+  // index per (userId, purpose) and a per-key lock chain for atomic transitions.
+  private readonly verificationTokens = new Map<string, VerificationToken>();
+  private readonly activeVerificationTokens = new Map<string, string>();
+  private readonly verificationLocks = new Map<string, Promise<void>>();
+
+  private async withVerificationLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.verificationLocks.get(lockKey) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.verificationLocks.set(lockKey, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.verificationLocks.get(lockKey) === queued) {
+        this.verificationLocks.delete(lockKey);
+      }
+    }
+  }
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -309,6 +344,114 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(credential);
   }
 
+  // BETA-005 Verification Token Lifecycle Implementation
+  async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    return structuredClone(this.verificationTokens.get(tokenHash) ?? null);
+  }
+
+  async getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    const tokenHash = this.activeVerificationTokens.get(activeTokenKey(userId, purpose));
+    if (!tokenHash) return null;
+    return structuredClone(this.verificationTokens.get(tokenHash) ?? null);
+  }
+
+  async issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    return this.withVerificationLock(activeTokenKey(token.userId, token.purpose), async () => {
+      if (this.verificationTokens.has(token.tokenHash)) {
+        return {
+          outcome: "conflict",
+          token: structuredClone(this.verificationTokens.get(token.tokenHash)!),
+        };
+      }
+
+      let replacedToken: VerificationToken | null = null;
+      const activeHash = this.activeVerificationTokens.get(
+        activeTokenKey(token.userId, token.purpose),
+      );
+      if (activeHash && activeHash !== token.tokenHash) {
+        const current = this.verificationTokens.get(activeHash);
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+            replacedByTokenHash: token.tokenHash,
+          };
+          this.verificationTokens.set(activeHash, invalidated);
+          replacedToken = invalidated;
+        }
+      }
+
+      const stored = structuredClone(token);
+      this.verificationTokens.set(token.tokenHash, stored);
+      this.activeVerificationTokens.set(
+        activeTokenKey(token.userId, token.purpose),
+        token.tokenHash,
+      );
+      return {
+        outcome: "issued",
+        token: structuredClone(stored),
+        replacedToken: replacedToken ? structuredClone(replacedToken) : null,
+      };
+    });
+  }
+
+  async consumeVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<ConsumeVerificationTokenResult> {
+    return this.withVerificationLock(`token:${tokenHash}`, async () => {
+      const current = this.verificationTokens.get(tokenHash);
+      if (!current) {
+        return { outcome: "not-found" };
+      }
+      if (current.consumedAt !== null) {
+        return { outcome: "already-consumed", token: structuredClone(current) };
+      }
+      if (current.replacedAt !== null) {
+        return { outcome: "replaced", token: structuredClone(current) };
+      }
+      if (current.attemptCount >= current.maxAttempts) {
+        return { outcome: "brute-force-blocked", token: structuredClone(current) };
+      }
+      if (Date.parse(current.expiresAt) <= now.getTime()) {
+        return { outcome: "expired", token: structuredClone(current) };
+      }
+      const consumed: VerificationToken = {
+        ...current,
+        consumedAt: now.toISOString(),
+      };
+      this.verificationTokens.set(tokenHash, consumed);
+      return { outcome: "consumed", token: structuredClone(consumed) };
+    });
+  }
+
+  async recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    return this.withVerificationLock(`token:${tokenHash}`, async () => {
+      const current = this.verificationTokens.get(tokenHash);
+      if (!current) {
+        return { recorded: false, token: null };
+      }
+      if (current.consumedAt !== null || current.replacedAt !== null) {
+        return { recorded: false, token: structuredClone(current) };
+      }
+      const updated: VerificationToken = {
+        ...current,
+        attemptCount: current.attemptCount + 1,
+      };
+      this.verificationTokens.set(tokenHash, updated);
+      return { recorded: true, token: structuredClone(updated) };
+    });
+  }
+
   async getRelayQueueDepth(_relayId: string) {
     return 0;
   }
@@ -437,5 +580,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.verificationTokens.clear();
+    this.activeVerificationTokens.clear();
+    this.verificationLocks.clear();
   }
 }

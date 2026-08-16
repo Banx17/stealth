@@ -885,7 +885,7 @@ export const openApiDocument = {
                     },
                   },
                   senderBlocked: {
-                    summary: "Policy Denied — Sender explicitly blocked",
+                    summary: "Policy Denied ΓÇö Sender explicitly blocked",
                     value: {
                       data: {
                         allowed: false,
@@ -901,7 +901,7 @@ export const openApiDocument = {
                     },
                   },
                   unknownSendersDisabled: {
-                    summary: "Policy Denied — Unknown senders disabled by recipient policy",
+                    summary: "Policy Denied ΓÇö Unknown senders disabled by recipient policy",
                     value: {
                       data: {
                         allowed: false,
@@ -918,7 +918,7 @@ export const openApiDocument = {
                   },
                   insufficientPostage: {
                     summary:
-                      "Policy Denied — Postage provided is below recipient minimum requirement",
+                      "Policy Denied ΓÇö Postage provided is below recipient minimum requirement",
                     value: {
                       data: {
                         allowed: false,
@@ -934,7 +934,7 @@ export const openApiDocument = {
                     },
                   },
                   verificationRequired: {
-                    summary: "Policy Denied — Sender identity verification is required",
+                    summary: "Policy Denied ΓÇö Sender identity verification is required",
                     value: {
                       data: {
                         allowed: false,
@@ -955,7 +955,7 @@ export const openApiDocument = {
           },
           "400": {
             description:
-              "Bad Request — Invalid request JSON structure or missing Content-Type header",
+              "Bad Request ΓÇö Invalid request JSON structure or missing Content-Type header",
             content: {
               "application/json": {
                 schema: {
@@ -963,7 +963,7 @@ export const openApiDocument = {
                 },
                 examples: {
                   invalidJson: {
-                    summary: "Bad Request — Syntax error in JSON body",
+                    summary: "Bad Request ΓÇö Syntax error in JSON body",
                     value: {
                       error: {
                         code: "bad_request",
@@ -992,7 +992,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -1000,7 +1000,7 @@ export const openApiDocument = {
                 },
                 examples: {
                   invalidStellarAddress: {
-                    summary: "Validation failure — Malformed Stellar address field",
+                    summary: "Validation failure ΓÇö Malformed Stellar address field",
                     value: {
                       error: {
                         code: "validation_error",
@@ -1024,7 +1024,7 @@ export const openApiDocument = {
                     },
                   },
                   invalidPostageAmount: {
-                    summary: "Validation failure — Malformed postage amount string",
+                    summary: "Validation failure ΓÇö Malformed postage amount string",
                     value: {
                       error: {
                         code: "validation_error",
@@ -1580,7 +1580,7 @@ export const openApiDocument = {
             },
           },
           "503": {
-            description: "Not Ready — a required dependency is unavailable",
+            description: "Not Ready ΓÇö a required dependency is unavailable",
             content: {
               "application/json": {
                 schema: {
@@ -1730,7 +1730,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -1740,7 +1740,7 @@ export const openApiDocument = {
             },
           },
           "503": {
-            description: "Not Ready — a required dependency is unavailable",
+            description: "Not Ready ΓÇö a required dependency is unavailable",
             content: {
               "application/json": {
                 schema: {
@@ -1751,6 +1751,161 @@ export const openApiDocument = {
           },
           "500": {
             description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/verify": {
+      post: {
+        operationId: "verifyAccount",
+        summary: "Verify an account with a delivered token",
+        description:
+          "Consumes a single-use verification token and activates the account. Responses are generic: failures are expressed as token state and never reveal whether an account exists; replaying an already-verified token reports success so retries are safe.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "token"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                  token: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic verification result; never reveals whether the account exists",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/resend-verification": {
+      post: {
+        operationId: "resendVerificationMessage",
+        summary: "Resend the verification message for a pending account",
+        description:
+          "Re-issues a verification token (invalidating the previous one) and delivers a new message. Responds identically for unknown and non-pending accounts to prevent account probing; the resend cooldown is enforced with 429.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic confirmation; the message was sent or intentionally not sent",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Resend cooldown is still active",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "503": {
+            description: "The verification message could not be delivered",
             content: {
               "application/json": {
                 schema: {
