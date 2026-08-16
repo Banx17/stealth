@@ -4,7 +4,7 @@ import { logoutSession, parseSessionCookie } from "@/server/api/auth/session-ser
 import { getApiContext } from "@/server/api/context";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
-export const Route = createFileRoute("/api/v1/auth/logout" as any)({
+export const Route = createFileRoute("/api/v1/auth/logout")({
   server: {
     handlers: {
       POST: ({ request }) =>

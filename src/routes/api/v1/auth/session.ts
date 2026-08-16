@@ -6,7 +6,7 @@ import { toPublicSession, toPublicUser } from "@/server/api/domain";
 import { ApiError } from "@/server/api/errors";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
-export const Route = createFileRoute("/api/v1/auth/session" as any)({
+export const Route = createFileRoute("/api/v1/auth/session")({
   server: {
     handlers: {
       GET: ({ request }) =>

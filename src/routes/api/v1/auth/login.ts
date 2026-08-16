@@ -13,7 +13,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export const Route = createFileRoute("/api/v1/auth/login" as any)({
+export const Route = createFileRoute("/api/v1/auth/login")({
   server: {
     handlers: {
       POST: ({ request }) =>
