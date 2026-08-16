@@ -13,6 +13,7 @@ import {
   profileSchema,
   credentialSchema,
   sessionSchema,
+  storedEnvelopeSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
