@@ -245,64 +245,80 @@ export function toPublicProfile(profile: Profile): PublicProfile {
   };
 }
 
-/**
- * Zod schema for a durably stored encrypted message envelope.
- *
- * Design principles
- * -----------------
- * - `ciphertext`        : the raw encrypted body (base64url), never decrypted here.
- * - `protectedHeaders`  : immutable encryption metadata stored alongside ciphertext
- *                         (algorithm, ephemeral key, nonce, MAC) so the data needed
- *                         to decrypt is co-located with the ciphertext.
- * - `contentCommitment` : SHA-256 hex commitment over the plaintext, allowing
- *                         integrity verification without storing plaintext.
- * - `senderId`          : Stellar G-address of the originating party.
- * - `recipientId`       : Stellar G-address of the intended recipient — used as
- *                         the primary index for mailbox sync without indexing plaintext.
- * - `createdAt`         : ISO-8601 insertion timestamp set by the server.
- * - `$v`                : schema version for future migrations (starts at 1).
- *
- * Plaintext (`subject`, `body`) is **never** a field of this record.
- */
-export const storedEnvelopeProtectedHeadersSchema = z.object({
-  algorithm: z.string().min(1).max(64),
-  ephemeral_public_key: stellarAddressSchema,
-  nonce: z
-    .string()
-    .regex(/^[a-f0-9]+$/, "Expected a hex string for nonce")
-    .min(2)
-    .max(128),
-  mac: hash32Schema,
-  version: z.string().regex(/^v[0-9]+$/),
+// ---------------------------------------------------------------------------
+// BETA-006: Server-Side Session Domain
+// ---------------------------------------------------------------------------
+
+export const sessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  lastActiveAt: z.string().datetime(),
+  ipAddress: z.string().optional().nullable(),
+  userAgent: z.string().optional().nullable(),
+  deviceFingerprint: z.string().optional().nullable(),
 });
 
+export const publicSessionSchema = z.object({
+  sessionId: z.string(),
+  userId: z.string(),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  lastActiveAt: z.string().datetime(),
+});
+
+export type Session = z.infer<typeof sessionSchema>;
+export type PublicSession = z.infer<typeof publicSessionSchema>;
+
+export function toPublicSession(session: Session): PublicSession {
+  return {
+    sessionId: session.sessionId,
+    userId: session.userId,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    lastActiveAt: session.lastActiveAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// StoredEnvelope — durable encrypted-message record (Issue #1936 / BETA-029)
+// ---------------------------------------------------------------------------
+
+export const storedEnvelopeProtectedHeadersSchema = z
+  .object({
+    algorithm: z.string().optional(),
+    ephemeral_public_key: z.string().optional(),
+    nonce: z
+      .string()
+      .regex(/^[0-9a-fA-F]*$/)
+      .refine((val) => val.length % 2 === 0, "Nonce must be even hex")
+      .optional(),
+    mac: z.string().optional(),
+    version: z
+      .string()
+      .regex(/^v\d+$/, "Version must be v<digit>")
+      .optional(),
+    alg: z.string().optional(),
+    kid: z.string().optional(),
+    typ: z.string().optional(),
+  })
+  .catchall(z.unknown());
+
 export const storedEnvelopeSchema = z.object({
-  /** Immutable unique message identifier — 32-byte lowercase hex. */
+  envelopeId: z.string().optional(),
   messageId: hash32Schema,
-  /** Stellar G-address of the sender. */
   senderId: stellarAddressSchema,
-  /** Stellar G-address of the recipient — used as the mailbox index. */
   recipientId: stellarAddressSchema,
-  /**
-   * Encrypted body ciphertext.
-   * Base64url-encoded, no padding (RFC 4648 §5). Plaintext is never stored.
-   */
   ciphertext: z
     .string()
-    .min(1, "Ciphertext must not be empty")
+    .min(1, "Ciphertext cannot be empty")
     .max(20 * 1024 * 1024, "Ciphertext exceeds 20 MiB limit")
-    .regex(/^[A-Za-z0-9+/=]+$/, "Ciphertext must be valid base64"),
-  /** Encryption metadata required for decryption; immutable after insert. */
+    .regex(/^[A-Za-z0-9+/=]+$/, "Ciphertext must be base64 encoded"),
   protectedHeaders: storedEnvelopeProtectedHeadersSchema,
-  /**
-   * Hex-encoded SHA-256 commitment over the plaintext body.
-   * Enables integrity verification without storing plaintext.
-   */
-  contentCommitment: hash32Schema,
-  /** ISO-8601 server-side insertion timestamp. */
+  contentCommitment: hash32Schema.optional(),
   createdAt: z.string().datetime(),
-  /** Schema version for future migrations. */
-  $v: z.number().int().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;

@@ -8,6 +8,7 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  Session,
   StoredEnvelope,
   User,
 } from "./domain";
@@ -136,6 +137,13 @@ export interface ApiRepository {
   setProfile(profile: Profile): Promise<Profile>;
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
+
+  // BETA-006: Server-Side Session Domain Methods
+  getSession(sessionId: string): Promise<Session | null>;
+  createSession(session: Session): Promise<Session>;
+  updateSession(session: Session): Promise<Session>;
+  deleteSession(sessionId: string): Promise<void>;
+  deleteUserSessions(userId: string): Promise<void>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -433,6 +441,29 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<Credential>("credential", result);
   }
 
+  async getSession(sessionId: string): Promise<Session | null> {
+    const raw = await this.inner.getSession(sessionId);
+    return raw ? validateRecord<Session>("session", raw) : null;
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    const result = await this.inner.createSession(versionRecord("session", session));
+    return validateRecord<Session>("session", result);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    const result = await this.inner.updateSession(versionRecord("session", session));
+    return validateRecord<Session>("session", result);
+  }
+
+  deleteSession(sessionId: string): Promise<void> {
+    return this.inner.deleteSession(sessionId);
+  }
+
+  deleteUserSessions(userId: string): Promise<void> {
+    return this.inner.deleteUserSessions(userId);
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -523,6 +554,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setProfile",
   "getCredential",
   "setCredential",
+  "getSession",
+  "updateSession",
   "getEnvelope",
 ]);
 
@@ -692,6 +725,26 @@ export class RetryableApiRepository implements ApiRepository {
 
   setCredential(credential: Credential): Promise<Credential> {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
+  }
+
+  getSession(sessionId: string): Promise<Session | null> {
+    return this.withRetry("getSession", () => this.inner.getSession(sessionId));
+  }
+
+  createSession(session: Session): Promise<Session> {
+    return this.inner.createSession(session);
+  }
+
+  updateSession(session: Session): Promise<Session> {
+    return this.withRetry("updateSession", () => this.inner.updateSession(session));
+  }
+
+  deleteSession(sessionId: string): Promise<void> {
+    return this.inner.deleteSession(sessionId);
+  }
+
+  deleteUserSessions(userId: string): Promise<void> {
+    return this.inner.deleteUserSessions(userId);
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {

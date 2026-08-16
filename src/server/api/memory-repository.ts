@@ -7,6 +7,7 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  Session,
   StoredEnvelope,
   User,
 } from "./domain";
@@ -41,6 +42,9 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+
+  // BETA-006: Session storage
+  private readonly sessions = new Map<string, Session>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -309,6 +313,33 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(credential);
   }
 
+  // BETA-006: Session CRUD Methods
+  async getSession(sessionId: string): Promise<Session | null> {
+    return structuredClone(this.sessions.get(sessionId) ?? null);
+  }
+
+  async createSession(session: Session): Promise<Session> {
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return structuredClone(session);
+  }
+
+  async updateSession(session: Session): Promise<Session> {
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return structuredClone(session);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    for (const [id, sess] of Array.from(this.sessions.entries())) {
+      if (sess.userId === userId) {
+        this.sessions.delete(id);
+      }
+    }
+  }
+
   async getRelayQueueDepth(_relayId: string) {
     return 0;
   }
@@ -437,5 +468,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.sessions.clear();
   }
 }
