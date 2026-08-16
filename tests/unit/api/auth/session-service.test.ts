@@ -1,11 +1,13 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   authenticateWithPassword,
   buildClearSessionCookie,
+  buildClearSessionCookies,
   buildSessionCookie,
   logoutSession,
   parseSessionCookie,
   renewSession,
+  revokeAllSessions,
   rotateSession,
   validateSession,
   CONCURRENT_RENEWAL_GRACE_PERIOD_MS,
@@ -449,16 +451,91 @@ describe("BETA-006 & BETA-007: Password Login, Session Renewal, Rotation & Expir
       expect(await repo.getSession(newSessionId)).toBeNull();
     });
 
-    it("revokes session on logout", async () => {
+    it("revokes session on logout and emits privacy-safe audit event", async () => {
       const { user } = await seedTestUser();
       const authResult = await authenticateWithPassword(apiContext, {
         identifier: user.email,
         password: defaultPassword,
       });
 
-      const logoutResult = await logoutSession(apiContext, authResult.session.sessionId);
+      const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+      const logoutResult = await logoutSession(apiContext, authResult.session.sessionId, {
+        host: "preview.stealth.mail:443",
+      });
+
       expect(logoutResult.cookieHeader).toContain("Max-Age=0");
+      const hasPreviewDomainCookie = logoutResult.cookieHeaders.some((h) =>
+        h.includes("Domain=preview.stealth.mail"),
+      );
+      expect(hasPreviewDomainCookie).toBe(true);
       expect(await repo.getSession(authResult.session.sessionId)).toBeNull();
+
+      expect(spy).toHaveBeenCalled();
+      const auditLogRaw = spy.mock.calls.find((c) => c[0].includes('"action":"auth.logout"'))?.[0];
+      expect(auditLogRaw).toBeDefined();
+
+      const parsedAudit = JSON.parse(auditLogRaw!);
+      expect(parsedAudit._audit).toBe(true);
+      expect(parsedAudit.action).toBe("auth.logout");
+      expect(parsedAudit.targetType).toBe("session");
+      expect(parsedAudit.safeTargetReference).toMatch(/sess_/);
+      expect(parsedAudit.result).toBe("success");
+
+      // Verify absence of sensitive tokens/passwords
+      expect(auditLogRaw).not.toContain(defaultPassword);
+      expect(auditLogRaw).not.toContain("password");
+      expect(auditLogRaw).not.toContain("secret");
+
+      spy.mockRestore();
+    });
+
+    it("revokeAllSessions revokes all sessions for user and emits audit event", async () => {
+      const { user } = await seedTestUser();
+
+      const sess1 = await authenticateWithPassword(apiContext, {
+        identifier: user.email,
+        password: defaultPassword,
+      });
+      const sess2 = await authenticateWithPassword(apiContext, {
+        identifier: user.email,
+        password: defaultPassword,
+      });
+
+      expect(await repo.getSession(sess1.session.sessionId)).not.toBeNull();
+      expect(await repo.getSession(sess2.session.sessionId)).not.toBeNull();
+
+      const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+      const revokeResult = await revokeAllSessions(apiContext, user.userId, {
+        host: "app.stealth.mail",
+      });
+
+      expect(revokeResult.cookieHeader).toContain("Max-Age=0");
+      const hasDomainCookie = revokeResult.cookieHeaders.some((h) =>
+        h.includes("Domain=app.stealth.mail"),
+      );
+      expect(hasDomainCookie).toBe(true);
+
+      // Both sessions must be deleted from repository
+      expect(await repo.getSession(sess1.session.sessionId)).toBeNull();
+      expect(await repo.getSession(sess2.session.sessionId)).toBeNull();
+
+      expect(spy).toHaveBeenCalled();
+      const auditLogRaw = spy.mock.calls.find((c) =>
+        c[0].includes('"action":"auth.logout_all"'),
+      )?.[0];
+      expect(auditLogRaw).toBeDefined();
+
+      const parsedAudit = JSON.parse(auditLogRaw!);
+      expect(parsedAudit._audit).toBe(true);
+      expect(parsedAudit.action).toBe("auth.logout_all");
+      expect(parsedAudit.actor).toBe(user.userId);
+      expect(parsedAudit.targetType).toBe("account_sessions");
+      expect(parsedAudit.safeTargetReference).toBe(user.userId);
+      expect(parsedAudit.result).toBe("success");
+
+      spy.mockRestore();
     });
   });
 });
