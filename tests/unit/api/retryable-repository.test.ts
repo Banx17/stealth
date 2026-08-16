@@ -6,10 +6,12 @@ import type {
   PostageStatus,
   Receipt,
   SenderRule,
+  StoredEnvelope,
 } from "../../../src/server/api/domain";
 import type {
   AcquireIdempotencyResult,
   ApiRepository,
+  InsertEnvelopeResult,
   PostageTransitionResult,
 } from "../../../src/server/api/repository";
 import {
@@ -189,6 +191,14 @@ class FailingRepository implements ApiRepository {
   async setCredential(credential: import("../../../src/server/api/domain").Credential) {
     this.maybeFail("setCredential");
     return this.inner.setCredential(credential);
+  }
+  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    this.maybeFail("getEnvelope");
+    return this.inner.getEnvelope(messageId);
+  }
+  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    this.maybeFail("insertEnvelope");
+    return this.inner.insertEnvelope(envelope);
   }
   reset(): void {
     this.inner.reset();
@@ -405,5 +415,52 @@ describe("RetryableApiRepository", () => {
 
     retryRepo.reset();
     expect(await memory.getPolicy(owner)).toBeNull();
+  });
+
+  it("retries getEnvelope (safe read) on transient failure", async () => {
+    failing.setFailCount("getEnvelope", 1);
+    const envelope: StoredEnvelope = {
+      messageId,
+      senderId: sender,
+      recipientId: owner,
+      ciphertext: "dGVzdA==",
+      protectedHeaders: {
+        algorithm: "AES-256-GCM",
+        ephemeral_public_key: `G${"C".repeat(55)}`,
+        nonce: "ab12cd34ef56",
+        mac: "d".repeat(64),
+        version: "v1",
+      },
+      contentCommitment: "c".repeat(64),
+      createdAt: new Date().toISOString(),
+    };
+    await failing.inner.insertEnvelope(envelope);
+
+    const result = await repo.getEnvelope(messageId);
+    expect(result).not.toBeNull();
+    expect(result?.messageId).toBe(messageId);
+    expect(failing.getCallCount("getEnvelope")).toBe(2);
+  });
+
+  it("does not retry insertEnvelope (unsafe write)", async () => {
+    failing.setFailCount("insertEnvelope", 2);
+    const envelope: StoredEnvelope = {
+      messageId,
+      senderId: sender,
+      recipientId: owner,
+      ciphertext: "dGVzdA==",
+      protectedHeaders: {
+        algorithm: "AES-256-GCM",
+        ephemeral_public_key: `G${"C".repeat(55)}`,
+        nonce: "ab12cd34ef56",
+        mac: "d".repeat(64),
+        version: "v1",
+      },
+      contentCommitment: "c".repeat(64),
+      createdAt: new Date().toISOString(),
+    };
+
+    await expect(repo.insertEnvelope(envelope)).rejects.toThrow();
+    expect(failing.getCallCount("insertEnvelope")).toBe(1);
   });
 });

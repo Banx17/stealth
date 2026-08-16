@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import type { StoredEnvelope } from "../../../src/server/api/domain";
 import type { ApiRepository } from "../../../src/server/api/repository";
 
 // Issue #1494: one reusable repository conformance suite that every adapter must
@@ -393,6 +394,113 @@ export function runRepositoryContractTests(
         await expect(repo.getUserByEmail("alice_new@stealth.mail")).resolves.toMatchObject({
           userId: "usr_test_1",
         });
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Issue #1936 (BETA-029) — Envelope persistence contract
+    // Every ApiRepository adapter must satisfy these invariants.
+    // -------------------------------------------------------------------------
+
+    describe("encrypted envelope persistence (BETA-029 / Issue #1936)", () => {
+      const ephemeralKey = `G${"C".repeat(55)}`;
+      const envMessageId = "e".repeat(64);
+      const envMessageId2 = "f".repeat(64);
+      const commitment = "c".repeat(64);
+      const mac = "d".repeat(64);
+      const nonce = "ab12cd34ef56";
+
+      function makeEnvelope(overrides: Partial<StoredEnvelope> = {}): StoredEnvelope {
+        return {
+          messageId: envMessageId,
+          senderId: sender,
+          recipientId: owner,
+          ciphertext: "dGVzdC1jaXBoZXJ0ZXh0",
+          protectedHeaders: {
+            algorithm: "AES-256-GCM",
+            ephemeral_public_key: ephemeralKey,
+            nonce,
+            mac,
+            version: "v1",
+          },
+          contentCommitment: commitment,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          ...overrides,
+        };
+      }
+
+      it("returns null for a missing envelope", async () => {
+        await expect(repo.getEnvelope(envMessageId)).resolves.toBeNull();
+      });
+
+      it("returns 'inserted' on the first insert and retrieves the record", async () => {
+        const envelope = makeEnvelope();
+        const result = await repo.insertEnvelope(envelope);
+        expect(result.outcome).toBe("inserted");
+
+        const retrieved = await repo.getEnvelope(envMessageId);
+        expect(retrieved).not.toBeNull();
+        expect(retrieved?.messageId).toBe(envMessageId);
+        expect(retrieved?.senderId).toBe(sender);
+        expect(retrieved?.recipientId).toBe(owner);
+        // Plaintext must never appear in the retrieved record.
+        expect((retrieved as any)?.subject).toBeUndefined();
+        expect((retrieved as any)?.body).toBeUndefined();
+      });
+
+      it("returns 'duplicate' for a byte-identical resubmission (idempotent)", async () => {
+        const envelope = makeEnvelope();
+        await repo.insertEnvelope(envelope);
+
+        const retry = await repo.insertEnvelope({ ...envelope });
+        expect(retry.outcome).toBe("duplicate");
+        if (retry.outcome === "duplicate") {
+          expect(retry.envelope.messageId).toBe(envMessageId);
+        }
+      });
+
+      it("returns 'conflict' when a different payload uses the same messageId", async () => {
+        await repo.insertEnvelope(makeEnvelope());
+        const different = makeEnvelope({ ciphertext: "ZGlmZmVyZW50AA==" });
+        const result = await repo.insertEnvelope(different);
+        expect(result.outcome).toBe("conflict");
+      });
+
+      it("allows exactly one winner out of 5 concurrent inserts", async () => {
+        const envelope = makeEnvelope();
+        const results = await Promise.all(
+          Array.from({ length: 5 }, () => repo.insertEnvelope({ ...envelope })),
+        );
+
+        const inserted = results.filter((r) => r.outcome === "inserted");
+        const duplicates = results.filter((r) => r.outcome === "duplicate");
+        const conflicts = results.filter((r) => r.outcome === "conflict");
+
+        expect(inserted).toHaveLength(1);
+        expect(duplicates).toHaveLength(4);
+        expect(conflicts).toHaveLength(0);
+      });
+
+      it("isolates envelopes by messageId", async () => {
+        await repo.insertEnvelope(makeEnvelope({ messageId: envMessageId }));
+        await repo.insertEnvelope(makeEnvelope({ messageId: envMessageId2 }));
+
+        await expect(repo.getEnvelope(envMessageId)).resolves.toMatchObject({
+          messageId: envMessageId,
+        });
+        await expect(repo.getEnvelope(envMessageId2)).resolves.toMatchObject({
+          messageId: envMessageId2,
+        });
+      });
+
+      it("is insert-only: a different ciphertext cannot overwrite the stored record", async () => {
+        const original = makeEnvelope();
+        await repo.insertEnvelope(original);
+
+        await repo.insertEnvelope(makeEnvelope({ ciphertext: "bmV3Y2lwaGVydGV4dA==" }));
+
+        const stored = await repo.getEnvelope(envMessageId);
+        expect(stored?.ciphertext).toBe(original.ciphertext);
       });
     });
   });

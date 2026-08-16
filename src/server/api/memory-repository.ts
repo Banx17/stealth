@@ -7,9 +7,15 @@ import type {
   Profile,
   Receipt,
   SenderRule,
+  StoredEnvelope,
   User,
 } from "./domain";
-import type { ApiRepository, PostageTransitionResult, UpdateUserResult } from "./repository";
+import type {
+  ApiRepository,
+  InsertEnvelopeResult,
+  PostageTransitionResult,
+  UpdateUserResult,
+} from "./repository";
 import { ApiError } from "./errors";
 
 function key(owner: string, sender: string) {
@@ -24,6 +30,9 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly receiptLocks = new Map<string, Promise<void>>();
+  // Issue #1936: envelope store and per-key insert locks.
+  private readonly envelopes = new Map<string, StoredEnvelope>();
+  private readonly envelopeLocks = new Map<string, Promise<void>>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -49,6 +58,26 @@ export class MemoryApiRepository implements ApiRepository {
       release();
       if (this.receiptLocks.get(messageId) === queued) {
         this.receiptLocks.delete(messageId);
+      }
+    }
+  }
+
+  private async withEnvelopeLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.envelopeLocks.get(messageId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.envelopeLocks.set(messageId, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.envelopeLocks.get(messageId) === queued) {
+        this.envelopeLocks.delete(messageId);
       }
     }
   }
@@ -357,6 +386,41 @@ export class MemoryApiRepository implements ApiRepository {
     this.idempotency.set(key, structuredClone(record));
   }
 
+  // ---------------------------------------------------------------------------
+  // Issue #1936 (BETA-029) — Encrypted envelope persistence
+  // ---------------------------------------------------------------------------
+
+  async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
+    return structuredClone(this.envelopes.get(messageId) ?? null);
+  }
+
+  /**
+   * Insert-only envelope persistence.
+   *
+   * Concurrency: the per-key promise chain (withEnvelopeLock) guarantees that
+   * two concurrent inserts for the same messageId are serialized. No `await`
+   * crosses the read-check-write boundary inside the lock body, so the
+   * check-then-act is atomic within the single JS microtask.
+   */
+  async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
+    return this.withEnvelopeLock(envelope.messageId, async () => {
+      const existing = this.envelopes.get(envelope.messageId);
+      if (existing) {
+        // Byte-equality check: serialize both to canonical JSON for comparison.
+        const existingBytes = JSON.stringify(existing);
+        const incomingBytes = JSON.stringify(envelope);
+        if (existingBytes === incomingBytes) {
+          return { outcome: "duplicate", envelope: structuredClone(existing) };
+        }
+        // Different payload — reject. The prior record is authoritative.
+        return { outcome: "conflict" };
+      }
+      const stored = structuredClone(envelope);
+      this.envelopes.set(envelope.messageId, stored);
+      return { outcome: "inserted", envelope: structuredClone(stored) };
+    });
+  }
+
   reset() {
     this.policies.clear();
     this.postage.clear();
@@ -365,6 +429,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.counters.clear();
     this.idempotency.clear();
     this.receiptLocks.clear();
+    this.envelopes.clear();
+    this.envelopeLocks.clear();
     this.usersById.clear();
     this.usersByEmail.clear();
     this.usersByUsername.clear();
