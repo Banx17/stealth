@@ -22,6 +22,10 @@ import type {
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
+import { identityRecordFamilies, selectFamilies } from "../migrations/adapters";
+import { createDurableObjectMigrationStorage } from "../migrations/durable-object-storage";
+import { dryRun, forward, integrityCheck, rollback } from "../migrations/runner";
+import type { MigrationCommand, MigrationReport, MigrationRunOptions } from "../migrations/types";
 
 const DurableObjectBase: any = import.meta.env.PROD
   ? (await import("cloudflare:workers")).DurableObject
