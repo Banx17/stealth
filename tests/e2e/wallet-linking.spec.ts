@@ -86,7 +86,7 @@ test.describe("wallet link API", () => {
     await createChallenge(page, thirdParty);
     await verifyAndLink(page, thirdParty, "a".repeat(64), ["sign"]);
 
-    const repeats = [];
+    const repeats: number[] = [];
     for (let i = 0; i < 3; i++) {
       await createChallenge(page, thirdParty);
       repeats.push((await verifyAndLink(page, thirdParty, `${i}`.repeat(64), ["sign"])).status());

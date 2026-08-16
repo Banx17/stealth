@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/v1/wallet/link/$address")({
         handleApiRequest(request, async () => {
           const owner = requireActor(request);
           const address = stellarAddressSchema.parse(params.address);
-          const repo = getApiContext().repository;
+          const repo = (await getApiContext()).repository;
           await unlinkExternalWallet(repo, owner, address);
           return apiSuccess(request, { unlinked: true });
         }),

@@ -224,8 +224,6 @@ export const userSchema = z.object({
   version: z.number().int().positive(),
 });
 
-export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
-
 export const walletCapabilitySchema = z.enum(["sign", "send", "read"]);
 export type WalletCapability = z.infer<typeof walletCapabilitySchema>;
 

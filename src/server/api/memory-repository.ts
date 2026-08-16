@@ -1,14 +1,7 @@
 import type {
+  Credential,
   ExternalWallet,
   ExternalWalletChallenge,
-  IdempotencyRecord,
-  MailboxPolicy,
-  Postage,
-  Receipt,
-  SenderRule,
-} from "./domain";
-import type { ApiRepository } from "./repository";
-  Credential,
   IdempotencyRecord,
   MailboxPolicy,
   PolicyWriteIntent,
@@ -506,6 +499,8 @@ export class MemoryApiRepository implements ApiRepository {
 
   async deleteWalletChallenge(owner: string, address: string): Promise<void> {
     this.walletChallenges.delete(this.walletChallengeKey(owner, address));
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1936 (BETA-029) — Encrypted envelope persistence
   // ---------------------------------------------------------------------------

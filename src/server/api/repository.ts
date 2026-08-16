@@ -1,15 +1,7 @@
 import type {
+  Credential,
   ExternalWallet,
   ExternalWalletChallenge,
-  IdempotencyRecord,
-  MailboxPolicy,
-  Postage,
-  Receipt,
-  SenderRule,
-} from "./domain";
-import type { ZodSchema } from "zod";
-import type {
-  Credential,
   IdempotencyRecord,
   MailboxPolicy,
   PolicyWriteIntent,
@@ -23,6 +15,7 @@ import type {
   StoredEnvelope,
   User,
 } from "./domain";
+import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
 /**
@@ -558,6 +551,38 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return this.inner.getExternalWallets(owner);
+  }
+
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+
+  removeExternalWallet(owner: string, address: string): Promise<void> {
+    return this.inner.removeExternalWallet(owner, address);
+  }
+
+  findExternalWalletOwner(address: string): Promise<string | null> {
+    return this.inner.findExternalWalletOwner(address);
+  }
+
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null> {
+    return this.inner.getWalletChallenge(owner, address);
+  }
+
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+
+  deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    return this.inner.deleteWalletChallenge(owner, address);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -611,6 +636,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateSession",
   "getRetiredSession",
   "getEnvelope",
+  "getExternalWallets",
+  "findExternalWalletOwner",
+  "getWalletChallenge",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -862,6 +890,42 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+
+  getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return this.withRetry("getExternalWallets", () => this.inner.getExternalWallets(owner));
+  }
+
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+
+  removeExternalWallet(owner: string, address: string): Promise<void> {
+    return this.inner.removeExternalWallet(owner, address);
+  }
+
+  findExternalWalletOwner(address: string): Promise<string | null> {
+    return this.withRetry("findExternalWalletOwner", () =>
+      this.inner.findExternalWalletOwner(address),
+    );
+  }
+
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null> {
+    return this.withRetry("getWalletChallenge", () =>
+      this.inner.getWalletChallenge(owner, address),
+    );
+  }
+
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+
+  deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    return this.inner.deleteWalletChallenge(owner, address);
   }
 
   reset(): void {

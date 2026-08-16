@@ -26,13 +26,13 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
+import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
+import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
-import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
-import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
-import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
@@ -125,6 +125,21 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
+  id: '/api/v1/auth/session',
+  path: '/api/v1/auth/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthLogoutRoute = ApiV1AuthLogoutRouteImport.update({
+  id: '/api/v1/auth/logout',
+  path: '/api/v1/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
+  id: '/api/v1/auth/login',
+  path: '/api/v1/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1WalletLinkIndexRoute = ApiV1WalletLinkIndexRouteImport.update({
   id: '/api/v1/wallet/link/',
   path: '/api/v1/wallet/link/',
@@ -144,19 +159,6 @@ const ApiV1WalletLinkChallengeRoute =
 const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
   id: '/api/v1/wallet/link/$address',
   path: '/api/v1/wallet/link/$address',
-const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
-  id: '/api/v1/auth/session',
-  path: '/api/v1/auth/session',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AuthLogoutRoute = ApiV1AuthLogoutRouteImport.update({
-  id: '/api/v1/auth/logout',
-  path: '/api/v1/auth/logout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
-  id: '/api/v1/auth/login',
-  path: '/api/v1/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
@@ -540,6 +542,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/session': {
+      id: '/api/v1/auth/session'
+      path: '/api/v1/auth/session'
+      fullPath: '/api/v1/auth/session'
+      preLoaderRoute: typeof ApiV1AuthSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/logout': {
+      id: '/api/v1/auth/logout'
+      path: '/api/v1/auth/logout'
+      fullPath: '/api/v1/auth/logout'
+      preLoaderRoute: typeof ApiV1AuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/login': {
+      id: '/api/v1/auth/login'
+      path: '/api/v1/auth/login'
+      fullPath: '/api/v1/auth/login'
+      preLoaderRoute: typeof ApiV1AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/wallet/link/': {
       id: '/api/v1/wallet/link/'
       path: '/api/v1/wallet/link'
@@ -566,25 +589,6 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/wallet/link/$address'
       fullPath: '/api/v1/wallet/link/$address'
       preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
-    '/api/v1/auth/session': {
-      id: '/api/v1/auth/session'
-      path: '/api/v1/auth/session'
-      fullPath: '/api/v1/auth/session'
-      preLoaderRoute: typeof ApiV1AuthSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/logout': {
-      id: '/api/v1/auth/logout'
-      path: '/api/v1/auth/logout'
-      fullPath: '/api/v1/auth/logout'
-      preLoaderRoute: typeof ApiV1AuthLogoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/login': {
-      id: '/api/v1/auth/login'
-      path: '/api/v1/auth/login'
-      fullPath: '/api/v1/auth/login'
-      preLoaderRoute: typeof ApiV1AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/receipts/$messageId/read': {

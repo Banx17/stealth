@@ -6,6 +6,8 @@ import type {
 } from "./repository";
 import type {
   Credential,
+  ExternalWallet,
+  ExternalWalletChallenge,
   IdempotencyRecord,
   MailboxPolicy,
   PolicyWriteIntent,
@@ -267,6 +269,64 @@ export class HybridApiRepository implements ApiRepository {
 
   async getRelayDeadLetterCount(_relayId: string): Promise<number> {
     return 0;
+  }
+
+  async getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    const wallets = await this.kv.get(this.key("external-wallet", owner), "json");
+    return (wallets as ExternalWallet[]) ?? [];
+  }
+
+  async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    const wallets = (await this.kv.get(this.key("external-wallet", owner), "json")) as
+      | ExternalWallet[]
+      | null;
+    const existing = wallets ?? [];
+    const idx = existing.findIndex((w) => w.address === wallet.address);
+    if (idx >= 0) {
+      existing[idx] = wallet;
+    } else {
+      existing.push(wallet);
+    }
+    await this.kv.put(this.key("external-wallet", owner), JSON.stringify(existing));
+    await this.kv.put(this.key("external-wallet-address", wallet.address), owner);
+    return wallet;
+  }
+
+  async removeExternalWallet(owner: string, address: string): Promise<void> {
+    const wallets =
+      ((await this.kv.get(this.key("external-wallet", owner), "json")) as
+        | ExternalWallet[]
+        | null) ?? [];
+    await this.kv.put(
+      this.key("external-wallet", owner),
+      JSON.stringify(wallets.filter((w) => w.address !== address)),
+    );
+    await this.kv.delete(this.key("external-wallet-address", address));
+  }
+
+  async findExternalWalletOwner(address: string): Promise<string | null> {
+    const owner = await this.kv.get(this.key("external-wallet-address", address), "text");
+    return owner;
+  }
+
+  async getWalletChallenge(
+    owner: string,
+    address: string,
+  ): Promise<ExternalWalletChallenge | null> {
+    const challenge = await this.kv.get(this.key("wallet-challenge", owner, address), "json");
+    return (challenge as ExternalWalletChallenge) ?? null;
+  }
+
+  async setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    await this.kv.put(this.key("wallet-challenge", owner, address), JSON.stringify(challenge));
+  }
+
+  async deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    await this.kv.delete(this.key("wallet-challenge", owner, address));
   }
 
   // ---------------------------------------------------------------------------

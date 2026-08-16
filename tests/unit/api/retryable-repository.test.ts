@@ -238,6 +238,41 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("insertEnvelope");
     return this.inner.insertEnvelope(envelope);
   }
+  async getExternalWallets(owner: string) {
+    this.maybeFail("getExternalWallets");
+    return this.inner.getExternalWallets(owner);
+  }
+  async setExternalWallet(
+    owner: string,
+    wallet: import("../../../src/server/api/domain").ExternalWallet,
+  ) {
+    this.maybeFail("setExternalWallet");
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+  async removeExternalWallet(owner: string, address: string) {
+    this.maybeFail("removeExternalWallet");
+    return this.inner.removeExternalWallet(owner, address);
+  }
+  async findExternalWalletOwner(address: string) {
+    this.maybeFail("findExternalWalletOwner");
+    return this.inner.findExternalWalletOwner(address);
+  }
+  async getWalletChallenge(owner: string, address: string) {
+    this.maybeFail("getWalletChallenge");
+    return this.inner.getWalletChallenge(owner, address);
+  }
+  async setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: import("../../../src/server/api/domain").ExternalWalletChallenge,
+  ) {
+    this.maybeFail("setWalletChallenge");
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+  async deleteWalletChallenge(owner: string, address: string) {
+    this.maybeFail("deleteWalletChallenge");
+    return this.inner.deleteWalletChallenge(owner, address);
+  }
   reset(): void {
     this.inner.reset();
   }

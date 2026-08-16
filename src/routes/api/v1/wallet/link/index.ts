@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/v1/wallet/link/")({
       GET: ({ request }) =>
         handleApiRequest(request, async () => {
           const owner = requireActor(request);
-          const repo = getApiContext().repository;
+          const repo = (await getApiContext()).repository;
           const wallets = await listExternalWallets(repo, owner);
           return apiSuccess(request, { wallets });
         }),

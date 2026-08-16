@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/v1/wallet/link/verify")({
         handleApiRequest(request, async () => {
           const owner = requireActor(request);
           const input = await parseJsonBody(request, verifyRequestSchema);
-          const repo = getApiContext().repository;
+          const repo = (await getApiContext()).repository;
 
           const result = await verifyChallenge(
             repo,

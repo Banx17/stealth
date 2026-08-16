@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/v1/wallet/link/challenge")({
         handleApiRequest(request, async () => {
           const owner = requireActor(request);
           const input = await parseJsonBody(request, challengeRequestSchema);
-          const repo = getApiContext().repository;
+          const repo = (await getApiContext()).repository;
           const challenge = await createChallenge(repo, owner, input.address, input.network);
           return apiSuccess(request, {
             challenge: challenge.challenge,
