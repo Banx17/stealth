@@ -63,3 +63,26 @@ export const idempotencyRecordSchema = z.object({
 });
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
+
+export const walletCapabilitySchema = z.enum(["sign", "send", "read"]);
+export type WalletCapability = z.infer<typeof walletCapabilitySchema>;
+
+export const externalWalletSchema = z.object({
+  address: stellarAddressSchema,
+  capabilities: z.array(walletCapabilitySchema).min(1),
+  linkedAt: z.string().datetime(),
+  network: z.string().min(1),
+});
+
+export type ExternalWallet = z.infer<typeof externalWalletSchema>;
+
+export const externalWalletChallengeSchema = z.object({
+  challenge: z.string().min(1),
+  address: stellarAddressSchema,
+  expiresAt: z.string().datetime(),
+  network: z.string().min(1),
+});
+
+export type ExternalWalletChallenge = z.infer<typeof externalWalletChallengeSchema>;
+
+export const networkPassphraseSchema = z.string().min(1);
