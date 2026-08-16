@@ -60,6 +60,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setPolicy");
     return this.inner.setPolicy(owner, policy);
   }
+  async getPolicyWriteIntent(owner: string) {
+    this.maybeFail("getPolicyWriteIntent");
+    return this.inner.getPolicyWriteIntent(owner);
+  }
+  async setPolicyWriteIntent(intent: import("../../../src/server/api/domain").PolicyWriteIntent) {
+    this.maybeFail("setPolicyWriteIntent");
+    return this.inner.setPolicyWriteIntent(intent);
+  }
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
     this.maybeFail("getSenderRule");
     return this.inner.getSenderRule(owner, sender);
