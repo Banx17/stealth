@@ -1,5 +1,18 @@
-import type { IdempotencyRecord, Postage, PostageStatus, Receipt } from "./domain";
-import type { AcquireIdempotencyResult, PostageTransitionResult } from "./repository";
+import type {
+  Credential,
+  IdempotencyRecord,
+  Postage,
+  PostageStatus,
+  Profile,
+  Receipt,
+  User,
+} from "./domain";
+import type {
+  AcquireIdempotencyResult,
+  PostageTransitionResult,
+  UpdateUserResult,
+} from "./repository";
+import { ApiError } from "./errors";
 
 const DurableObjectBase: any = import.meta.env.PROD
   ? (await import("cloudflare:workers")).DurableObject
@@ -62,8 +75,6 @@ export class StealthCoordinator extends DurableObjectBase {
       const now = Date.now();
 
       if (existing) {
-        // Same key, different payload: never block behind or replay a
-        // response for a different logical request (Issue #1498).
         if (existing.requestDigest !== requestDigest) {
           return { status: "conflict" };
         }
@@ -133,9 +144,6 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
-  // Postage settlement is money-moving and must never double-fire, so its
-  // authoritative state lives in this Durable Object's transactional
-  // storage rather than in eventually-consistent KV.
   async getPostage(messageId: string): Promise<Postage | null> {
     const postage = (await this.ctx.storage.get(`postage:${messageId}`)) as Postage | undefined;
     return postage ?? null;
@@ -151,9 +159,6 @@ export class StealthCoordinator extends DurableObjectBase {
     expectedStatus: PostageStatus,
     nextStatus: PostageStatus,
   ): Promise<PostageTransitionResult> {
-    // The read-check-write below is serialized per messageId via
-    // runExclusive, so concurrent settle/refund calls for the same
-    // message cannot interleave and double-apply the transition.
     return this.runExclusive(`postage:${messageId}`, async () => {
       const current = (await this.ctx.storage.get(`postage:${messageId}`)) as Postage | undefined;
       if (!current) {
@@ -166,6 +171,156 @@ export class StealthCoordinator extends DurableObjectBase {
       await this.ctx.storage.put(`postage:${messageId}`, updated);
       return { outcome: "applied" as const, postage: updated };
     });
+  }
+
+  // BETA-002: Durable User Account, Profile & Credential DO methods
+  async getUserById(userId: string): Promise<User | null> {
+    const user = (await this.ctx.storage.get(`user:id:${userId}`)) as User | undefined;
+    return user ?? null;
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const norm = email.toLowerCase().trim();
+    const userId = (await this.ctx.storage.get(`user:email:${norm}`)) as string | undefined;
+    if (!userId) return null;
+    return this.getUserById(userId);
+  }
+
+  async getUserByUsername(username: string): Promise<User | null> {
+    const norm = username.toLowerCase().trim();
+    const userId = (await this.ctx.storage.get(`user:username:${norm}`)) as string | undefined;
+    if (!userId) return null;
+    return this.getUserById(userId);
+  }
+
+  async getUserByAddress(address: string): Promise<User | null> {
+    const norm = address.toUpperCase().trim();
+    const userId = (await this.ctx.storage.get(`user:address:${norm}`)) as string | undefined;
+    if (!userId) return null;
+    return this.getUserById(userId);
+  }
+
+  async createUser(user: User, credential?: Credential, profile?: Profile): Promise<User> {
+    return this.runExclusive("user-write-lock", async () => {
+      const existingId = await this.ctx.storage.get(`user:id:${user.userId}`);
+      if (existingId) {
+        throw new ApiError(409, "conflict", `User ID ${user.userId} already exists`);
+      }
+
+      const normEmail = user.email.toLowerCase().trim();
+      const existingEmail = await this.ctx.storage.get(`user:email:${normEmail}`);
+      if (existingEmail) {
+        throw new ApiError(409, "conflict", `User with email ${user.email} already exists`);
+      }
+
+      const normUsername = user.username.toLowerCase().trim();
+      const existingUsername = await this.ctx.storage.get(`user:username:${normUsername}`);
+      if (existingUsername) {
+        throw new ApiError(409, "conflict", `Username ${user.username} already in use`);
+      }
+
+      const normAddress = user.address.toUpperCase().trim();
+      const existingAddress = await this.ctx.storage.get(`user:address:${normAddress}`);
+      if (existingAddress) {
+        throw new ApiError(409, "conflict", `Stellar address ${user.address} is already bound`);
+      }
+
+      await this.ctx.storage.put(`user:id:${user.userId}`, user);
+      await this.ctx.storage.put(`user:email:${normEmail}`, user.userId);
+      await this.ctx.storage.put(`user:username:${normUsername}`, user.userId);
+      await this.ctx.storage.put(`user:address:${normAddress}`, user.userId);
+
+      if (credential) {
+        await this.ctx.storage.put(`credential:${user.userId}`, credential);
+      }
+      if (profile) {
+        await this.ctx.storage.put(`profile:${user.userId}`, profile);
+      }
+
+      return user;
+    });
+  }
+
+  async updateUser(user: User, expectedVersion: number): Promise<UpdateUserResult> {
+    return this.runExclusive("user-write-lock", async () => {
+      const current = (await this.ctx.storage.get(`user:id:${user.userId}`)) as User | undefined;
+      if (!current) {
+        return { updated: false, current: null };
+      }
+
+      if (current.version !== expectedVersion) {
+        return { updated: false, current };
+      }
+
+      const normEmail = user.email.toLowerCase().trim();
+      const existingEmailOwner = (await this.ctx.storage.get(`user:email:${normEmail}`)) as
+        | string
+        | undefined;
+      if (existingEmailOwner && existingEmailOwner !== user.userId) {
+        throw new ApiError(409, "conflict", `User with email ${user.email} already exists`);
+      }
+
+      const normUsername = user.username.toLowerCase().trim();
+      const existingUsernameOwner = (await this.ctx.storage.get(
+        `user:username:${normUsername}`,
+      )) as string | undefined;
+      if (existingUsernameOwner && existingUsernameOwner !== user.userId) {
+        throw new ApiError(409, "conflict", `Username ${user.username} already in use`);
+      }
+
+      const normAddress = user.address.toUpperCase().trim();
+      const existingAddressOwner = (await this.ctx.storage.get(`user:address:${normAddress}`)) as
+        | string
+        | undefined;
+      if (existingAddressOwner && existingAddressOwner !== user.userId) {
+        throw new ApiError(409, "conflict", `Stellar address ${user.address} is already bound`);
+      }
+
+      if (current.email.toLowerCase().trim() !== normEmail) {
+        await this.ctx.storage.delete(`user:email:${current.email.toLowerCase().trim()}`);
+      }
+      if (current.username.toLowerCase().trim() !== normUsername) {
+        await this.ctx.storage.delete(`user:username:${current.username.toLowerCase().trim()}`);
+      }
+      if (current.address.toUpperCase().trim() !== normAddress) {
+        await this.ctx.storage.delete(`user:address:${current.address.toUpperCase().trim()}`);
+      }
+
+      const nextUser: User = {
+        ...user,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.ctx.storage.put(`user:id:${user.userId}`, nextUser);
+      await this.ctx.storage.put(`user:email:${normEmail}`, user.userId);
+      await this.ctx.storage.put(`user:username:${normUsername}`, user.userId);
+      await this.ctx.storage.put(`user:address:${normAddress}`, user.userId);
+
+      return { updated: true, user: nextUser };
+    });
+  }
+
+  async getProfile(userId: string): Promise<Profile | null> {
+    const profile = (await this.ctx.storage.get(`profile:${userId}`)) as Profile | undefined;
+    return profile ?? null;
+  }
+
+  async setProfile(profile: Profile): Promise<Profile> {
+    await this.ctx.storage.put(`profile:${profile.userId}`, profile);
+    return profile;
+  }
+
+  async getCredential(userId: string): Promise<Credential | null> {
+    const credential = (await this.ctx.storage.get(`credential:${userId}`)) as
+      | Credential
+      | undefined;
+    return credential ?? null;
+  }
+
+  async setCredential(credential: Credential): Promise<Credential> {
+    await this.ctx.storage.put(`credential:${credential.userId}`, credential);
+    return credential;
   }
 
   async getCounter(key: string): Promise<number> {

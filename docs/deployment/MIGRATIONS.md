@@ -4,7 +4,7 @@ Moving from memory storage to durable storage introduces schema evolution. This 
 
 ## Schema Versioning
 
-All persisted records in the system (e.g., `mailboxPolicy`, `postage`, `receipt`) are wrapped in an envelope containing a schema version:
+All persisted records in the system (e.g., `mailboxPolicy`, `postage`, `receipt`, `user`, `profile`, `credential`) are wrapped in an envelope containing a schema version:
 
 ```json
 {
@@ -14,6 +14,22 @@ All persisted records in the system (e.g., `mailboxPolicy`, `postage`, `receipt`
 ```
 
 The system ensures that any unversioned records from legacy memory storage are implicitly treated as `$v: 1`.
+
+### User Account, Profile & Credential Schemas (BETA-002)
+
+With BETA-002, three core identity and access schemas are registered at version `$v: 1`:
+
+- **`user` ($v: 1)**: Represents the core account record (`userId`, `address`, `email`, `username`, `status`, `createdAt`, `updatedAt`, `version`). User updates rely on `version` for optimistic concurrency control to prevent lost updates under race conditions.
+- **`profile` ($v: 1)**: Stores public profile metadata (`userId`, `username`, `displayName`, `avatarUrl`, `bio`, `createdAt`, `updatedAt`).
+- **`credential` ($v: 1)**: Stores private authentication secrets (`credentialId`, `userId`, `authMethod`, `secretHash`, `walletKeyRef`, `createdAt`, `updatedAt`). Stored separately and strictly isolated from public user and profile projections (`toPublicUser`, `toPublicProfile`).
+
+### Secondary Indexes & Uniqueness Constraints
+
+To guarantee unique `email`, `username`, and `address` lookups across durability layers:
+
+1. **Unique Secondary Indexes**: Secondary index lookup keys (`user:email:<email>`, `user:username:<username>`, `user:address:<address>`) point to the primary `userId`.
+2. **Atomic Writes**: `createUser` and `updateUser` operations validate index uniqueness within an atomic lock or Durable Object transaction, throwing a deterministic `ApiError(409, "conflict")` if any index is already bound.
+3. **Index Cleanup on Mutation**: When a user's `email`, `username`, or `address` is updated, the previous index keys are automatically deleted in the same atomic transaction.
 
 ## Forward Migrations
 
