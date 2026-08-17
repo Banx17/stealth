@@ -519,8 +519,18 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleSend(true)}
-                disabled={isSending}
-                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
+                disabled={
+                  isSending ||
+                  isPolicyBlocking(quoteState) ||
+                  resolvedRecipients.length === 0 ||
+                  resolvedRecipients.some(
+                    (recipient) =>
+                      recipient.state === "blocked" ||
+                      recipient.state === "invalid" ||
+                      recipient.state === "resolving",
+                  )
+                }
+                className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Schedule

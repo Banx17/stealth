@@ -1,17 +1,28 @@
-import type { ZodSchema } from "zod";
 import type {
   Credential,
+  ExternalWallet,
+  ExternalWalletChallenge,
   IdempotencyRecord,
+  KeyDirectoryRecord,
   MailboxPolicy,
+  PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
+  PublishedKey,
   Receipt,
+  RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
   User,
+  UsernameReservation,
+  VerificationPurpose,
+  VerificationToken,
+  Wallet,
 } from "./domain";
+import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
 /**
@@ -85,9 +96,79 @@ export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
 
+// ---------------------------------------------------------------------------
+// BETA-014: Account-provisioning repository contracts
+// ---------------------------------------------------------------------------
+
+/**
+ * Outcome of a compare-and-swap provisioning-record write.
+ *
+ * - `updated: true`  : the record was persisted at `expectedVersion + 1`.
+ * - `updated: false` : the record moved underneath this writer (or does not
+ *   exist); `current` reflects the authoritative state so the caller can
+ *   re-read and reconcile instead of blindly overwriting progress.
+ */
+export type UpdateProvisioningResult =
+  | { updated: true; record: ProvisioningRecord }
+  | { updated: false; current: ProvisioningRecord | null };
+
+/**
+ * Outcome of an atomic username claim.
+ *
+ * - "reserved": the username was claimed by this user for `leaseMs`.
+ * - "already-reserved": this user holds a live claim already (idempotent
+ *   retry); the existing reservation is returned unchanged.
+ * - "unavailable": a live claim is held by another user, or a user record
+ *   is already bound to this username. The claim is never stolen.
+ */
+export type UsernameReservationResult =
+  | { outcome: "reserved"; reservation: UsernameReservation }
+  | { outcome: "already-reserved"; reservation: UsernameReservation }
+  | { outcome: "unavailable" };
+
+/**
+ * Outcome of an insert-once wallet write for a user.
+ *
+ * - "created": the wallet record was stored for the first time.
+ * - "already-exists": this user already has a wallet; the stored record is
+ *   returned unchanged (idempotent retry).
+ */
+export type WalletCreationResult =
+  | { outcome: "created"; wallet: Wallet }
+  | { outcome: "already-exists"; wallet: Wallet };
+
+export type IssueVerificationTokenResult =
+  | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
+  | { outcome: "conflict"; token: VerificationToken };
+
+export type ConsumeVerificationTokenResult =
+  | { outcome: "not-found" }
+  | { outcome: "already-consumed"; token: VerificationToken }
+  | { outcome: "replaced"; token: VerificationToken }
+  | { outcome: "brute-force-blocked"; token: VerificationToken }
+  | { outcome: "expired"; token: VerificationToken }
+  | { outcome: "consumed"; token: VerificationToken };
+
+export type RecordVerificationAttemptResult =
+  | { recorded: false; token: VerificationToken | null }
+  | { recorded: true; token: VerificationToken };
+
+export interface MailboxQueryOptions {
+  status?: "pending" | "delivered" | "all";
+  includeTombstones?: boolean;
+  limit?: number;
+  after?: string;
+}
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
+  // BETA-023 (Issue #1930): durable scheduled-write intent for the Policies
+  // contract. The off-chain policy and the intent are written together during
+  // provisioning so a retry never re-submits (and never re-bumps the on-chain
+  // version) for an already-scheduled policy.
+  getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null>;
+  setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;
@@ -126,6 +207,17 @@ export interface ApiRepository {
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
+  getExternalWallets(owner: string): Promise<ExternalWallet[]>;
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet>;
+  removeExternalWallet(owner: string, address: string): Promise<void>;
+  findExternalWalletOwner(address: string): Promise<string | null>;
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null>;
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void>;
+  deleteWalletChallenge(owner: string, address: string): Promise<void>;
   // BETA-002: User Account, Profile, and Credential Domain Methods
   getUserById(userId: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
@@ -138,12 +230,86 @@ export interface ApiRepository {
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
 
-  // BETA-006: Server-Side Session Domain Methods
+  // BETA-014: Transactional account-provisioning methods
+  getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null>;
+  /**
+   * Insert-once initialization of a provisioning record. Concurrent
+   * initializations must yield exactly one `created: true`; every other call
+   * receives the authoritative existing record so no account can ever have
+   * two competing provisioning ledgers.
+   */
+  createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }>;
+  /**
+   * Compare-and-swap write of the provisioning state machine. `expectedVersion`
+   * must match the persisted record's version; a stale writer receives
+   * `{ updated: false, current }` instead of silently clobbering progress.
+   * Concurrent provisioners for the same account must serialize so exactly
+   * one writer advances the record per step.
+   */
+  setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult>;
+  /**
+   * Atomically claims a username for `leaseMs`. Single-winner: concurrent
+   * claims for the same username must never both succeed, and a claim held
+   * by another user must never be stolen or overwritten.
+   */
+  reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult>;
+  getUsernameReservation(username: string): Promise<UsernameReservation | null>;
+  /**
+   * Releases a reservation owned by `userId` (compensation path). Returns
+   * true when a live claim was released, false when nothing was owned or
+   * the claim already expired. Idempotent: releasing twice is safe.
+   */
+  releaseUsernameReservation(username: string, userId: string): Promise<boolean>;
+  getWallet(userId: string): Promise<Wallet | null>;
+  /**
+   * Insert-once wallet creation keyed by user. Concurrent creations must
+   * yield exactly one "created" outcome; every other call receives the
+   * authoritative existing record as "already-exists".
+   */
+  createWallet(wallet: Wallet): Promise<WalletCreationResult>;
+  /**
+   * Initializes a mailbox policy only when none is stored for the owner.
+   * `created: true` when the default was written, `created: false` when a
+   * policy already exists (the existing policy is returned and never
+   * overwritten — idempotent retry).
+   */
+  initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }>;
+  // BETA-006 & BETA-007: Server-Side Session Domain Methods
+  // BETA-006: Server-side session lifecycle methods.
   getSession(sessionId: string): Promise<Session | null>;
   createSession(session: Session): Promise<Session>;
   updateSession(session: Session): Promise<Session>;
   deleteSession(sessionId: string): Promise<void>;
   deleteUserSessions(userId: string): Promise<void>;
+  getRetiredSession(sessionId: string): Promise<RetiredSession | null>;
+  createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession>;
+
+  // BETA-005: Verification token lifecycle methods.
+  // Each token is identified by its SHA-256 hash; plaintext tokens are never
+  // accepted, stored, or returned by the persistence layer.
+  getVerificationToken(tokenHash: string): Promise<VerificationToken | null>;
+  getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null>;
+  issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult>;
+  consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult>;
+  recordVerificationAttempt(tokenHash: string, now: Date): Promise<RecordVerificationAttemptResult>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -181,6 +347,27 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Repository
+  // ---------------------------------------------------------------------------
+  listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>>;
+  tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope>;
+  updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
+  // ---------------------------------------------------------------------------
+  getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null>;
+  getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
+  savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
+  saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
 
   reset?(): void;
 }
@@ -286,6 +473,15 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
     return this.inner.setPolicy(owner, versionRecord("mailboxPolicy", policy));
+  }
+
+  async getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null> {
+    const raw = await this.inner.getPolicyWriteIntent(owner);
+    return raw ? validateRecord<PolicyWriteIntent>("policyWriteIntent", raw) : null;
+  }
+
+  setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
+    return this.inner.setPolicyWriteIntent(versionRecord("policyWriteIntent", intent));
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -441,6 +637,83 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<Credential>("credential", result);
   }
 
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    const raw = await this.inner.getProvisioningRecord(userId);
+    return raw ? validateRecord<ProvisioningRecord>("provisioning", raw) : null;
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    const result = await this.inner.createProvisioningRecord(versionRecord("provisioning", record));
+    result.record = validateRecord<ProvisioningRecord>("provisioning", result.record);
+    return result;
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    const result = await this.inner.setProvisioningRecord(
+      versionRecord("provisioning", record),
+      expectedVersion,
+    );
+    if (result.updated) {
+      result.record = validateRecord<ProvisioningRecord>("provisioning", result.record);
+    } else if (result.current) {
+      result.current = validateRecord<ProvisioningRecord>("provisioning", result.current);
+    }
+    return result;
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const result = await this.inner.reserveUsername(username, userId, leaseMs);
+    if (result.outcome === "reserved" || result.outcome === "already-reserved") {
+      result.reservation = validateRecord<UsernameReservation>(
+        "usernameReservation",
+        result.reservation,
+      );
+    }
+    return result;
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const raw = await this.inner.getUsernameReservation(username);
+    return raw ? validateRecord<UsernameReservation>("usernameReservation", raw) : null;
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.inner.releaseUsernameReservation(username, userId);
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    const raw = await this.inner.getWallet(userId);
+    return raw ? validateRecord<Wallet>("wallet", raw) : null;
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    const result = await this.inner.createWallet(versionRecord("wallet", wallet));
+    if (result.outcome === "created" || result.outcome === "already-exists") {
+      result.wallet = validateRecord<Wallet>("wallet", result.wallet);
+    }
+    return result;
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const result = await this.inner.initializePolicyIfAbsent(owner, policy);
+    if (result.created) {
+      result.policy = validateRecord<MailboxPolicy>("mailboxPolicy", result.policy);
+    }
+    return result;
+  }
+
   async getSession(sessionId: string): Promise<Session | null> {
     const raw = await this.inner.getSession(sessionId);
     return raw ? validateRecord<Session>("session", raw) : null;
@@ -462,6 +735,73 @@ export class ValidatedApiRepository implements ApiRepository {
 
   deleteUserSessions(userId: string): Promise<void> {
     return this.inner.deleteUserSessions(userId);
+  }
+
+  async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    const raw = await this.inner.getRetiredSession(sessionId);
+    return raw ? validateRecord<RetiredSession>("retiredSession", raw) : null;
+  }
+
+  async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    const result = await this.inner.createRetiredSession(
+      versionRecord("retiredSession", retiredSession),
+    );
+    return validateRecord<RetiredSession>("retiredSession", result);
+  }
+
+  async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    const raw = await this.inner.getVerificationToken(tokenHash);
+    return raw ? validateRecord<VerificationToken>("verificationToken", raw) : null;
+  }
+
+  async getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    const raw = await this.inner.getActiveVerificationToken(userId, purpose);
+    return raw ? validateRecord<VerificationToken>("verificationToken", raw) : null;
+  }
+
+  async issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    const result = await this.inner.issueVerificationToken(
+      versionRecord("verificationToken", token),
+      now,
+    );
+    if (result.outcome === "issued" && result.replacedToken) {
+      result.replacedToken = validateRecord<VerificationToken>(
+        "verificationToken",
+        result.replacedToken,
+      );
+    }
+    if (result.outcome === "issued" || result.outcome === "conflict") {
+      result.token = validateRecord<VerificationToken>("verificationToken", result.token);
+    }
+    return result;
+  }
+
+  async consumeVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<ConsumeVerificationTokenResult> {
+    const result = await this.inner.consumeVerificationToken(tokenHash, now);
+    if (result.outcome !== "not-found") {
+      result.token = validateRecord<VerificationToken>("verificationToken", result.token);
+    }
+    return result;
+  }
+
+  async recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    const result = await this.inner.recordVerificationAttempt(tokenHash, now);
+    if (result.token) {
+      result.token = validateRecord<VerificationToken>("verificationToken", result.token);
+    }
+    return result;
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {
@@ -507,6 +847,82 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    const page = await this.inner.listRecipientEnvelopes(recipient, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<StoredEnvelope>("storedEnvelope", item)),
+    };
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    const result = await this.inner.tombstoneEnvelope(messageId, recipient);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    const result = await this.inner.updateEnvelopeStatus(messageId, status);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return this.inner.getExternalWallets(owner);
+  }
+
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+
+  removeExternalWallet(owner: string, address: string): Promise<void> {
+    return this.inner.removeExternalWallet(owner, address);
+  }
+
+  findExternalWalletOwner(address: string): Promise<string | null> {
+    return this.inner.findExternalWalletOwner(address);
+  }
+
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null> {
+    return this.inner.getWalletChallenge(owner, address);
+  }
+
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+
+  deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    return this.inner.deleteWalletChallenge(owner, address);
+  }
+
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const raw = await this.inner.getKeyDirectory(owner);
+    return raw ? validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", raw) : null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const raw = await this.inner.getPublishedKey(owner, keyId);
+    return raw ? validateRecord<PublishedKey>("publishedKey", raw) : null;
+  }
+
+  async savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey> {
+    const result = await this.inner.savePublishedKey(owner, versionRecord("publishedKey", key));
+    return validateRecord<PublishedKey>("publishedKey", result);
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    const result = await this.inner.saveKeyDirectory(versionRecord("keyDirectoryRecord", record));
+    return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -528,6 +944,7 @@ export const DEFAULT_RETRY_POLICY: RetryPolicy = {
 
 const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicy",
+  "getPolicyWriteIntent",
   "getSenderRule",
   "getPostage",
   "getReceipt",
@@ -539,6 +956,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getRelayDeadLetterCount",
   "getCounter",
   "setPolicy",
+  "setPolicyWriteIntent",
   "setSenderRule",
   "setPostage",
   "setReceipt",
@@ -556,7 +974,19 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setCredential",
   "getSession",
   "updateSession",
+  "getRetiredSession",
   "getEnvelope",
+  "getProvisioningRecord",
+  "getUsernameReservation",
+  "getWallet",
+  "releaseUsernameReservation",
+  "initializePolicyIfAbsent",
+  "getActiveVerificationToken",
+  "listRecipientEnvelopes",
+  "getExternalWallets",
+  "findExternalWalletOwner",
+  "getVerificationToken",
+  "getWalletChallenge",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -619,6 +1049,14 @@ export class RetryableApiRepository implements ApiRepository {
 
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy> {
     return this.withRetry("setPolicy", () => this.inner.setPolicy(owner, policy));
+  }
+
+  getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null> {
+    return this.withRetry("getPolicyWriteIntent", () => this.inner.getPolicyWriteIntent(owner));
+  }
+
+  setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
+    return this.withRetry("setPolicyWriteIntent", () => this.inner.setPolicyWriteIntent(intent));
   }
 
   getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -727,6 +1165,65 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
   }
 
+  // BETA-014: retry-safe reads + idempotent compensation are retried; the
+  // single-winner writes (reserve, createWallet, setProvisioningRecord) never
+  // are, so a half-applied claim can never be double-applied by this wrapper.
+  getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return this.withRetry("getProvisioningRecord", () => this.inner.getProvisioningRecord(userId));
+  }
+
+  createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    // Never retry: an insert-once initialization must not be re-applied after
+    // a client-side timeout (the stored record would be authoritative).
+    return this.inner.createProvisioningRecord(record);
+  }
+
+  setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.inner.setProvisioningRecord(record, expectedVersion);
+  }
+
+  reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    return this.inner.reserveUsername(username, userId, leaseMs);
+  }
+
+  getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    return this.withRetry("getUsernameReservation", () =>
+      this.inner.getUsernameReservation(username),
+    );
+  }
+
+  releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.withRetry("releaseUsernameReservation", () =>
+      this.inner.releaseUsernameReservation(username, userId),
+    );
+  }
+
+  getWallet(userId: string): Promise<Wallet | null> {
+    return this.withRetry("getWallet", () => this.inner.getWallet(userId));
+  }
+
+  createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.inner.createWallet(wallet);
+  }
+
+  initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    return this.withRetry("initializePolicyIfAbsent", () =>
+      this.inner.initializePolicyIfAbsent(owner, policy),
+    );
+  }
+
   getSession(sessionId: string): Promise<Session | null> {
     return this.withRetry("getSession", () => this.inner.getSession(sessionId));
   }
@@ -745,6 +1242,45 @@ export class RetryableApiRepository implements ApiRepository {
 
   deleteUserSessions(userId: string): Promise<void> {
     return this.inner.deleteUserSessions(userId);
+  }
+
+  getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
+    return this.withRetry("getRetiredSession", () => this.inner.getRetiredSession(sessionId));
+  }
+
+  createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
+    return this.inner.createRetiredSession(retiredSession);
+  }
+
+  getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    return this.withRetry("getVerificationToken", () => this.inner.getVerificationToken(tokenHash));
+  }
+
+  getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    return this.withRetry("getActiveVerificationToken", () =>
+      this.inner.getActiveVerificationToken(userId, purpose),
+    );
+  }
+
+  issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    return this.inner.issueVerificationToken(token, now);
+  }
+
+  consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult> {
+    return this.inner.consumeVerificationToken(tokenHash, now);
+  }
+
+  recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    return this.inner.recordVerificationAttempt(tokenHash, now);
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {
@@ -792,6 +1328,78 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+
+  listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    return this.withRetry("listRecipientEnvelopes", () =>
+      this.inner.listRecipientEnvelopes(recipient, options),
+    );
+  }
+
+  tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    return this.inner.tombstoneEnvelope(messageId, recipient);
+  }
+
+  updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    return this.inner.updateEnvelopeStatus(messageId, status);
+  }
+
+  getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return this.withRetry("getExternalWallets", () => this.inner.getExternalWallets(owner));
+  }
+
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+
+  removeExternalWallet(owner: string, address: string): Promise<void> {
+    return this.inner.removeExternalWallet(owner, address);
+  }
+
+  findExternalWalletOwner(address: string): Promise<string | null> {
+    return this.withRetry("findExternalWalletOwner", () =>
+      this.inner.findExternalWalletOwner(address),
+    );
+  }
+
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null> {
+    return this.withRetry("getWalletChallenge", () =>
+      this.inner.getWalletChallenge(owner, address),
+    );
+  }
+
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+
+  deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    return this.inner.deleteWalletChallenge(owner, address);
+  }
+
+  getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    return this.withRetry("getKeyDirectory", () => this.inner.getKeyDirectory(owner));
+  }
+
+  getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    return this.withRetry("getPublishedKey", () => this.inner.getPublishedKey(owner, keyId));
+  }
+
+  savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey> {
+    return this.withRetry("savePublishedKey", () => this.inner.savePublishedKey(owner, key));
+  }
+
+  saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
   }
 
   reset(): void {
