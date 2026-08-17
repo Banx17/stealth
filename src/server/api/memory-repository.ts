@@ -11,6 +11,7 @@ import type {
   Profile,
   PublishedKey,
   Receipt,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -26,6 +27,7 @@ import type {
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -94,6 +96,10 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly publishedKeys = new Map<string, PublishedKey>(); // key: `${owner}:${keyId}`
   private readonly keyDirectoryLocks = new Map<string, Promise<void>>();
 
+  // Issue #1917 (BETA-010): Recovery code sets + per-user CAS locks
+  private readonly recoveryCodeSets = new Map<string, RecoveryCodeSet>();
+  private readonly recoveryCodeSetLocks = new Map<string, Promise<void>>();
+
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
     let release!: () => void;
@@ -130,6 +136,26 @@ export class MemoryApiRepository implements ApiRepository {
       release();
       if (this.envelopeLocks.get(messageId) === queued) {
         this.envelopeLocks.delete(messageId);
+      }
+    }
+  }
+
+  private async withRecoveryCodeSetLock<T>(userId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.recoveryCodeSetLocks.get(userId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.recoveryCodeSetLocks.set(userId, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.recoveryCodeSetLocks.get(userId) === queued) {
+        this.recoveryCodeSetLocks.delete(userId);
       }
     }
   }
@@ -513,6 +539,41 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  // Issue #1917 (BETA-010): Recovery code set CAS storage
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return structuredClone(this.recoveryCodeSets.get(userId) ?? null);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.withRecoveryCodeSetLock(set.userId, async () => {
+      const current = this.recoveryCodeSets.get(set.userId);
+
+      if (expectedVersion === 0) {
+        // Create-only reservation. If a concurrent generation won first, the
+        // caller reconciles against `current`.
+        if (current) {
+          return { updated: false, current: structuredClone(current) };
+        }
+        this.recoveryCodeSets.set(set.userId, structuredClone(set));
+        return { updated: true, set: structuredClone(set) };
+      }
+
+      if (!current || current.version !== expectedVersion) {
+        return { updated: false, current: current ? structuredClone(current) : null };
+      }
+
+      const next: RecoveryCodeSet = {
+        ...set,
+        version: expectedVersion + 1,
+      };
+      this.recoveryCodeSets.set(set.userId, structuredClone(next));
+      return { updated: true, set: structuredClone(next) };
+    });
+  }
+
   async getRelayQueueDepth(_relayId: string) {
     return 0;
   }
@@ -802,5 +863,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.keyDirectories.clear();
     this.publishedKeys.clear();
     this.keyDirectoryLocks.clear();
+    this.recoveryCodeSets.clear();
+    this.recoveryCodeSetLocks.clear();
   }
 }

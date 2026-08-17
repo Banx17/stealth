@@ -11,6 +11,7 @@ import type {
   Profile,
   PublishedKey,
   Receipt,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -62,6 +63,24 @@ export type AcquireIdempotencyResult =
    * block behind, or replay the response of, an unrelated request.
    */
   | { status: "conflict" };
+
+/**
+ * Outcome of a compare-and-swap write to the account's recovery code set.
+ *
+ * Issue #1917 (BETA-010): recovery codes are single-use secrets; redemption
+ * and regeneration must never lose an update to a racing writer. `expectedVersion`
+ * is the version observed on the read that preceded this write:
+ *
+ * - `expectedVersion === 0` is a create-only reservation: it succeeds only when
+ *   no set exists yet, and reports `current` (never the caller's new set) when
+ *   another generation won.
+ * - `expectedVersion >= 1` is a strict compare-and-swap against the stored
+ *   version. A mismatch reports `current` so the caller can re-read and retry
+ *   (or fail) deterministically; a match bumps the stored version by 1.
+ */
+export type UpdateRecoveryCodeSetResult =
+  | { updated: true; set: RecoveryCodeSet }
+  | { updated: false; current: RecoveryCodeSet | null };
 
 /**
  * Outcome of an atomic read-receipt publication.
@@ -209,6 +228,12 @@ export interface ApiRepository {
   ): Promise<IssueVerificationTokenResult>;
   consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult>;
   recordVerificationAttempt(tokenHash: string, now: Date): Promise<RecordVerificationAttemptResult>;
+  // Issue #1917 (BETA-010): Recovery code set CAS storage
+  getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null>;
+  setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -626,6 +651,27 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    const raw = await this.inner.getRecoveryCodeSet(userId);
+    return raw ? validateRecord<RecoveryCodeSet>("recoveryCodeSet", raw) : null;
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    const result = await this.inner.setRecoveryCodeSet(
+      versionRecord("recoveryCodeSet", set),
+      expectedVersion,
+    );
+    if (result.updated) {
+      result.set = validateRecord<RecoveryCodeSet>("recoveryCodeSet", result.set);
+    } else if (result.current) {
+      result.current = validateRecord<RecoveryCodeSet>("recoveryCodeSet", result.current);
+    }
+    return result;
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -803,6 +849,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "findExternalWalletOwner",
   "getVerificationToken",
   "getWalletChallenge",
+  "getRecoveryCodeSet",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1077,6 +1124,22 @@ export class RetryableApiRepository implements ApiRepository {
   // Issue #1936: reads are retry-safe; inserts are not (insert-once semantics).
   getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
     return this.withRetry("getEnvelope", () => this.inner.getEnvelope(messageId));
+  }
+
+  getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    // Read-only: a stale read is harmless (and eventually consistent), so
+    // transient failures are retried.
+    return this.withRetry("getRecoveryCodeSet", () => this.inner.getRecoveryCodeSet(userId));
+  }
+
+  setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    // Never retried automatically: the CAS version is authoritative, and a
+    // transparent retry could double-bump the version or mask a legitimate
+    // conflict. The caller owns the read-check-write cycle (issue #1917).
+    return this.inner.setRecoveryCodeSet(set, expectedVersion);
   }
 
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {

@@ -2,6 +2,7 @@ import type {
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
 } from "./repository";
 import type {
@@ -17,6 +18,7 @@ import type {
   Profile,
   PublishedKey,
   Receipt,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -258,6 +260,19 @@ export class HybridApiRepository implements ApiRepository {
 
   async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
     return this.getStub().createRetiredSession(retiredSession);
+  }
+
+  // Issue #1917 (BETA-010): CAS semantics live in the Durable Object (the
+  // runExclusive critical section), so KV delegation is a plain RPC passthrough.
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return this.getStub().getRecoveryCodeSet(userId);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.getStub().setRecoveryCodeSet(set, expectedVersion);
   }
 
   // Consistent layer delegated to Durable Object via RPC

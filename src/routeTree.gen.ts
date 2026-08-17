@@ -50,6 +50,9 @@ import { Route as ApiV1IdentityKeysRotateRouteImport } from './routes/api/v1/ide
 import { Route as ApiV1IdentityKeysRevokeRouteImport } from './routes/api/v1/identity/keys/revoke'
 import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/identity/keys/retire'
 import { Route as ApiV1IdentityKeysKeyIdRouteImport } from './routes/api/v1/identity/keys/$keyId'
+import { Route as ApiV1AuthRecoveryStatusRouteImport } from './routes/api/v1/auth/recovery/status'
+import { Route as ApiV1AuthRecoveryRegenerateRouteImport } from './routes/api/v1/auth/recovery/regenerate'
+import { Route as ApiV1AuthRecoveryRedeemRouteImport } from './routes/api/v1/auth/recovery/redeem'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
@@ -264,6 +267,22 @@ const ApiV1IdentityKeysKeyIdRoute = ApiV1IdentityKeysKeyIdRouteImport.update({
   path: '/api/v1/identity/keys/$keyId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthRecoveryStatusRoute = ApiV1AuthRecoveryStatusRouteImport.update({
+  id: '/api/v1/auth/recovery/status',
+  path: '/api/v1/auth/recovery/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthRecoveryRegenerateRoute =
+  ApiV1AuthRecoveryRegenerateRouteImport.update({
+    id: '/api/v1/auth/recovery/regenerate',
+    path: '/api/v1/auth/recovery/regenerate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AuthRecoveryRedeemRoute = ApiV1AuthRecoveryRedeemRouteImport.update({
+  id: '/api/v1/auth/recovery/redeem',
+  path: '/api/v1/auth/recovery/redeem',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -299,6 +318,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
+  '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
+  '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
@@ -343,6 +365,9 @@ export interface FileRoutesByTo {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
+  '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
+  '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
@@ -388,6 +413,9 @@ export interface FileRoutesById {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
+  '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
+  '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
+  '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
@@ -434,6 +462,9 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/auth/recovery/redeem'
+    | '/api/v1/auth/recovery/regenerate'
+    | '/api/v1/auth/recovery/status'
     | '/api/v1/identity/keys/$keyId'
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
@@ -478,6 +509,9 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/postage'
     | '/api/v1/receipts'
+    | '/api/v1/auth/recovery/redeem'
+    | '/api/v1/auth/recovery/regenerate'
+    | '/api/v1/auth/recovery/status'
     | '/api/v1/identity/keys/$keyId'
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
@@ -522,6 +556,9 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
+    | '/api/v1/auth/recovery/redeem'
+    | '/api/v1/auth/recovery/regenerate'
+    | '/api/v1/auth/recovery/status'
     | '/api/v1/identity/keys/$keyId'
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
@@ -567,6 +604,9 @@ export interface RootRouteChildren {
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
+  ApiV1AuthRecoveryRedeemRoute: typeof ApiV1AuthRecoveryRedeemRoute
+  ApiV1AuthRecoveryRegenerateRoute: typeof ApiV1AuthRecoveryRegenerateRoute
+  ApiV1AuthRecoveryStatusRoute: typeof ApiV1AuthRecoveryStatusRoute
   ApiV1IdentityKeysKeyIdRoute: typeof ApiV1IdentityKeysKeyIdRoute
   ApiV1IdentityKeysRetireRoute: typeof ApiV1IdentityKeysRetireRoute
   ApiV1IdentityKeysRevokeRoute: typeof ApiV1IdentityKeysRevokeRoute
@@ -867,6 +907,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IdentityKeysKeyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/recovery/status': {
+      id: '/api/v1/auth/recovery/status'
+      path: '/api/v1/auth/recovery/status'
+      fullPath: '/api/v1/auth/recovery/status'
+      preLoaderRoute: typeof ApiV1AuthRecoveryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/recovery/regenerate': {
+      id: '/api/v1/auth/recovery/regenerate'
+      path: '/api/v1/auth/recovery/regenerate'
+      fullPath: '/api/v1/auth/recovery/regenerate'
+      preLoaderRoute: typeof ApiV1AuthRecoveryRegenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/recovery/redeem': {
+      id: '/api/v1/auth/recovery/redeem'
+      path: '/api/v1/auth/recovery/redeem'
+      fullPath: '/api/v1/auth/recovery/redeem'
+      preLoaderRoute: typeof ApiV1AuthRecoveryRedeemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -949,6 +1010,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
+  ApiV1AuthRecoveryRedeemRoute: ApiV1AuthRecoveryRedeemRoute,
+  ApiV1AuthRecoveryRegenerateRoute: ApiV1AuthRecoveryRegenerateRoute,
+  ApiV1AuthRecoveryStatusRoute: ApiV1AuthRecoveryStatusRoute,
   ApiV1IdentityKeysKeyIdRoute: ApiV1IdentityKeysKeyIdRoute,
   ApiV1IdentityKeysRetireRoute: ApiV1IdentityKeysRetireRoute,
   ApiV1IdentityKeysRevokeRoute: ApiV1IdentityKeysRevokeRoute,

@@ -19,6 +19,7 @@ import {
   policyWriteIntentSchema,
   publishedKeySchema,
   keyDirectoryRecordSchema,
+  recoveryCodeSetSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -224,6 +225,10 @@ registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
 // Issue #1934 (BETA-027): Versioned Public Encryption-Key Directory & Rotation
 registerRecordSchema("publishedKey", 1, publishedKeySchema);
 registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
+// Issue #1917 (BETA-010): register the recovery code set schema so that
+// ValidatedApiRepository can detect tampered or structurally invalid
+// recovery records at the adapter boundary.
+registerRecordSchema("recoveryCodeSet", 1, recoveryCodeSetSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.
