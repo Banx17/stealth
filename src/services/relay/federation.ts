@@ -21,12 +21,29 @@
  * 5. DEAD_LETTER: Permanent failure or expired retries. Emits actionable error code. Terminal state.
  */
 
+import type { MessageDeliveryState } from "@/server/api/domain";
+
 export type DeliveryState =
-  | "DISCOVERY"
-  | "HANDOFF"
-  | "ACKNOWLEDGED"
-  | "DEDUPLICATED"
-  | "DEAD_LETTER";
+  "DISCOVERY" | "HANDOFF" | "ACKNOWLEDGED" | "DEDUPLICATED" | "DEAD_LETTER";
+
+export function mapRelayStateToMessageDeliveryState(
+  relayState: DeliveryState,
+  errorCode?: ActionableErrorCode,
+): MessageDeliveryState {
+  switch (relayState) {
+    case "DISCOVERY":
+      return "queued";
+    case "HANDOFF":
+      return "accepted";
+    case "ACKNOWLEDGED":
+    case "DEDUPLICATED":
+      return "delivered";
+    case "DEAD_LETTER":
+      return errorCode === "ERR_DELIVERY_EXPIRED" ? "expired" : "failed";
+    default:
+      return "failed";
+  }
+}
 
 export interface FederationMessage {
   id: string;

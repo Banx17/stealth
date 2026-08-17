@@ -10,13 +10,17 @@
  * route, replace defaultTransport with a fetch POST of message.payload and
  * return the HTTP status code.
  */
-import { FederationDeliveryService } from "@/services/relay/federation";
+import {
+  FederationDeliveryService,
+  mapRelayStateToMessageDeliveryState,
+} from "@/services/relay/federation";
 import type {
   ActionableErrorCode,
   DeliveryState,
   FederationMessage,
   RelayNode,
 } from "@/services/relay/federation";
+import type { MessageDeliveryState } from "@/server/api/domain";
 
 export type RelayResolver = (domain: string) => Promise<RelayNode | null>;
 export type RelayTransport = (
@@ -33,6 +37,7 @@ export interface RelaySubmitInput {
 
 export interface RelaySubmitResult {
   state: DeliveryState;
+  messageDeliveryState: MessageDeliveryState;
   attempts: number;
   errorCode?: ActionableErrorCode;
   delivered: boolean;
@@ -80,6 +85,7 @@ export async function submitToRelay(
   const result = await service.deliver(message);
   return {
     state: result.state,
+    messageDeliveryState: mapRelayStateToMessageDeliveryState(result.state, result.errorCode),
     attempts: result.attempts,
     errorCode: result.errorCode,
     delivered: result.state === "ACKNOWLEDGED" || result.state === "DEDUPLICATED",

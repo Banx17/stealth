@@ -9,24 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as MotionGalleryRouteImport } from './routes/motion-gallery'
 import { Route as PolicyEditorRouteRouteImport } from './routes/policy-editor/route'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
-import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
-import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
-import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
-import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
-import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
-import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
-import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
+import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
+import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
+import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
-import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
-import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
+import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
+import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
+import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
+import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
+import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
+import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
   path: '/motion-gallery',
@@ -37,14 +43,9 @@ const PolicyEditorRouteRoute = PolicyEditorRouteRouteImport.update({
   path: '/policy-editor',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1ProtocolRoute = ApiV1ProtocolRouteImport.update({
-  id: '/api/v1/protocol',
-  path: '/api/v1/protocol',
+const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
+  id: '/api/v1/health',
+  path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
@@ -52,39 +53,14 @@ const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
   path: '/api/v1/openapi.json',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
-  id: '/api/v1/health',
-  path: '/api/v1/health',
+const ApiV1ProtocolRoute = ApiV1ProtocolRouteImport.update({
+  id: '/api/v1/protocol',
+  path: '/api/v1/protocol',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
-  id: '/api/v1/receipts/',
-  path: '/api/v1/receipts/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
-  id: '/api/v1/postage/',
-  path: '/api/v1/postage/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
-  id: '/api/v1/receipts/$messageId',
-  path: '/api/v1/receipts/$messageId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1PostageQuoteRoute = ApiV1PostageQuoteRouteImport.update({
-  id: '/api/v1/postage/quote',
-  path: '/api/v1/postage/quote',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1PostageMessageIdRoute = ApiV1PostageMessageIdRouteImport.update({
-  id: '/api/v1/postage/$messageId',
-  path: '/api/v1/postage/$messageId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
-  id: '/api/v1/policies/evaluate',
-  path: '/api/v1/policies/evaluate',
+const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
+  id: '/api/v1/delivery/$messageId',
+  path: '/api/v1/delivery/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
@@ -92,11 +68,41 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1ReceiptsMessageIdReadRoute =
-  ApiV1ReceiptsMessageIdReadRouteImport.update({
-    id: '/read',
-    path: '/read',
-    getParentRoute: () => ApiV1ReceiptsMessageIdRoute,
+const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
+  id: '/api/v1/policies/evaluate',
+  path: '/api/v1/policies/evaluate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
+  id: '/api/v1/postage/',
+  path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageMessageIdRoute = ApiV1PostageMessageIdRouteImport.update({
+  id: '/api/v1/postage/$messageId',
+  path: '/api/v1/postage/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageQuoteRoute = ApiV1PostageQuoteRouteImport.update({
+  id: '/api/v1/postage/quote',
+  path: '/api/v1/postage/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
+  id: '/api/v1/receipts/',
+  path: '/api/v1/receipts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
+  id: '/api/v1/receipts/$messageId',
+  path: '/api/v1/receipts/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageMessageIdRefundRoute =
+  ApiV1PostageMessageIdRefundRouteImport.update({
+    id: '/refund',
+    path: '/refund',
+    getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
 const ApiV1PostageMessageIdSettleRoute =
   ApiV1PostageMessageIdSettleRouteImport.update({
@@ -104,11 +110,11 @@ const ApiV1PostageMessageIdSettleRoute =
     path: '/settle',
     getParentRoute: () => ApiV1PostageMessageIdRoute,
   } as any)
-const ApiV1PostageMessageIdRefundRoute =
-  ApiV1PostageMessageIdRefundRouteImport.update({
-    id: '/refund',
-    path: '/refund',
-    getParentRoute: () => ApiV1PostageMessageIdRoute,
+const ApiV1ReceiptsMessageIdReadRoute =
+  ApiV1ReceiptsMessageIdReadRouteImport.update({
+    id: '/read',
+    path: '/read',
+    getParentRoute: () => ApiV1ReceiptsMessageIdRoute,
   } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -242,6 +254,7 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -253,6 +266,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motion-gallery': {
       id: '/motion-gallery'
       path: '/motion-gallery'
@@ -267,18 +287,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PolicyEditorRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/protocol': {
-      id: '/api/v1/protocol'
-      path: '/api/v1/protocol'
-      fullPath: '/api/v1/protocol'
-      preLoaderRoute: typeof ApiV1ProtocolRouteImport
+    '/api/v1/health': {
+      id: '/api/v1/health'
+      path: '/api/v1/health'
+      fullPath: '/api/v1/health'
+      preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/openapi.json': {
@@ -288,53 +301,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/health': {
-      id: '/api/v1/health'
-      path: '/api/v1/health'
-      fullPath: '/api/v1/health'
-      preLoaderRoute: typeof ApiV1HealthRouteImport
+    '/api/v1/protocol': {
+      id: '/api/v1/protocol'
+      path: '/api/v1/protocol'
+      fullPath: '/api/v1/protocol'
+      preLoaderRoute: typeof ApiV1ProtocolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/receipts/': {
-      id: '/api/v1/receipts/'
-      path: '/api/v1/receipts'
-      fullPath: '/api/v1/receipts/'
-      preLoaderRoute: typeof ApiV1ReceiptsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/postage/': {
-      id: '/api/v1/postage/'
-      path: '/api/v1/postage'
-      fullPath: '/api/v1/postage/'
-      preLoaderRoute: typeof ApiV1PostageIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/receipts/$messageId': {
-      id: '/api/v1/receipts/$messageId'
-      path: '/api/v1/receipts/$messageId'
-      fullPath: '/api/v1/receipts/$messageId'
-      preLoaderRoute: typeof ApiV1ReceiptsMessageIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/postage/quote': {
-      id: '/api/v1/postage/quote'
-      path: '/api/v1/postage/quote'
-      fullPath: '/api/v1/postage/quote'
-      preLoaderRoute: typeof ApiV1PostageQuoteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/postage/$messageId': {
-      id: '/api/v1/postage/$messageId'
-      path: '/api/v1/postage/$messageId'
-      fullPath: '/api/v1/postage/$messageId'
-      preLoaderRoute: typeof ApiV1PostageMessageIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/policies/evaluate': {
-      id: '/api/v1/policies/evaluate'
-      path: '/api/v1/policies/evaluate'
-      fullPath: '/api/v1/policies/evaluate'
-      preLoaderRoute: typeof ApiV1PoliciesEvaluateRouteImport
+    '/api/v1/delivery/$messageId': {
+      id: '/api/v1/delivery/$messageId'
+      path: '/api/v1/delivery/$messageId'
+      fullPath: '/api/v1/delivery/$messageId'
+      preLoaderRoute: typeof ApiV1DeliveryMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/policies/$owner': {
@@ -344,12 +322,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/receipts/$messageId/read': {
-      id: '/api/v1/receipts/$messageId/read'
-      path: '/read'
-      fullPath: '/api/v1/receipts/$messageId/read'
-      preLoaderRoute: typeof ApiV1ReceiptsMessageIdReadRouteImport
-      parentRoute: typeof ApiV1ReceiptsMessageIdRoute
+    '/api/v1/policies/evaluate': {
+      id: '/api/v1/policies/evaluate'
+      path: '/api/v1/policies/evaluate'
+      fullPath: '/api/v1/policies/evaluate'
+      preLoaderRoute: typeof ApiV1PoliciesEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/postage/': {
+      id: '/api/v1/postage/'
+      path: '/api/v1/postage'
+      fullPath: '/api/v1/postage/'
+      preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/postage/$messageId': {
+      id: '/api/v1/postage/$messageId'
+      path: '/api/v1/postage/$messageId'
+      fullPath: '/api/v1/postage/$messageId'
+      preLoaderRoute: typeof ApiV1PostageMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/postage/quote': {
+      id: '/api/v1/postage/quote'
+      path: '/api/v1/postage/quote'
+      fullPath: '/api/v1/postage/quote'
+      preLoaderRoute: typeof ApiV1PostageQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/receipts/': {
+      id: '/api/v1/receipts/'
+      path: '/api/v1/receipts'
+      fullPath: '/api/v1/receipts/'
+      preLoaderRoute: typeof ApiV1ReceiptsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/receipts/$messageId': {
+      id: '/api/v1/receipts/$messageId'
+      path: '/api/v1/receipts/$messageId'
+      fullPath: '/api/v1/receipts/$messageId'
+      preLoaderRoute: typeof ApiV1ReceiptsMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/postage/$messageId/refund': {
+      id: '/api/v1/postage/$messageId/refund'
+      path: '/refund'
+      fullPath: '/api/v1/postage/$messageId/refund'
+      preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
+      parentRoute: typeof ApiV1PostageMessageIdRoute
     }
     '/api/v1/postage/$messageId/settle': {
       id: '/api/v1/postage/$messageId/settle'
@@ -358,12 +378,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdSettleRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
-    '/api/v1/postage/$messageId/refund': {
-      id: '/api/v1/postage/$messageId/refund'
-      path: '/refund'
-      fullPath: '/api/v1/postage/$messageId/refund'
-      preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
-      parentRoute: typeof ApiV1PostageMessageIdRoute
+    '/api/v1/receipts/$messageId/read': {
+      id: '/api/v1/receipts/$messageId/read'
+      path: '/read'
+      fullPath: '/api/v1/receipts/$messageId/read'
+      preLoaderRoute: typeof ApiV1ReceiptsMessageIdReadRouteImport
+      parentRoute: typeof ApiV1ReceiptsMessageIdRoute
     }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
@@ -422,6 +442,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,

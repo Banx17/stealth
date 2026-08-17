@@ -1,4 +1,11 @@
-import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type {
+  IdempotencyRecord,
+  MailboxPolicy,
+  MessageDeliveryStatusRecord,
+  Postage,
+  Receipt,
+  SenderRule,
+} from "./domain";
 import type { ApiRepository } from "./repository";
 
 function key(owner: string, sender: string) {
@@ -9,6 +16,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
+  private readonly deliveryStatuses = new Map<string, MessageDeliveryStatusRecord>();
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
@@ -49,6 +57,15 @@ export class MemoryApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt) {
     this.receipts.set(receipt.messageId, structuredClone(receipt));
     return structuredClone(receipt);
+  }
+
+  async getMessageDeliveryStatus(messageId: string) {
+    return structuredClone(this.deliveryStatuses.get(messageId) ?? null);
+  }
+
+  async setMessageDeliveryStatus(record: MessageDeliveryStatusRecord) {
+    this.deliveryStatuses.set(record.messageId, structuredClone(record));
+    return structuredClone(record);
   }
 
   async getRelayQueueDepth(_relayId: string) {
@@ -97,6 +114,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.policies.clear();
     this.postage.clear();
     this.receipts.clear();
+    this.deliveryStatuses.clear();
     this.senderRules.clear();
     this.counters.clear();
     this.idempotency.clear();

@@ -1,5 +1,12 @@
 import type { ApiRepository } from "./repository";
-import type { MailboxPolicy, SenderRule, Postage, Receipt, IdempotencyRecord } from "./domain";
+import type {
+  MailboxPolicy,
+  SenderRule,
+  Postage,
+  Receipt,
+  IdempotencyRecord,
+  MessageDeliveryStatusRecord,
+} from "./domain";
 
 export class HybridApiRepository implements ApiRepository {
   constructor(
@@ -56,7 +63,20 @@ export class HybridApiRepository implements ApiRepository {
     return receipt;
   }
 
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const record = await this.kv.get(this.key("delivery-status", messageId), "json");
+    return (record as MessageDeliveryStatusRecord) ?? null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    await this.kv.put(this.key("delivery-status", record.messageId), JSON.stringify(record));
+    return record;
+  }
+
   // Consistent layer delegated to Durable Object via RPC
+
   private getStub() {
     const id = this.coordinator.idFromName("global-stealth-coordinator");
     return this.coordinator.get(id);

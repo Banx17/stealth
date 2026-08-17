@@ -1,4 +1,11 @@
-import type { IdempotencyRecord, MailboxPolicy, Postage, Receipt, SenderRule } from "./domain";
+import type {
+  IdempotencyRecord,
+  MailboxPolicy,
+  MessageDeliveryStatusRecord,
+  Postage,
+  Receipt,
+  SenderRule,
+} from "./domain";
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -9,6 +16,10 @@ export interface ApiRepository {
   setPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null>;
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord>;
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
