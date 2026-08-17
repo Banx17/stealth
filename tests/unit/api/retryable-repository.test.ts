@@ -273,6 +273,25 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteWalletChallenge");
     return this.inner.deleteWalletChallenge(owner, address);
   }
+  async getKeyDirectory(owner: string) {
+    this.maybeFail("getKeyDirectory");
+    return this.inner.getKeyDirectory(owner);
+  }
+  async getPublishedKey(owner: string, keyId: string) {
+    this.maybeFail("getPublishedKey");
+    return this.inner.getPublishedKey(owner, keyId);
+  }
+  async savePublishedKey(
+    owner: string,
+    key: import("../../../src/server/api/domain").PublishedKey,
+  ) {
+    this.maybeFail("savePublishedKey");
+    return this.inner.savePublishedKey(owner, key);
+  }
+  async saveKeyDirectory(record: import("../../../src/server/api/domain").KeyDirectoryRecord) {
+    this.maybeFail("saveKeyDirectory");
+    return this.inner.saveKeyDirectory(record);
+  }
   reset(): void {
     this.inner.reset();
   }

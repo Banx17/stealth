@@ -14,6 +14,8 @@ import type {
   Session,
   StoredEnvelope,
   User,
+  KeyDirectoryRecord,
+  PublishedKey,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -204,6 +206,14 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
+  // ---------------------------------------------------------------------------
+  getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null>;
+  getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
+  savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
+  saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
 
   reset?(): void;
 }
@@ -583,6 +593,26 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.deleteWalletChallenge(owner, address);
   }
 
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const raw = await this.inner.getKeyDirectory(owner);
+    return raw ? validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", raw) : null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const raw = await this.inner.getPublishedKey(owner, keyId);
+    return raw ? validateRecord<PublishedKey>("publishedKey", raw) : null;
+  }
+
+  async savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey> {
+    const result = await this.inner.savePublishedKey(owner, versionRecord("publishedKey", key));
+    return validateRecord<PublishedKey>("publishedKey", result);
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    const result = await this.inner.saveKeyDirectory(versionRecord("keyDirectoryRecord", record));
+    return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -926,6 +956,22 @@ export class RetryableApiRepository implements ApiRepository {
 
   deleteWalletChallenge(owner: string, address: string): Promise<void> {
     return this.inner.deleteWalletChallenge(owner, address);
+  }
+
+  getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    return this.withRetry("getKeyDirectory", () => this.inner.getKeyDirectory(owner));
+  }
+
+  getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    return this.withRetry("getPublishedKey", () => this.inner.getPublishedKey(owner, keyId));
+  }
+
+  savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey> {
+    return this.withRetry("savePublishedKey", () => this.inner.savePublishedKey(owner, key));
+  }
+
+  saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
   }
 
   reset(): void {

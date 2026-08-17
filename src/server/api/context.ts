@@ -16,6 +16,8 @@ import {
   retiredSessionSchema,
   storedEnvelopeSchema,
   policyWriteIntentSchema,
+  publishedKeySchema,
+  keyDirectoryRecordSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -217,6 +219,9 @@ registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
 // contract, so tampered or structurally invalid intents fail closed at the
 // adapter boundary instead of silently drifting the reconciliation state.
 registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
+// Issue #1934 (BETA-027): Versioned Public Encryption-Key Directory & Rotation
+registerRecordSchema("publishedKey", 1, publishedKeySchema);
+registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

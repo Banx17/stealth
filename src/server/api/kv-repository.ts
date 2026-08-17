@@ -20,6 +20,8 @@ import type {
   Session,
   StoredEnvelope,
   User,
+  KeyDirectoryRecord,
+  PublishedKey,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -364,5 +366,35 @@ export class HybridApiRepository implements ApiRepository {
       await this.kv.put(this.key("envelope", envelope.messageId), JSON.stringify(result.envelope));
     }
     return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
+  // ---------------------------------------------------------------------------
+
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const dir = await this.kv.get(this.key("key-directory", owner.toUpperCase()), "json");
+    return (dir as KeyDirectoryRecord) ?? null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const key = await this.kv.get(this.key("keys", owner.toUpperCase(), keyId), "json");
+    return (key as PublishedKey) ?? null;
+  }
+
+  async savePublishedKey(owner: string, publishedKey: PublishedKey): Promise<PublishedKey> {
+    await this.kv.put(
+      this.key("keys", owner.toUpperCase(), publishedKey.keyId),
+      JSON.stringify(publishedKey),
+    );
+    return publishedKey;
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    await this.kv.put(
+      this.key("key-directory", record.owner.toUpperCase()),
+      JSON.stringify(record),
+    );
+    return record;
   }
 }
