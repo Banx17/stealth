@@ -58,7 +58,7 @@ export async function publishKey(
   const notAfter =
     request.notAfter ?? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
-  let dir = await repository.getKeyDirectory(normalizedOwner);
+  const dir = await repository.getKeyDirectory(normalizedOwner);
   const nextVersion = dir ? dir.keys.length + 1 : 1;
   const keyId = request.keyId || `k_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
