@@ -29,7 +29,9 @@ import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
+import { Route as ApiV1AuthResendVerificationRouteImport } from './routes/api/v1/auth/resend-verification'
 import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
 import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
 import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
@@ -150,11 +152,22 @@ const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   path: '/api/v1/identity/resolve',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthVerifyRoute = ApiV1AuthVerifyRouteImport.update({
+  id: '/api/v1/auth/verify',
+  path: '/api/v1/auth/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
   id: '/api/v1/auth/session',
   path: '/api/v1/auth/session',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthResendVerificationRoute =
+  ApiV1AuthResendVerificationRouteImport.update({
+    id: '/api/v1/auth/resend-verification',
+    path: '/api/v1/auth/resend-verification',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AuthRegisterRoute = ApiV1AuthRegisterRouteImport.update({
   id: '/api/v1/auth/register',
   path: '/api/v1/auth/register',
@@ -269,7 +282,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
   '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
+  '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
+  '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -311,7 +326,9 @@ export interface FileRoutesByTo {
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
   '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
+  '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
+  '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -354,7 +371,9 @@ export interface FileRoutesById {
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
   '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
+  '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
+  '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -398,7 +417,9 @@ export interface FileRouteTypes {
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
     | '/api/v1/auth/register'
+    | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
+    | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -440,7 +461,9 @@ export interface FileRouteTypes {
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
     | '/api/v1/auth/register'
+    | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
+    | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -482,7 +505,9 @@ export interface FileRouteTypes {
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
     | '/api/v1/auth/register'
+    | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
+    | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -525,7 +550,9 @@ export interface RootRouteChildren {
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
   ApiV1AuthLogoutAllRoute: typeof ApiV1AuthLogoutAllRoute
   ApiV1AuthRegisterRoute: typeof ApiV1AuthRegisterRoute
+  ApiV1AuthResendVerificationRoute: typeof ApiV1AuthResendVerificationRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
+  ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
@@ -693,11 +720,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/verify': {
+      id: '/api/v1/auth/verify'
+      path: '/api/v1/auth/verify'
+      fullPath: '/api/v1/auth/verify'
+      preLoaderRoute: typeof ApiV1AuthVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/auth/session': {
       id: '/api/v1/auth/session'
       path: '/api/v1/auth/session'
       fullPath: '/api/v1/auth/session'
       preLoaderRoute: typeof ApiV1AuthSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/resend-verification': {
+      id: '/api/v1/auth/resend-verification'
+      path: '/api/v1/auth/resend-verification'
+      fullPath: '/api/v1/auth/resend-verification'
+      preLoaderRoute: typeof ApiV1AuthResendVerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/auth/register': {
@@ -891,7 +932,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
   ApiV1AuthLogoutAllRoute: ApiV1AuthLogoutAllRoute,
   ApiV1AuthRegisterRoute: ApiV1AuthRegisterRoute,
+  ApiV1AuthResendVerificationRoute: ApiV1AuthResendVerificationRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
+  ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,

@@ -3,19 +3,21 @@ import type {
   ExternalWallet,
   ExternalWalletChallenge,
   IdempotencyRecord,
+  KeyDirectoryRecord,
   MailboxPolicy,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
+  PublishedKey,
   Receipt,
   RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
   User,
-  KeyDirectoryRecord,
-  PublishedKey,
+  VerificationPurpose,
+  VerificationToken,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -168,7 +170,7 @@ export interface ApiRepository {
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
 
-  // BETA-006 & BETA-007: Server-Side Session Domain Methods
+  // BETA-006: Server-side session lifecycle methods.
   getSession(sessionId: string): Promise<Session | null>;
   createSession(session: Session): Promise<Session>;
   updateSession(session: Session): Promise<Session>;
@@ -176,6 +178,21 @@ export interface ApiRepository {
   deleteUserSessions(userId: string): Promise<void>;
   getRetiredSession(sessionId: string): Promise<RetiredSession | null>;
   createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession>;
+
+  // BETA-005: Verification token lifecycle methods.
+  // Each token is identified by its SHA-256 hash; plaintext tokens are never
+  // accepted, stored, or returned by the persistence layer.
+  getVerificationToken(tokenHash: string): Promise<VerificationToken | null>;
+  getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null>;
+  issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult>;
+  consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult>;
+  recordVerificationAttempt(tokenHash: string, now: Date): Promise<RecordVerificationAttemptResult>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -538,6 +555,61 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<RetiredSession>("retiredSession", result);
   }
 
+  async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    const raw = await this.inner.getVerificationToken(tokenHash);
+    return raw ? validateRecord<VerificationToken>("verificationToken", raw) : null;
+  }
+
+  async getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    const raw = await this.inner.getActiveVerificationToken(userId, purpose);
+    return raw ? validateRecord<VerificationToken>("verificationToken", raw) : null;
+  }
+
+  async issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    const result = await this.inner.issueVerificationToken(
+      versionRecord("verificationToken", token),
+      now,
+    );
+    if (result.outcome === "issued" && result.replacedToken) {
+      result.replacedToken = validateRecord<VerificationToken>(
+        "verificationToken",
+        result.replacedToken,
+      );
+    }
+    if (result.outcome === "issued" || result.outcome === "conflict") {
+      result.token = validateRecord<VerificationToken>("verificationToken", result.token);
+    }
+    return result;
+  }
+
+  async consumeVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<ConsumeVerificationTokenResult> {
+    const result = await this.inner.consumeVerificationToken(tokenHash, now);
+    if (result.outcome !== "not-found") {
+      result.token = validateRecord<VerificationToken>("verificationToken", result.token);
+    }
+    return result;
+  }
+
+  async recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    const result = await this.inner.recordVerificationAttempt(tokenHash, now);
+    if (result.token) {
+      result.token = validateRecord<VerificationToken>("verificationToken", result.token);
+    }
+    return result;
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -713,6 +785,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
+  "getVerificationToken",
   "getWalletChallenge",
 ]);
 
@@ -918,6 +991,37 @@ export class RetryableApiRepository implements ApiRepository {
 
   createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
     return this.inner.createRetiredSession(retiredSession);
+  }
+
+  getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    return this.withRetry("getVerificationToken", () => this.inner.getVerificationToken(tokenHash));
+  }
+
+  getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    return this.withRetry("getActiveVerificationToken", () =>
+      this.inner.getActiveVerificationToken(userId, purpose),
+    );
+  }
+
+  issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    return this.inner.issueVerificationToken(token, now);
+  }
+
+  consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult> {
+    return this.inner.consumeVerificationToken(tokenHash, now);
+  }
+
+  recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    return this.inner.recordVerificationAttempt(tokenHash, now);
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {

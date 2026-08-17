@@ -9,11 +9,16 @@ import type {
   Session,
   StoredEnvelope,
   User,
+  VerificationPurpose,
+  VerificationToken,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
+  ConsumeVerificationTokenResult,
   InsertEnvelopeResult,
+  IssueVerificationTokenResult,
   PostageTransitionResult,
+  RecordVerificationAttemptResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -331,7 +336,6 @@ export class StealthCoordinator extends DurableObjectBase {
     return credential;
   }
 
-  // BETA-006: Durable Session Storage
   async getSession(sessionId: string): Promise<Session | null> {
     const session = (await this.ctx.storage.get(`session:${sessionId}`)) as Session | undefined;
     return session ?? null;
@@ -339,69 +343,167 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async createSession(session: Session): Promise<Session> {
     await this.ctx.storage.put(`session:${session.sessionId}`, session);
+    await this.ctx.storage.put(`session:user:${session.userId}:${session.sessionId}`, true);
     return session;
   }
 
   async updateSession(session: Session): Promise<Session> {
+    const current = await this.getSession(session.sessionId);
+    if (current && current.userId !== session.userId) {
+      await this.ctx.storage.delete(`session:user:${current.userId}:${session.sessionId}`);
+    }
     await this.ctx.storage.put(`session:${session.sessionId}`, session);
+    await this.ctx.storage.put(`session:user:${session.userId}:${session.sessionId}`, true);
     return session;
   }
 
   async deleteSession(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
     await this.ctx.storage.delete(`session:${sessionId}`);
-  }
-
-  async deleteUserSessions(userId: string): Promise<void> {
-    const sessionsMap = (await this.ctx.storage.list({ prefix: "session:" })) as Map<
-      string,
-      Session
-    >;
-    for (const [key, sess] of sessionsMap) {
-      if (sess && sess.userId === userId) {
-        await this.ctx.storage.delete(key);
-      }
+    if (session) {
+      await this.ctx.storage.delete(`session:user:${session.userId}:${sessionId}`);
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // BETA-024 (Issue #1931) — identity schema-governance commands.
-  //
-  // Operators invoke these commands on the production DO instance so the
-  // migrations run in-process against the exact records the API persists
-  // (a separate migration worker cannot share Durable Object storage). The
-  // engine is the same code exercised by the Miniflare emulation tests.
-  // ---------------------------------------------------------------------------
-
-  async runIdentityMigrations(
-    command: MigrationCommand,
-    options: MigrationRunOptions = {},
-  ): Promise<MigrationReport> {
-    const storage = createDurableObjectMigrationStorage(this.ctx);
-    const families = selectFamilies(identityRecordFamilies, options);
-    switch (command) {
-      case "dry-run":
-        return dryRun(storage, families, options);
-      case "forward":
-        return forward(storage, families, options);
-      case "rollback":
-        return rollback(storage, families, options);
-      case "integrity-check":
-        return integrityCheck(storage, families, options);
-      default:
-        throw new Error(`Unknown migration command: ${String(command)}`);
+  async deleteUserSessions(userId: string): Promise<void> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const deletes: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      deletes.push(key, `session:${key.slice(prefix.length)}`);
+    }
+    if (deletes.length > 0) {
+      await this.ctx.storage.delete(deletes);
     }
   }
 
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
-    const retired = (await this.ctx.storage.get(`retired_session:${sessionId}`)) as
+    const retiredSession = (await this.ctx.storage.get(`retired-session:${sessionId}`)) as
       | RetiredSession
       | undefined;
-    return retired ?? null;
+    return retiredSession ?? null;
   }
 
   async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
-    await this.ctx.storage.put(`retired_session:${retiredSession.sessionId}`, retiredSession);
+    await this.ctx.storage.put(`retired-session:${retiredSession.sessionId}`, retiredSession);
     return retiredSession;
+  }
+
+  // BETA-005: Durable verification-token lifecycle methods
+  async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
+    const token = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
+      | VerificationToken
+      | undefined;
+    return token ?? null;
+  }
+
+  async getActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+  ): Promise<VerificationToken | null> {
+    const tokenHash = (await this.ctx.storage.get(
+      `verification-token:active:${userId}:${purpose}`,
+    )) as string | undefined;
+    if (!tokenHash) return null;
+    return this.getVerificationToken(tokenHash);
+  }
+
+  async issueVerificationToken(
+    token: VerificationToken,
+    now: Date,
+  ): Promise<IssueVerificationTokenResult> {
+    return this.runExclusive(
+      `verification-token:user:${token.userId}:${token.purpose}`,
+      async () => {
+        const existingHash = (await this.ctx.storage.get(
+          `verification-token:hash:${token.tokenHash}`,
+        )) as VerificationToken | undefined;
+        if (existingHash) {
+          return { outcome: "conflict", token: existingHash };
+        }
+
+        const activeHash = (await this.ctx.storage.get(
+          `verification-token:active:${token.userId}:${token.purpose}`,
+        )) as string | undefined;
+        let replacedToken: VerificationToken | null = null;
+        if (activeHash && activeHash !== token.tokenHash) {
+          const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
+            | VerificationToken
+            | undefined;
+          if (current && current.consumedAt === null && current.replacedAt === null) {
+            const invalidated: VerificationToken = {
+              ...current,
+              replacedAt: now.toISOString(),
+              replacedByTokenHash: token.tokenHash,
+            };
+            await this.ctx.storage.put(`verification-token:hash:${activeHash}`, invalidated);
+            replacedToken = invalidated;
+          }
+        }
+
+        await this.ctx.storage.put(`verification-token:hash:${token.tokenHash}`, token);
+        await this.ctx.storage.put(
+          `verification-token:active:${token.userId}:${token.purpose}`,
+          token.tokenHash,
+        );
+        return { outcome: "issued", token, replacedToken };
+      },
+    );
+  }
+
+  async consumeVerificationToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<ConsumeVerificationTokenResult> {
+    return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
+      const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
+        | VerificationToken
+        | undefined;
+      if (!current) {
+        return { outcome: "not-found" as const };
+      }
+      if (current.consumedAt !== null) {
+        return { outcome: "already-consumed" as const, token: current };
+      }
+      if (current.replacedAt !== null) {
+        return { outcome: "replaced" as const, token: current };
+      }
+      if (current.attemptCount >= current.maxAttempts) {
+        return { outcome: "brute-force-blocked" as const, token: current };
+      }
+      if (Date.parse(current.expiresAt) <= now.getTime()) {
+        return { outcome: "expired" as const, token: current };
+      }
+      const consumed: VerificationToken = {
+        ...current,
+        consumedAt: now.toISOString(),
+      };
+      await this.ctx.storage.put(`verification-token:hash:${tokenHash}`, consumed);
+      return { outcome: "consumed" as const, token: consumed };
+    });
+  }
+
+  async recordVerificationAttempt(
+    tokenHash: string,
+    now: Date,
+  ): Promise<RecordVerificationAttemptResult> {
+    return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
+      const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
+        | VerificationToken
+        | undefined;
+      if (!current) {
+        return { recorded: false, token: null };
+      }
+      if (current.consumedAt !== null || current.replacedAt !== null) {
+        return { recorded: false, token: current };
+      }
+      const updated: VerificationToken = {
+        ...current,
+        attemptCount: current.attemptCount + 1,
+      };
+      await this.ctx.storage.put(`verification-token:hash:${tokenHash}`, updated);
+      return { recorded: true, token: updated };
+    });
   }
 
   async getCounter(key: string): Promise<number> {
