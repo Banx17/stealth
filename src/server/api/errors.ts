@@ -130,6 +130,42 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A matching operation currently holds the idempotency lease.",
   },
+  INVALID_SIGNATURE: {
+    status: 401,
+    message: "Envelope signature fails verification",
+    retryable: false,
+    description: "The request signature could not be verified.",
+  },
+  AUDIENCE_MISMATCH: {
+    status: 403,
+    message: "Audience does not match this relay",
+    retryable: false,
+    description: "The request target audience does not match the relay target.",
+  },
+  REPLAY_DETECTED: {
+    status: 409,
+    message: "request_nonce already recorded",
+    retryable: false,
+    description: "The request nonce has already been consumed.",
+  },
+  STALE_REQUEST: {
+    status: 400,
+    message: "Timestamp older than allowed window",
+    retryable: false,
+    description: "The request timestamp is past the maximum allowed age.",
+  },
+  FUTURE_REQUEST: {
+    status: 400,
+    message: "Timestamp too far in the future",
+    retryable: false,
+    description: "The request timestamp is beyond allowed clock skew.",
+  },
+  INVALID_REQUEST: {
+    status: 400,
+    message: "Mandatory anti-replay field missing or invalid",
+    retryable: false,
+    description: "A required relay header or envelope field is invalid.",
+  },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
 export type ApiErrorCode = keyof typeof API_ERROR_REGISTRY;
