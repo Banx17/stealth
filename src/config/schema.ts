@@ -3,6 +3,9 @@ import { z } from "zod";
 export const configProfileSchema = z.enum(["development", "test", "preview", "production"]);
 export type ConfigProfile = z.infer<typeof configProfileSchema>;
 
+export const runtimeRoleSchema = z.enum(["all", "web", "relay", "indexer", "operator"]);
+export type RuntimeRole = z.infer<typeof runtimeRoleSchema>;
+
 export const stellarNetworkSchema = z.enum(["testnet", "mainnet", "futurenet", "local"]);
 export type StellarNetwork = z.infer<typeof stellarNetworkSchema>;
 
@@ -47,7 +50,6 @@ export type StorageConfig = z.infer<typeof storageConfigSchema>;
  * 3. Session & Security Domain Schema
  */
 export const sessionConfigSchema = z.object({
-  cursorSecret: z.string().min(1, "Cursor secret is required"),
   authChallengeLifetimeMs: z
     .number()
     .int()
@@ -63,7 +65,6 @@ export type SessionConfig = z.infer<typeof sessionConfigSchema>;
  */
 export const relayConfigSchema = z.object({
   relayUrl: z.string().url("Relay URL must be a valid HTTP(S) URL"),
-  relayApiKey: z.string().optional(),
   relayTimeoutMs: z.number().int().positive("Relay timeout must be a positive integer"),
 });
 export type RelayConfig = z.infer<typeof relayConfigSchema>;
@@ -96,6 +97,7 @@ export type OriginConfig = z.infer<typeof originConfigSchema>;
  */
 export const publicConfigSchema = z.object({
   profile: configProfileSchema,
+  role: runtimeRoleSchema,
   network: networkConfigSchema,
   storage: z.object({
     storageDriver: storageDriverSchema,
@@ -120,8 +122,12 @@ export type PublicConfig = z.infer<typeof publicConfigSchema>;
  * Secret Configuration (Server-only secret parameters)
  */
 export const secretConfigSchema = z.object({
-  cursorSecret: z.string(),
+  cursorSecret: z.string().optional(),
   relayApiKey: z.string().optional(),
+  storageSecret: z.string().optional(),
+  smtpPassword: z.string().optional(),
+  rpcApiKey: z.string().optional(),
+  operatorSecret: z.string().optional(),
 });
 export type SecretConfig = z.infer<typeof secretConfigSchema>;
 
@@ -130,12 +136,14 @@ export type SecretConfig = z.infer<typeof secretConfigSchema>;
  */
 export const runtimeConfigSchema = z.object({
   profile: configProfileSchema,
+  role: runtimeRoleSchema,
   network: networkConfigSchema,
   storage: storageConfigSchema,
   session: sessionConfigSchema,
   relay: relayConfigSchema,
   contract: contractConfigSchema,
   origin: originConfigSchema,
+  secrets: secretConfigSchema,
 });
 export type BetaRuntimeConfig = z.infer<typeof runtimeConfigSchema>;
 export type RuntimeConfig = BetaRuntimeConfig;
