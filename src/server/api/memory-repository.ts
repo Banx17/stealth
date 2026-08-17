@@ -14,6 +14,8 @@ import type {
   Session,
   StoredEnvelope,
   User,
+  KeyDirectoryRecord,
+  PublishedKey,
 } from "./domain";
 import type {
   ApiRepository,
@@ -53,6 +55,11 @@ export class MemoryApiRepository implements ApiRepository {
   // BETA-006: Session storage
   private readonly sessions = new Map<string, Session>();
   private readonly retiredSessions = new Map<string, RetiredSession>();
+
+  // BETA-027: Key Directory storage
+  private readonly keyDirectories = new Map<string, KeyDirectoryRecord>();
+  private readonly publishedKeys = new Map<string, PublishedKey>(); // key: `${owner}:${keyId}`
+  private readonly keyDirectoryLocks = new Map<string, Promise<void>>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -536,6 +543,28 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const dir = this.keyDirectories.get(owner.toUpperCase());
+    return dir ? structuredClone(dir) : null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const k = this.publishedKeys.get(`${owner.toUpperCase()}:${keyId}`);
+    return k ? structuredClone(k) : null;
+  }
+
+  async savePublishedKey(owner: string, publishedKey: PublishedKey): Promise<PublishedKey> {
+    const stored = structuredClone(publishedKey);
+    this.publishedKeys.set(`${owner.toUpperCase()}:${publishedKey.keyId}`, stored);
+    return structuredClone(stored);
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    const stored = structuredClone(record);
+    this.keyDirectories.set(record.owner.toUpperCase(), stored);
+    return structuredClone(stored);
+  }
+
   reset() {
     this.policies.clear();
     this.policyWriteIntents.clear();
@@ -556,5 +585,9 @@ export class MemoryApiRepository implements ApiRepository {
     this.profiles.clear();
     this.credentials.clear();
     this.sessions.clear();
+    this.retiredSessions.clear();
+    this.keyDirectories.clear();
+    this.publishedKeys.clear();
+    this.keyDirectoryLocks.clear();
   }
 }

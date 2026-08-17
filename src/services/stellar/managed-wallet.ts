@@ -91,6 +91,8 @@ export class ManagedWalletService {
         return `lifecycle:${intent.userAddress}`;
       case "receipt":
         return `receipt:${intent.recipientAddress}`;
+      case "keys":
+        return `keys:${intent.ownerAddress}:${intent.operation}`;
     }
   }
 
