@@ -543,6 +543,76 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async listRecipientEnvelopes(
+    recipient: string,
+    options: import("./repository").MailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normRecipient = recipient.toUpperCase().trim();
+    const statusFilter = options.status ?? "all";
+    const includeTombstones = options.includeTombstones ?? false;
+    const limit = options.limit ?? 25;
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of this.envelopes.values()) {
+      if (env.recipientId.toUpperCase().trim() !== normRecipient) {
+        continue;
+      }
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeTombstones) {
+        continue;
+      }
+      const itemStatus = env.status ?? "pending";
+      if (statusFilter !== "all" && itemStatus !== statusFilter) {
+        continue;
+      }
+      filtered.push(structuredClone(env));
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listEnvelopes;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    return this.withEnvelopeLock(messageId, async () => {
+      const existing = this.envelopes.get(messageId);
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot delete an envelope belonging to another recipient",
+        );
+      }
+      const tombstoned: StoredEnvelope = {
+        ...existing,
+        deletedAt: new Date().toISOString(),
+      };
+      this.envelopes.set(messageId, tombstoned);
+      return structuredClone(tombstoned);
+    });
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    return this.withEnvelopeLock(messageId, async () => {
+      const existing = this.envelopes.get(messageId);
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      const updated: StoredEnvelope = {
+        ...existing,
+        status,
+      };
+      this.envelopes.set(messageId, updated);
+      return structuredClone(updated);
+    });
+  }
+
   async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
     const dir = this.keyDirectories.get(owner.toUpperCase());
     return dir ? structuredClone(dir) : null;

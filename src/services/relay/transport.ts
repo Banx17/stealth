@@ -69,3 +69,26 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
     return apiSuccess(request, { ...result, service: RELAY_SERVICE_NAME }, { status: 202 });
   });
 }
+
+export function handleRelayQueue(request: Request, service: RelayService, recipient: string) {
+  return handleApiRequest(request, async () => {
+    const actorHeader = request.headers.get("x-stealth-address");
+    if (!actorHeader) {
+      throw new ApiError(401, "unauthorized", "Missing x-stealth-address header");
+    }
+    const parsedActor = stellarAddressSchema.safeParse(actorHeader);
+    if (!parsedActor.success) {
+      throw new ApiError(
+        401,
+        "unauthorized",
+        "x-stealth-address must be a valid Stellar G-address",
+      );
+    }
+    if (parsedActor.data !== recipient) {
+      throw new ApiError(403, "forbidden", "Recipient does not match the authenticated actor");
+    }
+
+    const items = await service.getRecipientQueue(recipient);
+    return apiSuccess(request, { items }, { status: 200 });
+  });
+}

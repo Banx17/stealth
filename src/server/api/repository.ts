@@ -91,6 +91,13 @@ export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
 
+export interface MailboxQueryOptions {
+  status?: "pending" | "delivered" | "all";
+  includeTombstones?: boolean;
+  limit?: number;
+  after?: string;
+}
+
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
   setPolicy(owner: string, policy: MailboxPolicy): Promise<MailboxPolicy>;
@@ -206,6 +213,19 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Repository
+  // ---------------------------------------------------------------------------
+  listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>>;
+  tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope>;
+  updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope>;
 
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
@@ -561,6 +581,30 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    const page = await this.inner.listRecipientEnvelopes(recipient, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<StoredEnvelope>("storedEnvelope", item)),
+    };
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    const result = await this.inner.tombstoneEnvelope(messageId, recipient);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    const result = await this.inner.updateEnvelopeStatus(messageId, status);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
     return this.inner.getExternalWallets(owner);
   }
@@ -666,6 +710,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateSession",
   "getRetiredSession",
   "getEnvelope",
+  "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
   "getWalletChallenge",
@@ -920,6 +965,26 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+
+  listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    return this.withRetry("listRecipientEnvelopes", () =>
+      this.inner.listRecipientEnvelopes(recipient, options),
+    );
+  }
+
+  tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    return this.inner.tombstoneEnvelope(messageId, recipient);
+  }
+
+  updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    return this.inner.updateEnvelopeStatus(messageId, status);
   }
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {

@@ -473,4 +473,81 @@ export class StealthCoordinator extends DurableObjectBase {
       return { outcome: "inserted" as const, envelope };
     });
   }
+
+  async listRecipientEnvelopes(
+    recipient: string,
+    options: import("./repository").MailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normRecipient = recipient.toUpperCase().trim();
+    const statusFilter = options.status ?? "all";
+    const includeTombstones = options.includeTombstones ?? false;
+    const limit = options.limit ?? 25;
+
+    const envelopesMap = (await this.ctx.storage.list({ prefix: "envelope:" })) as Map<
+      string,
+      StoredEnvelope
+    >;
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of envelopesMap.values()) {
+      if (!env || !env.recipientId) continue;
+      if (env.recipientId.toUpperCase().trim() !== normRecipient) continue;
+
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeTombstones) continue;
+
+      const itemStatus = env.status ?? "pending";
+      if (statusFilter !== "all" && itemStatus !== statusFilter) continue;
+
+      filtered.push(env);
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listEnvelopes;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    return this.runExclusive(`envelope:${messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
+        | StoredEnvelope
+        | undefined;
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot delete an envelope belonging to another recipient",
+        );
+      }
+      const tombstoned: StoredEnvelope = {
+        ...existing,
+        deletedAt: new Date().toISOString(),
+      };
+      await this.ctx.storage.put(`envelope:${messageId}`, tombstoned);
+      return tombstoned;
+    });
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    return this.runExclusive(`envelope:${messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
+        | StoredEnvelope
+        | undefined;
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      const updated: StoredEnvelope = {
+        ...existing,
+        status,
+      };
+      await this.ctx.storage.put(`envelope:${messageId}`, updated);
+      return updated;
+    });
+  }
 }
