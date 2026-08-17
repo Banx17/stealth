@@ -99,20 +99,20 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 
 ### Error codes
 
-| Code                 | HTTP status     | Raised when                                                                                       | Retryable |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------------------- | --------- |
-| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                    | No        |
-| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                               | No        |
-| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read | No        |
-| `not_found`          | 404             | No postage record exists for the message id                                                       | No        |
-| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                    | No        |
-| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                  | No        |
-| `expired_challenge`  | 422             | Quote was already expired at submission time                                                      | No        |
-| `invalid_quote`      | 422             | Quote digest is tampered, reused for another message/recipient, or bound to a different asset/network | No     |
-| `stale_quote`        | 422             | Recipient policy changed after the quote was issued                                               | No        |
-| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                    | Yes       |
-| `method_not_allowed` | 405             | HTTP method not supported on the route                                                            | No        |
-| `internal_error`     | 500             | Unexpected server error                                                                           | Yes       |
+| Code                 | HTTP status     | Raised when                                                                                           | Retryable |
+| -------------------- | --------------- | ----------------------------------------------------------------------------------------------------- | --------- |
+| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                        | No        |
+| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                                   | No        |
+| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read     | No        |
+| `not_found`          | 404             | No postage record exists for the message id                                                           | No        |
+| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                        | No        |
+| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                      | No        |
+| `expired_challenge`  | 422             | Quote was already expired at submission time                                                          | No        |
+| `invalid_quote`      | 422             | Quote digest is tampered, reused for another message/recipient, or bound to a different asset/network | No        |
+| `stale_quote`        | 422             | Recipient policy changed after the quote was issued                                                   | No        |
+| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                        | Yes       |
+| `method_not_allowed` | 405             | HTTP method not supported on the route                                                                | No        |
+| `internal_error`     | 500             | Unexpected server error                                                                               | Yes       |
 
 ### Retryable vs non-retryable
 
