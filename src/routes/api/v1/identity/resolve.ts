@@ -6,7 +6,7 @@ import { getApiContext } from "@/server/api/context";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 
-export const Route = createFileRoute("/api/v1/identity/resolve" as any)({
+export const Route = createFileRoute("/api/v1/identity/resolve")({
   server: {
     handlers: {
       GET: ({ request }) =>

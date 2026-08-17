@@ -26,6 +26,7 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
 import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
 import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
@@ -123,6 +124,11 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
+  id: '/api/v1/identity/resolve',
+  path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
   id: '/api/v1/auth/session',
   path: '/api/v1/auth/session',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
   '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
+  '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
   '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
+  '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
   '/api/v1/auth/register': typeof ApiV1AuthRegisterRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
+  '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/logout-all'
     | '/api/v1/auth/register'
     | '/api/v1/auth/session'
+    | '/api/v1/identity/resolve'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/logout-all'
     | '/api/v1/auth/register'
     | '/api/v1/auth/session'
+    | '/api/v1/identity/resolve'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/logout-all'
     | '/api/v1/auth/register'
     | '/api/v1/auth/session'
+    | '/api/v1/identity/resolve'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   ApiV1AuthLogoutAllRoute: typeof ApiV1AuthLogoutAllRoute
   ApiV1AuthRegisterRoute: typeof ApiV1AuthRegisterRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
+  ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -513,6 +526,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/policies/$owner'
       fullPath: '/api/v1/policies/$owner'
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/identity/resolve': {
+      id: '/api/v1/identity/resolve'
+      path: '/api/v1/identity/resolve'
+      fullPath: '/api/v1/identity/resolve'
+      preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/auth/session': {
@@ -651,6 +671,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthLogoutAllRoute: ApiV1AuthLogoutAllRoute,
   ApiV1AuthRegisterRoute: ApiV1AuthRegisterRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
+  ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
