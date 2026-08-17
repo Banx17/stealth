@@ -2,10 +2,35 @@ import { describe, expect, it } from "vitest";
 
 import { MemoryApiRepository } from "../../../src/server/api/memory-repository";
 import { resolvePostage, getPostage } from "../../../src/server/api/postage-service";
-import { checkIdempotency, recordIdempotency } from "../../../src/server/api/idempotency-service";
+import { createApiContext } from "../../../src/server/api/context";
+import {
+  acquireIdempotency,
+  recordIdempotency,
+  type IdempotencyScope,
+} from "../../../src/server/api/idempotency-service";
 
 const recipient = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;
+
+const settleScope = (recipientAddress: string, key: string): IdempotencyScope => ({
+  actor: recipientAddress,
+  method: "POST",
+  route: "POST /postage/{messageId}/settle",
+  rawKey: key,
+});
+
+/** Mirrors the settle route: settlement has no request body, so the message id is the payload. */
+async function checkIdempotency(
+  repository: MemoryApiRepository,
+  recipientAddress: string,
+  key: string,
+  messageId: string,
+) {
+  const result = await acquireIdempotency(repository, settleScope(recipientAddress, key), {
+    messageId,
+  });
+  return result.status === "completed" ? result.record : null;
+}
 
 describe("Postage Settlement Idempotency", () => {
   describe("resolvePostage - deterministic terminal states", () => {
@@ -24,11 +49,13 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       // First settlement succeeds
-      const firstResult = await resolvePostage(repository, messageId, "settled");
+      const firstResult = await resolvePostage(createApiContext(repository), messageId, "settled");
       expect(firstResult.status).toBe("settled");
 
       // Second settlement attempt returns deterministic error
-      await expect(resolvePostage(repository, messageId, "settled")).rejects.toMatchObject({
+      await expect(
+        resolvePostage(createApiContext(repository), messageId, "settled"),
+      ).rejects.toMatchObject({
         status: 409,
         code: "conflict",
         message: expect.stringContaining("already been settled"),
@@ -40,7 +67,9 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       // Third attempt also returns the same error (determinism)
-      await expect(resolvePostage(repository, messageId, "settled")).rejects.toMatchObject({
+      await expect(
+        resolvePostage(createApiContext(repository), messageId, "settled"),
+      ).rejects.toMatchObject({
         status: 409,
         code: "conflict",
         message: expect.stringContaining("already been settled"),
@@ -62,10 +91,12 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       // First refund succeeds
-      await resolvePostage(repository, messageId, "refunded");
+      await resolvePostage(createApiContext(repository), messageId, "refunded");
 
       // Attempt to settle already-refunded postage
-      await expect(resolvePostage(repository, messageId, "settled")).rejects.toMatchObject({
+      await expect(
+        resolvePostage(createApiContext(repository), messageId, "settled"),
+      ).rejects.toMatchObject({
         status: 409,
         code: "conflict",
         message: expect.stringContaining("already been refunded"),
@@ -92,7 +123,7 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       try {
-        await resolvePostage(repository, messageId, "settled");
+        await resolvePostage(createApiContext(repository), messageId, "settled");
         expect.fail("Should have thrown an error");
       } catch (error) {
         const apiError = error as {
@@ -108,6 +139,78 @@ describe("Postage Settlement Idempotency", () => {
         expect(apiError.details.currentStatus).toBe("settled");
         expect(apiError.details.attemptedStatus).toBe("settled");
         expect(apiError.details.messageId).toBe(messageId);
+      }
+    });
+  });
+
+  describe("resolvePostage - concurrent settlement (issue #1545)", () => {
+    it("only settles once when multiple concurrent requests race with no idempotency key", async () => {
+      const repository = new MemoryApiRepository();
+      const messageId = "y".repeat(64);
+
+      await repository.setPostage({
+        amount: "1000",
+        createdAt: "2026-06-14T21:00:00.000Z",
+        messageId,
+        paymentHash: "u".repeat(64),
+        recipient,
+        sender,
+        status: "pending",
+      });
+
+      const outcomes = await Promise.allSettled(
+        Array.from({ length: 10 }, () =>
+          resolvePostage(createApiContext(repository), messageId, "settled"),
+        ),
+      );
+
+      const fulfilled = outcomes.filter((outcome) => outcome.status === "fulfilled");
+      const rejected = outcomes.filter((outcome) => outcome.status === "rejected");
+
+      // Exactly one settlement side effect occurs.
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(9);
+
+      for (const outcome of rejected) {
+        if (outcome.status !== "rejected") continue;
+        expect(outcome.reason).toMatchObject({
+          status: 409,
+          code: "conflict",
+          details: { currentStatus: "settled" },
+        });
+      }
+
+      const finalState = await getPostage(repository, messageId);
+      expect(finalState.status).toBe("settled");
+    });
+
+    it("only allows one winner between a concurrent settle and refund race", async () => {
+      const repository = new MemoryApiRepository();
+      const messageId = "v".repeat(64);
+
+      await repository.setPostage({
+        amount: "1200",
+        createdAt: "2026-06-14T22:00:00.000Z",
+        messageId,
+        paymentHash: "w".repeat(64),
+        recipient,
+        sender,
+        status: "pending",
+      });
+
+      const outcomes = await Promise.allSettled([
+        resolvePostage(createApiContext(repository), messageId, "settled"),
+        resolvePostage(createApiContext(repository), messageId, "refunded"),
+      ]);
+
+      const fulfilled = outcomes.filter((outcome) => outcome.status === "fulfilled");
+      expect(fulfilled).toHaveLength(1);
+
+      const finalState = await getPostage(repository, messageId);
+      // Whichever one won, the final state is a single deterministic terminal status.
+      expect(["settled", "refunded"]).toContain(finalState.status);
+      if (fulfilled[0].status === "fulfilled") {
+        expect(finalState.status).toBe(fulfilled[0].value.status);
       }
     });
   });
@@ -129,24 +232,34 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       // First request: no idempotency record exists
-      const firstCheck = await checkIdempotency(repository, recipient, idempotencyKey);
+      const firstCheck = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(firstCheck).toBeNull();
 
       // Perform settlement
-      const settledPostage = await resolvePostage(repository, messageId, "settled");
+      const settledPostage = await resolvePostage(
+        createApiContext(repository),
+        messageId,
+        "settled",
+      );
       expect(settledPostage.status).toBe("settled");
 
       // Record the success for replay
-      await recordIdempotency(repository, recipient, idempotencyKey, 200, settledPostage);
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, idempotencyKey),
+        { messageId },
+        200,
+        settledPostage,
+      );
 
       // Second request: idempotency record exists
-      const secondCheck = await checkIdempotency(repository, recipient, idempotencyKey);
+      const secondCheck = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(secondCheck).not.toBeNull();
-      expect(secondCheck?.status).toBe(200);
-      expect(secondCheck?.body).toEqual(settledPostage);
+      expect((secondCheck as any)?.status).toBe(200);
+      expect((secondCheck as any)?.body).toEqual(settledPostage);
 
       // Verify the recorded body matches the settled postage
-      const recordedBody = secondCheck?.body as typeof settledPostage;
+      const recordedBody = (secondCheck as any)?.body as typeof settledPostage;
       expect(recordedBody.status).toBe("settled");
       expect(recordedBody.messageId).toBe(messageId);
       expect(recordedBody.amount).toBe("250");
@@ -171,7 +284,7 @@ describe("Postage Settlement Idempotency", () => {
       // First attempt: settlement fails with 409
       let capturedError: unknown;
       try {
-        await resolvePostage(repository, messageId, "settled");
+        await resolvePostage(createApiContext(repository), messageId, "settled");
       } catch (error) {
         capturedError = error;
       }
@@ -188,20 +301,33 @@ describe("Postage Settlement Idempotency", () => {
         message: string;
         details: unknown;
       };
-      await recordIdempotency(repository, recipient, idempotencyKey, 409, {
-        error: {
-          code: apiError.code,
-          message: apiError.message,
-          details: apiError.details,
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, idempotencyKey),
+        { messageId },
+        409,
+        {
+          error: {
+            code: apiError.code,
+            message: apiError.message,
+            details: apiError.details,
+          },
         },
-      });
+      );
 
       // Second attempt: retrieve cached error
-      const replayedRecord = await checkIdempotency(repository, recipient, idempotencyKey);
+      const replayedRecord = await checkIdempotency(
+        repository,
+        recipient,
+        idempotencyKey,
+        messageId,
+      );
       expect(replayedRecord).not.toBeNull();
-      expect(replayedRecord?.status).toBe(409);
+      expect((replayedRecord as any)?.status).toBe(409);
 
-      const replayedBody = replayedRecord?.body as { error: { code: string; message: string } };
+      const replayedBody = (replayedRecord as any)?.body as {
+        error: { code: string; message: string };
+      };
       expect(replayedBody.error.code).toBe("conflict");
       expect(replayedBody.error.message).toContain("already been settled");
     });
@@ -210,21 +336,55 @@ describe("Postage Settlement Idempotency", () => {
       const repository = new MemoryApiRepository();
       const recipient2 = `G${"C".repeat(55)}`;
       const idempotencyKey = "shared-key-123";
+      const messageId = "x".repeat(64);
 
       // Recipient 1 records a settlement
-      await recordIdempotency(repository, recipient, idempotencyKey, 200, {
-        messageId: "x".repeat(64),
-        status: "settled",
-      });
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, idempotencyKey),
+        { messageId },
+        200,
+        { messageId, status: "settled" },
+      );
 
       // Recipient 1 can retrieve their record
-      const recipient1Check = await checkIdempotency(repository, recipient, idempotencyKey);
+      const recipient1Check = await checkIdempotency(
+        repository,
+        recipient,
+        idempotencyKey,
+        messageId,
+      );
       expect(recipient1Check).not.toBeNull();
-      expect(recipient1Check?.status).toBe(200);
+      expect((recipient1Check as any)?.status).toBe(200);
 
       // Recipient 2 cannot see recipient 1's idempotency record (actor isolation)
-      const recipient2Check = await checkIdempotency(repository, recipient2, idempotencyKey);
+      const recipient2Check = await checkIdempotency(
+        repository,
+        recipient2,
+        idempotencyKey,
+        messageId,
+      );
       expect(recipient2Check).toBeNull();
+    });
+
+    it("returns conflict when the same key is reused to settle a different message", async () => {
+      const repository = new MemoryApiRepository();
+      const idempotencyKey = "reused-key-across-messages";
+      const messageId1 = "d1".repeat(32);
+      const messageId2 = "d2".repeat(32);
+
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, idempotencyKey),
+        { messageId: messageId1 },
+        200,
+        { messageId: messageId1, status: "settled" },
+      );
+
+      const result = await acquireIdempotency(repository, settleScope(recipient, idempotencyKey), {
+        messageId: messageId2,
+      });
+      expect(result.status).toBe("conflict");
     });
   });
 
@@ -245,16 +405,22 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       // First request completes successfully
-      const firstResult = await resolvePostage(repository, messageId, "settled");
-      await recordIdempotency(repository, recipient, idempotencyKey, 200, firstResult);
+      const firstResult = await resolvePostage(createApiContext(repository), messageId, "settled");
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, idempotencyKey),
+        { messageId },
+        200,
+        firstResult,
+      );
 
       // Network failure occurs, client retries with same idempotency key
-      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey);
+      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(retryRecord).not.toBeNull();
-      expect(retryRecord?.status).toBe(200);
+      expect((retryRecord as any)?.status).toBe(200);
 
       // The replayed response matches the original
-      const replayedPostage = retryRecord?.body as typeof firstResult;
+      const replayedPostage = (retryRecord as any)?.body as typeof firstResult;
       expect(replayedPostage).toEqual(firstResult);
       expect(replayedPostage.status).toBe("settled");
 
@@ -282,7 +448,7 @@ describe("Postage Settlement Idempotency", () => {
       // First request fails with 409
       let firstError: unknown;
       try {
-        await resolvePostage(repository, messageId, "settled");
+        await resolvePostage(createApiContext(repository), messageId, "settled");
       } catch (error) {
         firstError = error;
       }
@@ -293,21 +459,27 @@ describe("Postage Settlement Idempotency", () => {
         message: string;
         details: unknown;
       };
-      await recordIdempotency(repository, recipient, idempotencyKey, 409, {
-        error: {
-          code: apiError.code,
-          message: apiError.message,
-          details: apiError.details,
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, idempotencyKey),
+        { messageId },
+        409,
+        {
+          error: {
+            code: apiError.code,
+            message: apiError.message,
+            details: apiError.details,
+          },
         },
-      });
+      );
 
       // Network failure, client retries with same idempotency key
-      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey);
+      const retryRecord = await checkIdempotency(repository, recipient, idempotencyKey, messageId);
       expect(retryRecord).not.toBeNull();
-      expect(retryRecord?.status).toBe(409);
+      expect((retryRecord as any)?.status).toBe(409);
 
       // The replayed error matches the original
-      const replayedError = retryRecord?.body as {
+      const replayedError = (retryRecord as any)?.body as {
         error: { code: string; message: string; details: unknown };
       };
       expect(replayedError.error.code).toBe("conflict");
@@ -344,21 +516,33 @@ describe("Postage Settlement Idempotency", () => {
       });
 
       // Settle first postage with key1
-      const result1 = await resolvePostage(repository, messageId1, "settled");
-      await recordIdempotency(repository, recipient, key1, 200, result1);
+      const result1 = await resolvePostage(createApiContext(repository), messageId1, "settled");
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, key1),
+        { messageId: messageId1 },
+        200,
+        result1,
+      );
 
       // Settle second postage with key2
-      const result2 = await resolvePostage(repository, messageId2, "settled");
-      await recordIdempotency(repository, recipient, key2, 200, result2);
+      const result2 = await resolvePostage(createApiContext(repository), messageId2, "settled");
+      await recordIdempotency(
+        repository,
+        settleScope(recipient, key2),
+        { messageId: messageId2 },
+        200,
+        result2,
+      );
 
       // Each key retrieves its own result
-      const check1 = await checkIdempotency(repository, recipient, key1);
-      const check2 = await checkIdempotency(repository, recipient, key2);
+      const check1 = await checkIdempotency(repository, recipient, key1, messageId1);
+      const check2 = await checkIdempotency(repository, recipient, key2, messageId2);
 
-      expect(check1?.body).toEqual(result1);
-      expect(check2?.body).toEqual(result2);
-      expect((check1?.body as typeof result1).messageId).toBe(messageId1);
-      expect((check2?.body as typeof result2).messageId).toBe(messageId2);
+      expect((check1 as any)?.body).toEqual(result1);
+      expect((check2 as any)?.body).toEqual(result2);
+      expect(((check1 as any)?.body as typeof result1).messageId).toBe(messageId1);
+      expect(((check2 as any)?.body as typeof result2).messageId).toBe(messageId2);
     });
   });
 
@@ -368,7 +552,7 @@ describe("Postage Settlement Idempotency", () => {
       const nonExistentMessageId = "z".repeat(64);
 
       await expect(
-        resolvePostage(repository, nonExistentMessageId, "settled"),
+        resolvePostage(createApiContext(repository), nonExistentMessageId, "settled"),
       ).rejects.toMatchObject({
         status: 404,
         code: "not_found",
@@ -393,7 +577,7 @@ describe("Postage Settlement Idempotency", () => {
       await repository.setPostage(originalPostage);
 
       // First settlement
-      const settled = await resolvePostage(repository, messageId, "settled");
+      const settled = await resolvePostage(createApiContext(repository), messageId, "settled");
 
       // Verify all fields preserved except status
       expect(settled.amount).toBe(originalPostage.amount);

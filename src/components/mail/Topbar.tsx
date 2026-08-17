@@ -35,6 +35,7 @@ type TopbarProps = {
   onQuickAction: (action: "proofs" | "later" | "files") => void;
   onViewNotifications: () => void;
   onSignOut?: () => void;
+  onOpenLogin?: () => void;
 };
 
 const quickActions: {
@@ -60,6 +61,7 @@ export function Topbar({
   onQuickAction,
   onViewNotifications,
   onSignOut,
+  onOpenLogin,
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -435,8 +437,18 @@ export function Topbar({
                             current === "personal" ? "protocol" : "personal",
                           );
                           onShowToast(
-                            `Switched to ${account === "personal" ? "Protocol" : "Personal"} mailbox`,
+                            `Switched to ${
+                              account === "personal" ? "Protocol" : "Personal"
+                            } mailbox`,
                           );
+                        }}
+                      />
+                      <AccountMenuItem
+                        icon={User}
+                        label="Sign in with password"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          onOpenLogin?.();
                         }}
                       />
                       <div className="my-1 border-t border-white/5" />

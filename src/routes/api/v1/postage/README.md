@@ -97,7 +97,7 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 
 - **Retryable:** `too_many_requests` (429) — wait `details.retryAfterSeconds`, then retry the identical request. `internal_error` (500) — retry with exponential backoff.
 - **Non-retryable:** 400, 401, 403, 404, 409, 413, 415, and 422. Retrying the same request unchanged will fail again; fix the request first.
-- **Idempotent retries:** on `POST /api/v1/postage/`, send an `x-idempotency-key` header. A replay returns the stored `201` body with `x-idempotency-replayed: true` instead of a `409 conflict`, so automatic retries stay safe.
+- **Idempotent retries:** on `POST /api/v1/postage/`, `POST /api/v1/postage/:messageId/settle`, and `POST /api/v1/postage/:messageId/refund`, send an `x-idempotency-key` header. A replay returns the stored body with `x-idempotency-replayed: true` instead of a `409 conflict`, so automatic retries stay safe.
 
 ### Errors by endpoint
 

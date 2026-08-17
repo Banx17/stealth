@@ -70,6 +70,7 @@ import { useIsMobile } from "@/lib/use-media-query";
 import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
+import { AuthModal } from "@/components/mail/AuthModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -134,6 +135,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const [shortcutOverlayOpen, setShortcutOverlayOpen] = useState(false);
   const [proofInspectorOpen, setProofInspectorOpen] = useState(false);
   const [proofInspectorQuery, setProofInspectorQuery] = useState("");
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleOpenMessageFromInspector = useCallback((email: Email) => {
     setCustomFolder(null);
@@ -150,7 +152,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
       setImportOpen(false);
       showToast(
-        `${result.writes} sender rule${result.writes !== 1 ? "s" : ""} written for ${result.rows.length} contact${result.rows.length !== 1 ? "s" : ""}`,
+        `${result.writes} sender rule${result.writes !== 1 ? "s" : ""} written for ${
+          result.rows.length
+        } contact${result.rows.length !== 1 ? "s" : ""}`,
       );
     },
     [showToast],
@@ -392,7 +396,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
 
     if (failures.length > 0) {
       showToast(
-        `${failures.length} selected message${failures.length === 1 ? "" : "s"} could not be updated`,
+        `${failures.length} selected message${
+          failures.length === 1 ? "" : "s"
+        } could not be updated`,
         { tone: "danger" },
       );
     } else if (successCount > 0) {
@@ -505,7 +511,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           return;
         case "quote-postage":
           showToast(
-            `Minimum postage for ${email?.from ?? "this sender"} is ${preferences.minimumPostage} XLM`,
+            `Minimum postage for ${email?.from ?? "this sender"} is ${
+              preferences.minimumPostage
+            } XLM`,
           );
           return;
         case "inspect-proof":
@@ -737,6 +745,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                   setFolder("inbox");
                   setFilters({ ...defaultMailFilters, unreadOnly: true });
                 }}
+                onOpenLogin={() => setAuthModalOpen(true)}
               />
               <div className="flex min-h-0 min-w-0 flex-1">
                 {folder === "requests" ? (
@@ -818,7 +827,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
                                 subject: email.subject.startsWith("Re: ")
                                   ? email.subject
                                   : `Re: ${email.subject}`,
-                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(email)}`,
+                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
+                                  email,
+                                )}`,
                               })
                             }
                             onPreviewAttachment={(attachment) => setPreviewAttachment(attachment)}
@@ -961,6 +972,12 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
           onClose={() => setPreviewAttachment(null)}
           attachment={previewAttachment}
           senderAddress={selected?.email}
+        />
+
+        <AuthModal
+          open={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={(user) => showToast(`Signed in as ${user.username}`)}
         />
       </div>
     </MotionConfig>

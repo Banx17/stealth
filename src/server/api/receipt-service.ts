@@ -3,20 +3,31 @@ import { ApiError } from "./errors";
 import type { ApiRepository } from "./repository";
 import { transitionDeliveryState } from "./delivery-service";
 
+function isSameReceiptParticipants(
+  receipt: Pick<Receipt, "recipient" | "sender">,
+  input: Pick<Receipt, "recipient" | "sender">,
+) {
+  return receipt.recipient === input.recipient && receipt.sender === input.sender;
+}
+
 export async function createDeliveryReceipt(
   repository: ApiRepository,
   input: Pick<Receipt, "messageId" | "recipient" | "sender">,
   now = new Date(),
 ) {
-  if (await repository.getReceipt(input.messageId)) {
-    throw new ApiError(409, "conflict", "A delivery receipt already exists for this message");
-  }
-
-  const receipt = await repository.setReceipt({
+  const { receipt } = await repository.createReceiptIfAbsent({
     ...input,
     deliveredAt: now.toISOString(),
     readAt: null,
   });
+
+  if (!isSameReceiptParticipants(receipt, input)) {
+    throw new ApiError(
+      409,
+      "conflict",
+      "A delivery receipt already exists for this message with different participants",
+    );
+  }
 
   try {
     let currentStatus = await repository.getMessageDeliveryStatus(input.messageId);
@@ -67,19 +78,24 @@ export function assertReceiptParticipant(receipt: Receipt, actor: string) {
 export async function markReceiptRead(
   repository: ApiRepository,
   messageId: string,
+  actor: string,
   now = new Date(),
 ) {
-  const receipt = await getReceipt(repository, messageId);
-  if (receipt.readAt) {
-    throw new ApiError(409, "conflict", "The receipt has already been marked as read", {
-      readAt: receipt.readAt,
-    });
-  }
+  const result = await repository.markReceiptRead(messageId, actor, now);
 
-  const updatedReceipt = await repository.setReceipt({
-    ...receipt,
-    readAt: now.toISOString(),
-  });
+  if (result.outcome === "not-found") {
+    throw new ApiError(404, "not_found", "Receipt was not found");
+  }
+  if (result.outcome === "forbidden") {
+    throw new ApiError(403, "forbidden", "Only message participants can read this receipt");
+  }
+  if (result.outcome === "already-read") {
+    const receipt = await repository.getReceipt(messageId);
+    if (!receipt) {
+      throw new ApiError(404, "not_found", "Receipt was not found");
+    }
+    return receipt;
+  }
 
   try {
     const currentStatus = await repository.getMessageDeliveryStatus(messageId);
@@ -88,7 +104,7 @@ export async function markReceiptRead(
         repository,
         messageId,
         "accepted",
-        receipt.sender,
+        result.receipt.sender,
         "Envelope accepted",
         null,
         now,
@@ -97,7 +113,7 @@ export async function markReceiptRead(
         repository,
         messageId,
         "delivered",
-        receipt.recipient,
+        result.receipt.recipient,
         "Delivered to recipient mailbox",
         null,
         now,
@@ -109,7 +125,7 @@ export async function markReceiptRead(
         repository,
         messageId,
         "read",
-        receipt.recipient,
+        result.receipt.recipient,
         "Marked as read by recipient",
         null,
         now,
@@ -119,5 +135,6 @@ export async function markReceiptRead(
     // Delivery state transition best-effort on mark receipt read
   }
 
-  return updatedReceipt;
+  return result.receipt;
 }
+
