@@ -93,55 +93,28 @@ export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
 
-/**
- * Outcome of an atomic verification-token consumption attempt.
- *
- * The evaluation (existence, single-use, replacement, expiry, brute-force
- * limit) and the consumption write happen inside one exclusive critical
- * section per token, so concurrent verify requests observe a single winner:
- *
- * - "not-found": no token record exists for the given hash.
- * - "already-consumed": the token was consumed by an earlier request.
- * - "replaced": the token was invalidated by a newer issue (resend).
- * - "expired": the token is past its `expiresAt`.
- * - "brute-force-blocked": `attemptCount` reached `maxAttempts`; the token
- *   is permanently locked without ever being consumable.
- * - "consumed": the token was valid and is now marked consumed atomically.
- */
-export type ConsumeVerificationTokenResult =
-  | { outcome: "not-found" }
-  | { outcome: "already-consumed"; token: VerificationToken }
-  | { outcome: "replaced"; token: VerificationToken }
-  | { outcome: "expired"; token: VerificationToken }
-  | { outcome: "brute-force-blocked"; token: VerificationToken }
-  | { outcome: "consumed"; token: VerificationToken };
-
-/**
- * Outcome of an atomic verification-token issue.
- *
- * - "issued": the new token is stored and indexed as the active token for
- *   (userId, purpose). `replacedToken` is the previous active token when one
- *   existed and was still redeemable — it is invalidated (`replacedAt`) by
- *   the same atomic write.
- * - "conflict": a token with the same hash already exists (astronomically
- *   unlikely for a 256-bit random token; fails closed rather than silently
- *   overwriting a stored record).
- */
 export type IssueVerificationTokenResult =
   | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
   | { outcome: "conflict"; token: VerificationToken };
 
-/**
- * Outcome of an atomic failed-attempt recording.
- *
- * `recorded` is false when the token no longer exists or is already in a
- * terminal state (consumed or replaced), so a racing verify cannot inflate
- * the counter of a token that is no longer redeemable.
- */
-export type RecordVerificationAttemptResult = {
-  recorded: boolean;
-  token: VerificationToken | null;
-};
+export type ConsumeVerificationTokenResult =
+  | { outcome: "not-found" }
+  | { outcome: "already-consumed"; token: VerificationToken }
+  | { outcome: "replaced"; token: VerificationToken }
+  | { outcome: "brute-force-blocked"; token: VerificationToken }
+  | { outcome: "expired"; token: VerificationToken }
+  | { outcome: "consumed"; token: VerificationToken };
+
+export type RecordVerificationAttemptResult =
+  | { recorded: false; token: VerificationToken | null }
+  | { recorded: true; token: VerificationToken };
+
+export interface MailboxQueryOptions {
+  status?: "pending" | "delivered" | "all";
+  includeTombstones?: boolean;
+  limit?: number;
+  after?: string;
+}
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -273,6 +246,19 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Repository
+  // ---------------------------------------------------------------------------
+  listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>>;
+  tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope>;
+  updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope>;
 
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
@@ -683,6 +669,30 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    const page = await this.inner.listRecipientEnvelopes(recipient, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<StoredEnvelope>("storedEnvelope", item)),
+    };
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    const result = await this.inner.tombstoneEnvelope(messageId, recipient);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    const result = await this.inner.updateEnvelopeStatus(messageId, status);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
     return this.inner.getExternalWallets(owner);
   }
@@ -788,7 +798,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateSession",
   "getRetiredSession",
   "getEnvelope",
-  "getActiveVerificationToken",
+  "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
   "getVerificationToken",
@@ -1075,6 +1085,26 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+
+  listRecipientEnvelopes(
+    recipient: string,
+    options?: MailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    return this.withRetry("listRecipientEnvelopes", () =>
+      this.inner.listRecipientEnvelopes(recipient, options),
+    );
+  }
+
+  tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    return this.inner.tombstoneEnvelope(messageId, recipient);
+  }
+
+  updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    return this.inner.updateEnvelopeStatus(messageId, status);
   }
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {

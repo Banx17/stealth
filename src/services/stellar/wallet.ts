@@ -4,14 +4,18 @@
  * The canonical envelope payload is signed with the user's Stellar key
  * (Ed25519). If the user declines the wallet prompt we throw
  * WalletRejectedError so the caller can preserve the draft.
+ *
+ * The import is intentionally dynamic so that the Freighter bundle is excluded
+ * from the initial SSR/client chunk and only loaded on first wallet call.
  */
-import pkg from "@stellar/freighter-api";
-
-const {
-  isConnected: freighterIsConnected,
-  requestAccess: freighterRequestAccess,
-  signMessage: freighterSignMessage,
-} = pkg;
+let _freighterPkg: typeof import("@stellar/freighter-api") | null = null;
+async function loadFreighter() {
+  if (!_freighterPkg) {
+    const mod = await import("@stellar/freighter-api");
+    _freighterPkg = (mod.default ?? mod) as typeof import("@stellar/freighter-api");
+  }
+  return _freighterPkg;
+}
 
 export class WalletUnavailableError extends Error {
   constructor(message = "Freighter wallet was not detected") {
@@ -41,22 +45,27 @@ export interface WalletSignature {
  * deterministic stub on `globalThis.__freighterApi`. The override is only
  * consulted when explicitly set, so production behaviour is unchanged.
  */
+// Extract the precise function types directly from the package declaration so the
+// local FreighterApi seam stays in sync with the library without re-stating signatures.
+type FreighterPkg = typeof import("@stellar/freighter-api");
 type FreighterApi = {
-  isConnected: typeof freighterIsConnected;
-  requestAccess: typeof freighterRequestAccess;
-  signMessage: typeof freighterSignMessage;
+  isConnected: FreighterPkg["isConnected"];
+  requestAccess: FreighterPkg["requestAccess"];
+  signMessage: FreighterPkg["signMessage"];
 };
 
-function freighter(): FreighterApi {
+async function freighter(): Promise<FreighterApi> {
   const injected = (
     globalThis as unknown as {
       __freighterApi?: Partial<FreighterApi>;
     }
   ).__freighterApi;
+
+  const pkg = await loadFreighter();
   return {
-    isConnected: injected?.isConnected ?? freighterIsConnected,
-    requestAccess: injected?.requestAccess ?? freighterRequestAccess,
-    signMessage: injected?.signMessage ?? freighterSignMessage,
+    isConnected: injected?.isConnected ?? pkg.isConnected,
+    requestAccess: injected?.requestAccess ?? pkg.requestAccess,
+    signMessage: injected?.signMessage ?? pkg.signMessage,
   };
 }
 
@@ -92,7 +101,7 @@ function normalizeSignature(signed: unknown): string {
  * rejection error to keep the draft intact.
  */
 export async function authorizeSend(canonicalPayload: string): Promise<WalletSignature> {
-  const wallet = freighter();
+  const wallet = await freighter();
 
   const connection = (await wallet.isConnected()) as {
     isConnected?: boolean;

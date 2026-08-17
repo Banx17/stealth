@@ -26,6 +26,8 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
+import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
 import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
@@ -133,6 +135,16 @@ const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
 const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   id: '/api/v1/policies/$owner',
   path: '/api/v1/policies/$owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MailboxQueueRoute = ApiV1MailboxQueueRouteImport.update({
+  id: '/api/v1/mailbox/queue',
+  path: '/api/v1/mailbox/queue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
+  id: '/api/v1/mailbox/$messageId',
+  path: '/api/v1/mailbox/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
@@ -274,6 +286,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
+  '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -316,6 +330,8 @@ export interface FileRoutesByTo {
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
+  '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -359,6 +375,8 @@ export interface FileRoutesById {
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
+  '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -403,6 +421,8 @@ export interface FileRouteTypes {
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
+    | '/api/v1/mailbox/$messageId'
+    | '/api/v1/mailbox/queue'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -445,6 +465,8 @@ export interface FileRouteTypes {
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
+    | '/api/v1/mailbox/$messageId'
+    | '/api/v1/mailbox/queue'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -487,6 +509,8 @@ export interface FileRouteTypes {
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
+    | '/api/v1/mailbox/$messageId'
+    | '/api/v1/mailbox/queue'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -530,6 +554,8 @@ export interface RootRouteChildren {
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
+  ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
+  ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -671,6 +697,20 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/policies/$owner'
       fullPath: '/api/v1/policies/$owner'
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/mailbox/queue': {
+      id: '/api/v1/mailbox/queue'
+      path: '/api/v1/mailbox/queue'
+      fullPath: '/api/v1/mailbox/queue'
+      preLoaderRoute: typeof ApiV1MailboxQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/mailbox/$messageId': {
+      id: '/api/v1/mailbox/$messageId'
+      path: '/api/v1/mailbox/$messageId'
+      fullPath: '/api/v1/mailbox/$messageId'
+      preLoaderRoute: typeof ApiV1MailboxMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/identity/resolve': {
@@ -896,6 +936,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
+  ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
+  ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
