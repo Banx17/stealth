@@ -90,7 +90,7 @@ export class VersionedMasterKeyProvider implements MasterKeyProvider {
       try {
         provider.keys.set(
           version,
-          await crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, [
+          await crypto.subtle.importKey("raw", bytes.slice().buffer, { name: "AES-GCM" }, false, [
             "encrypt",
             "decrypt",
           ]),
@@ -141,7 +141,7 @@ async function unwrapDataKey(
     );
     raw = opened.plaintext;
     if (raw.length !== DATA_KEY_BYTES) throw new ManagedWalletCryptoError();
-    return await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, true, [
+    return await crypto.subtle.importKey("raw", raw.slice().buffer, { name: "AES-GCM" }, true, [
       "encrypt",
       "decrypt",
     ]);
