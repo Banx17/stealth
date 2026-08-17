@@ -172,7 +172,7 @@ export function runMockCampaignPublish(
   return {
     campaignId: snapshot.id,
     publishId: `publish-${snapshot.id}`,
-    publishedAt: completedAll ? options.publishedAt ?? snapshot.timestamp : "",
+    publishedAt: completedAll ? (options.publishedAt ?? snapshot.timestamp) : "",
     status,
     stages,
     publishedDraftCount: completedAll ? drafts.length : 0,

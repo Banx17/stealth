@@ -370,8 +370,8 @@ export function EmailList({
                     active
                       ? "-translate-y-px border-white/15 bg-[oklch(0.38_0.007_270/0.55)] py-2 shadow-[0_18px_42px_oklch(0_0_0/0.35),0_0_0_1px_oklch(1_0_0/0.07),inset_0_1px_0_oklch(1_0_0/0.14)]"
                       : compact
-                      ? "py-2"
-                      : "py-2.5",
+                        ? "py-2"
+                        : "py-2.5",
                   )}
                 >
                   {active && (

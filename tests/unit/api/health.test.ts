@@ -37,7 +37,7 @@ function never<T>(): Promise<T> {
 describe("API health readiness", () => {
   it("reports ready when required bindings, storage, and coordinator respond", async () => {
     const result = await checkApiReadiness({
-      getContext: async () => ({ repository: createRepository() } as any),
+      getContext: async () => ({ repository: createRepository() }) as any,
       timeoutMs: 25,
     });
 
@@ -78,7 +78,7 @@ describe("API health readiness", () => {
               throw new Error("kv connection details should not leak");
             },
           }),
-        } as any),
+        }) as any,
       timeoutMs: 25,
     });
 
@@ -98,7 +98,7 @@ describe("API health readiness", () => {
           repository: createRepository({
             getCounter: () => never<number>(),
           }),
-        } as any),
+        }) as any,
       timeoutMs: 5,
     });
 

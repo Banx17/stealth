@@ -170,10 +170,10 @@ export function detectDeadlines(
         status === "ignored"
           ? "No deadline action is suggested."
           : status === "needs-review"
-          ? "Review the message before creating a reminder."
-          : status === "missed"
-          ? "Review the overdue item and decide whether to follow up."
-          : "Create a reminder and confirm the detected due date.",
+            ? "Review the message before creating a reminder."
+            : status === "missed"
+              ? "Review the overdue item and decide whether to follow up."
+              : "Create a reminder and confirm the detected due date.",
       reviewRequired: status !== "detected",
     };
   });

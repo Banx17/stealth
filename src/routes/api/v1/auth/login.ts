@@ -34,8 +34,8 @@ export const Route = createFileRoute("/api/v1/auth/login")({
             ip === "unknown"
               ? "unknown"
               : ip.includes(":")
-              ? ip.split(":").slice(0, 4).join(":")
-              : ip.split(".").slice(0, 3).join(".");
+                ? ip.split(":").slice(0, 4).join(":")
+                : ip.split(".").slice(0, 3).join(".");
 
           const fingerprint = buildDeviceFingerprint({
             userAgent,

@@ -18,14 +18,20 @@ import DOMPurify from "isomorphic-dompurify";
 // ============================================================================
 
 export class ValidationError extends Error {
-  constructor(message: string, public readonly field?: string) {
+  constructor(
+    message: string,
+    public readonly field?: string,
+  ) {
     super(message);
     this.name = "ValidationError";
   }
 }
 
 export class SecurityError extends Error {
-  constructor(message: string, public readonly reason?: string) {
+  constructor(
+    message: string,
+    public readonly reason?: string,
+  ) {
     super(message);
     this.name = "SecurityError";
   }

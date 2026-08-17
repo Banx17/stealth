@@ -229,10 +229,10 @@ export function Topbar({
                           {range === "all"
                             ? "All time"
                             : range === "week"
-                            ? "This week"
-                            : range === "month"
-                            ? "This month"
-                            : "Today"}
+                              ? "This week"
+                              : range === "month"
+                                ? "This month"
+                                : "Today"}
                         </span>
                       </button>
                     ))}

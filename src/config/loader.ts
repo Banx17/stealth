@@ -193,8 +193,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     typeof env.STEALTH_CORS_ALLOW_CREDENTIALS === "boolean"
       ? env.STEALTH_CORS_ALLOW_CREDENTIALS
       : typeof env.STEALTH_CORS_ALLOW_CREDENTIALS === "string"
-      ? env.STEALTH_CORS_ALLOW_CREDENTIALS.toLowerCase() === "true"
-      : true;
+        ? env.STEALTH_CORS_ALLOW_CREDENTIALS.toLowerCase() === "true"
+        : true;
 
   // 7. Notifications (BETA-005). The production default is SMTP; deployments
   // must point it at their own mail server (no third-party vendor). Non-prod

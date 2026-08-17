@@ -34,9 +34,9 @@ function isSafeRecipient(address: string): boolean {
 function hasRequiredDraftFields(draft: Draft): boolean {
   return Boolean(
     draft.id?.trim() &&
-      draft.subject?.trim() &&
-      draft.body?.trim() &&
-      Array.isArray(draft.recipients),
+    draft.subject?.trim() &&
+    draft.body?.trim() &&
+    Array.isArray(draft.recipients),
   );
 }
 

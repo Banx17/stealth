@@ -31,7 +31,7 @@ export function RulesWorkspace({ initialRules }: RulesWorkspaceProps) {
     if (!initialRules) void fetchRules();
   }, [initialRules, fetchRules]);
 
-  const editing = view.mode === "edit" ? rules.find((r) => r.id === view.id) ?? null : null;
+  const editing = view.mode === "edit" ? (rules.find((r) => r.id === view.id) ?? null) : null;
 
   const handleSave = async (input: CreateRuleInput | UpdateRuleInput) => {
     if (view.mode === "new") {
