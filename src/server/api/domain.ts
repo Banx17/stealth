@@ -293,6 +293,48 @@ export const publicProfileSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
+// ---------------------------------------------------------------------------
+// BETA-005: Verification token lifecycle domain
+// ---------------------------------------------------------------------------
+
+export const verificationPurposeSchema = z.enum(["email_verification"]);
+export type VerificationPurpose = z.infer<typeof verificationPurposeSchema>;
+
+export const verificationTokenHashSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-f0-9]{64}$/, "Expected a 64-character lowercase hexadecimal SHA-256 hash");
+
+/**
+ * Durable record for a single verification token.
+ *
+ * Security invariants (BETA-005):
+ * - Only the SHA-256 hash of the token is ever persisted or logged. The
+ *   plaintext token exists solely in the hand-off between the issuing service
+ *   and the delivery adapter, and is never returned by the API.
+ * - `consumedAt` is set exactly once under a per-token exclusive lock, making
+ *   the token single-use even under concurrent verify requests.
+ * - `replacedAt` marks a token invalidated by a newer issue (resend), so stale
+ *   links fail closed.
+ * - `attemptCount` counts failed verification attempts; reaching `maxAttempts`
+ *   permanently locks the token (brute-force protection).
+ */
+export const verificationTokenSchema = z.object({
+  tokenHash: verificationTokenHashSchema,
+  userId: z.string().min(1, "User ID cannot be empty"),
+  purpose: verificationPurposeSchema,
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  consumedAt: z.string().datetime().nullable(),
+  replacedAt: z.string().datetime().nullable(),
+  replacedByTokenHash: verificationTokenHashSchema.nullable().optional(),
+  attemptCount: z.number().int().nonnegative(),
+  maxAttempts: z.number().int().positive(),
+});
+
+export type VerificationToken = z.infer<typeof verificationTokenSchema>;
+
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 export type User = z.infer<typeof userSchema>;
 export type Profile = z.infer<typeof profileSchema>;

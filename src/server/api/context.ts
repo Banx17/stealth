@@ -17,6 +17,7 @@ import {
   storedEnvelopeSchema,
   provisioningRecordSchema,
   usernameReservationSchema,
+  verificationTokenSchema,
   walletSchema,
   policyWriteIntentSchema,
   publishedKeySchema,
@@ -203,6 +204,7 @@ registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);
 registerRecordSchema("profile", 1, profileSchema);
 registerRecordSchema("credential", 1, credentialSchema);
+registerRecordSchema("verificationToken", 1, verificationTokenSchema);
 registerRecordSchema("session", 1, sessionSchema);
 registerRecordSchema("retiredSession", 1, retiredSessionSchema);
 // v1 -> v2 (Issue #1498): records now carry a requestDigest binding the

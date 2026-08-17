@@ -46,6 +46,8 @@ export const ROUTE_BODY_LIMITS = {
   "POST /relay/messages": "relay",
   "POST /accounts": "standard",
   "POST /accounts/provisioning/retry": "minimal",
+  "POST /auth/verify": "minimal",
+  "POST /auth/resend-verification": "minimal",
   "POST /identity/keys": "compact",
   "POST /identity/keys/rotate": "compact",
   "POST /identity/keys/retire": "compact",

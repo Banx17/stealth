@@ -2226,7 +2226,7 @@ export const openApiDocument = {
             },
           },
           "409": {
-            description: "Conflict — username unavailable or provisioning previously failed",
+            description: "Conflict ΓÇö username unavailable or provisioning previously failed",
             content: {
               "application/json": {
                 schema: {
@@ -2236,7 +2236,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -2313,7 +2313,7 @@ export const openApiDocument = {
             },
           },
           "404": {
-            description: "Not Found — no account or provisioning record",
+            description: "Not Found ΓÇö no account or provisioning record",
             content: {
               "application/json": {
                 schema: {
@@ -2390,7 +2390,7 @@ export const openApiDocument = {
             },
           },
           "404": {
-            description: "Not Found — no account or provisioning record",
+            description: "Not Found ΓÇö no account or provisioning record",
             content: {
               "application/json": {
                 schema: {
@@ -2400,7 +2400,8 @@ export const openApiDocument = {
             },
           },
           "409": {
-            description: "Conflict — provisioning in flight, already active, or attempts exhausted",
+            description:
+              "Conflict ΓÇö provisioning in flight, already active, or attempts exhausted",
             content: {
               "application/json": {
                 schema: {
@@ -2411,6 +2412,161 @@ export const openApiDocument = {
           },
           "500": {
             description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/verify": {
+      post: {
+        operationId: "verifyAccount",
+        summary: "Verify an account with a delivered token",
+        description:
+          "Consumes a single-use verification token and activates the account. Responses are generic: failures are expressed as token state and never reveal whether an account exists; replaying an already-verified token reports success so retries are safe.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "token"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                  token: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic verification result; never reveals whether the account exists",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/resend-verification": {
+      post: {
+        operationId: "resendVerificationMessage",
+        summary: "Resend the verification message for a pending account",
+        description:
+          "Re-issues a verification token (invalidating the previous one) and delivers a new message. Responds identically for unknown and non-pending accounts to prevent account probing; the resend cooldown is enforced with 429.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic confirmation; the message was sent or intentionally not sent",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Resend cooldown is still active",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "503": {
+            description: "The verification message could not be delivered",
             content: {
               "application/json": {
                 schema: {
