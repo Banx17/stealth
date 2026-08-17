@@ -359,6 +359,24 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("saveKeyDirectory");
     return this.inner.saveKeyDirectory(record);
   }
+  async listRecipientEnvelopes(
+    recipient: string,
+    options?: import("../../../src/server/api/repository").MailboxQueryOptions,
+  ) {
+    this.maybeFail("listRecipientEnvelopes");
+    return this.inner.listRecipientEnvelopes(recipient, options);
+  }
+  async tombstoneEnvelope(messageId: string, recipient: string) {
+    this.maybeFail("tombstoneEnvelope");
+    return this.inner.tombstoneEnvelope(messageId, recipient);
+  }
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("../../../src/server/api/domain").MailboxItemStatus,
+  ) {
+    this.maybeFail("updateEnvelopeStatus");
+    return this.inner.updateEnvelopeStatus(messageId, status);
+  }
   reset(): void {
     this.inner.reset();
   }
@@ -592,6 +610,7 @@ describe("RetryableApiRepository", () => {
       },
       contentCommitment: "c".repeat(64),
       createdAt: new Date().toISOString(),
+      status: "pending",
     };
     await failing.inner.insertEnvelope(envelope);
 
@@ -617,6 +636,7 @@ describe("RetryableApiRepository", () => {
       },
       contentCommitment: "c".repeat(64),
       createdAt: new Date().toISOString(),
+      status: "pending",
     };
 
     await expect(repo.insertEnvelope(envelope)).rejects.toThrow();

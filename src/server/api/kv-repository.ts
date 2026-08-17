@@ -465,6 +465,28 @@ export class HybridApiRepository implements ApiRepository {
     return result;
   }
 
+  async listRecipientEnvelopes(
+    recipient: string,
+    options?: import("./repository").MailboxQueryOptions,
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    return this.getStub().listRecipientEnvelopes(recipient, options);
+  }
+
+  async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
+    const result = await this.getStub().tombstoneEnvelope(messageId, recipient);
+    await this.kv.put(this.key("envelope", messageId), JSON.stringify(result));
+    return result;
+  }
+
+  async updateEnvelopeStatus(
+    messageId: string,
+    status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope> {
+    const result = await this.getStub().updateEnvelopeStatus(messageId, status);
+    await this.kv.put(this.key("envelope", messageId), JSON.stringify(result));
+    return result;
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
   // ---------------------------------------------------------------------------

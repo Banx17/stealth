@@ -515,6 +515,9 @@ export const storedEnvelopeProtectedHeadersSchema = z
   })
   .catchall(z.unknown());
 
+export const mailboxItemStatusSchema = z.enum(["pending", "delivered"]);
+export type MailboxItemStatus = z.infer<typeof mailboxItemStatusSchema>;
+
 export const storedEnvelopeSchema = z.object({
   envelopeId: z.string().optional(),
   messageId: hash32Schema,
@@ -528,11 +531,57 @@ export const storedEnvelopeSchema = z.object({
   protectedHeaders: storedEnvelopeProtectedHeadersSchema,
   contentCommitment: hash32Schema.optional(),
   createdAt: z.string().datetime(),
+  status: mailboxItemStatusSchema.default("pending"),
+  deletedAt: z.string().datetime().nullable().optional(),
+  objectRef: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 
 export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;
 export type StoredEnvelope = z.infer<typeof storedEnvelopeSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Domain
+// ---------------------------------------------------------------------------
+
+export const mailboxQueueQuerySchema = z.object({
+  recipient: stellarAddressSchema.optional(),
+  status: z.enum(["pending", "delivered", "all"]).default("all"),
+  includeTombstones: z.coerce.boolean().default(false),
+  cursor: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export type MailboxQueueQuery = z.infer<typeof mailboxQueueQuerySchema>;
+
+export const mailboxDescriptorSchema = z.object({
+  messageId: hash32Schema,
+  senderId: stellarAddressSchema,
+  recipientId: stellarAddressSchema,
+  status: mailboxItemStatusSchema,
+  createdAt: z.string().datetime(),
+  protectedHeaders: storedEnvelopeProtectedHeadersSchema,
+  contentCommitment: hash32Schema.optional(),
+  objectRef: z.string().optional(),
+  isTombstone: z.boolean(),
+  deletedAt: z.string().datetime().nullable().optional(),
+});
+
+export type MailboxDescriptor = z.infer<typeof mailboxDescriptorSchema>;
+
+export const mailboxQueueResponseSchema = z.object({
+  items: z.array(mailboxDescriptorSchema),
+  nextCursor: z.string().nullable(),
+  hasMore: z.boolean(),
+});
+
+export type MailboxQueueResponse = z.infer<typeof mailboxQueueResponseSchema>;
+
+export const tombstoneRequestSchema = z.object({
+  messageId: hash32Schema,
+});
+
+export type TombstoneRequest = z.infer<typeof tombstoneRequestSchema>;
 
 // ---------------------------------------------------------------------------
 // BETA-027 (Issue #1934) — Versioned Public Encryption-Key Directory & Rotation
