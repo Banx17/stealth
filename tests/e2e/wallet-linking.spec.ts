@@ -53,10 +53,29 @@ test.describe("wallet link API", () => {
       headers: headers(),
     });
     expect(unlinkRes.status()).toBe(200);
+    const { data: unlinkData } = await unlinkRes.json();
+    expect(unlinkData.unlinked).toBe(true);
+    expect(unlinkData.activeSigner.signerType).toBe("managed");
+    expect(unlinkData.activeSigner.isFallback).toBe(true);
 
     const afterRes = await listWallets(page);
     const { data: afterData } = await afterRes.json();
     expect(afterData.wallets.map((w) => w.address)).not.toContain(externalWallet);
+  });
+
+  test("rejects unlinking when confirm is explicitly false", async ({ page }) => {
+    await createChallenge(page, externalWallet);
+    await verifyAndLink(page, externalWallet, "d".repeat(64), ["sign"]);
+
+    const res = await page.request.delete(`/api/v1/wallet/link/${externalWallet}?confirm=false`, {
+      headers: headers(),
+    });
+    expect(res.status()).toBe(400);
+
+    // Clean up
+    await page.request.delete(`/api/v1/wallet/link/${externalWallet}?confirm=true`, {
+      headers: headers(),
+    });
   });
 
   test("rejects unauthenticated challenge request", async ({ page }) => {

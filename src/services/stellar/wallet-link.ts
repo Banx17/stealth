@@ -52,13 +52,24 @@ export async function listLinkedWallets(): Promise<ExternalWallet[]> {
   return body.data.wallets;
 }
 
-export async function unlinkWallet(address: string): Promise<void> {
-  const response = await fetch(`/api/v1/wallet/link/${encodeURIComponent(address)}`, {
-    method: "DELETE",
-  });
+export async function unlinkWallet(
+  address: string,
+  options?: { confirm?: boolean },
+): Promise<{ unlinked: boolean; activeSigner?: unknown }> {
+  const confirm = options?.confirm ?? true;
+  const response = await fetch(
+    `/api/v1/wallet/link/${encodeURIComponent(address)}?confirm=${confirm}`,
+    {
+      method: "DELETE",
+      headers: {
+        "x-stealth-confirm": String(confirm),
+      },
+    },
+  );
 
+  const body = await response.json();
   if (!response.ok) {
-    const body = await response.json();
     throw new WalletLinkError(body.error?.message ?? "Failed to unlink wallet");
   }
+  return body.data;
 }

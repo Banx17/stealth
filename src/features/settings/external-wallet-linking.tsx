@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, Check, Link2, Trash2, Wallet } from "lucide-react";
+import { AlertTriangle, Check, Link2, ShieldCheck, Trash2, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ExternalWallet, WalletCapability } from "@/server/api/domain";
 import {
@@ -135,7 +135,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
 
   async function handleUnlink(address: string) {
     try {
-      await unlinkWallet(address);
+      await unlinkWallet(address, { confirm: true });
       setWallets((prev) => prev.filter((w) => w.address !== address));
       setConfirmUnlink(null);
     } catch (err) {
@@ -162,6 +162,22 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
           Optionally connect a Freighter wallet to prove control of an external Stellar address.
           This does not change how you sign in.
         </p>
+      </div>
+
+      {/* Managed Wallet default signer status */}
+      <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-blue-400" />
+          <div>
+            <p className="text-xs font-medium text-foreground">Managed Wallet (Default Signer)</p>
+            <p className="text-[11px] text-muted-foreground">
+              {ownerAddress ? `Address: ${ownerAddress}` : "Active primary transaction signer"}
+            </p>
+          </div>
+        </div>
+        <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-400 font-medium">
+          Default
+        </span>
       </div>
 
       {/* Linked wallets list */}
@@ -206,20 +222,24 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
                   </div>
                 </div>
                 {confirmUnlink === wallet.address ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-red-400">Unlink?</span>
-                    <button
-                      onClick={() => handleUnlink(wallet.address)}
-                      className="rounded-lg bg-red-500 px-2 py-1 text-[10px] text-white hover:bg-red-600 transition"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setConfirmUnlink(null)}
-                      className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-muted-foreground hover:bg-white/[0.06] transition"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="text-[10px] text-red-400 font-medium">
+                      Revoke tokens and fall back to managed wallet?
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUnlink(wallet.address)}
+                        className="rounded-lg bg-red-500 px-2 py-1 text-[10px] text-white hover:bg-red-600 transition font-medium"
+                      >
+                        Confirm Unlink
+                      </button>
+                      <button
+                        onClick={() => setConfirmUnlink(null)}
+                        className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-muted-foreground hover:bg-white/[0.06] transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
