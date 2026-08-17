@@ -224,6 +224,28 @@ export const userSchema = z.object({
   version: z.number().int().positive(),
 });
 
+export const walletCapabilitySchema = z.enum(["sign", "send", "read"]);
+export type WalletCapability = z.infer<typeof walletCapabilitySchema>;
+
+export const externalWalletSchema = z.object({
+  address: stellarAddressSchema,
+  capabilities: z.array(walletCapabilitySchema).min(1),
+  linkedAt: z.string().datetime(),
+  network: z.string().min(1),
+});
+
+export type ExternalWallet = z.infer<typeof externalWalletSchema>;
+
+export const externalWalletChallengeSchema = z.object({
+  challenge: z.string().min(1),
+  address: stellarAddressSchema,
+  expiresAt: z.string().datetime(),
+  network: z.string().min(1),
+});
+
+export type ExternalWalletChallenge = z.infer<typeof externalWalletChallengeSchema>;
+
+export const networkPassphraseSchema = z.string().min(1);
 export const profileSchema = z.object({
   userId: z.string().min(1, "User ID cannot be empty"),
   username: usernameSchema,
@@ -436,3 +458,54 @@ export const storedEnvelopeSchema = z.object({
 
 export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;
 export type StoredEnvelope = z.infer<typeof storedEnvelopeSchema>;
+
+// ---------------------------------------------------------------------------
+// BETA-027 (Issue #1934) — Versioned Public Encryption-Key Directory & Rotation
+// ---------------------------------------------------------------------------
+
+export const keyAlgorithmSchema = z.enum(["ed25519", "x25519", "secp256k1"]);
+export const keyPurposeSchema = z.enum(["encryption", "signing", "device"]);
+export const keyStatusSchema = z.enum(["active", "rotated", "retired", "revoked"]);
+
+export type KeyAlgorithm = z.infer<typeof keyAlgorithmSchema>;
+export type KeyPurpose = z.infer<typeof keyPurposeSchema>;
+export type KeyStatus = z.infer<typeof keyStatusSchema>;
+
+export const publishedKeySchema = z.object({
+  keyId: z.string().min(1, "keyId cannot be empty"),
+  owner: stellarAddressSchema,
+  algorithm: keyAlgorithmSchema,
+  purpose: keyPurposeSchema,
+  publicKey: z
+    .string()
+    .min(1, "publicKey cannot be empty")
+    .refine(
+      (val) => !val.toLowerCase().includes("private") && !val.toLowerCase().includes("secret"),
+      {
+        message: "Private key material detected; only public keys are allowed",
+      },
+    ),
+  version: z.number().int().positive(),
+  notBefore: z.string().datetime(),
+  notAfter: z.string().datetime(),
+  status: keyStatusSchema,
+  signature: z.string().min(1, "signature is required"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  revokedAt: z.string().datetime().nullable().optional(),
+  revocationReason: z.string().max(500).nullable().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type PublishedKey = z.infer<typeof publishedKeySchema>;
+
+export const keyDirectoryRecordSchema = z.object({
+  owner: stellarAddressSchema,
+  currentEncryptionKeyId: z.string().nullable(),
+  currentSigningKeyId: z.string().nullable(),
+  keys: z.array(publishedKeySchema),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export type KeyDirectoryRecord = z.infer<typeof keyDirectoryRecordSchema>;

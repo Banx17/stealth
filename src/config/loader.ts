@@ -5,6 +5,7 @@ import {
   type NotificationTransport,
   type PublicConfig,
 } from "./schema";
+import { validateRegistryDrift } from "./registry";
 
 const DEFAULT_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"];
 
@@ -115,6 +116,11 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const isProd = profile === "production";
   const isPreview = profile === "preview";
 
+  const roleRaw = (env.STEALTH_ROLE as string) ?? "all";
+  const role = ["all", "web", "relay", "indexer", "operator"].includes(roleRaw)
+    ? (roleRaw as any)
+    : "all";
+
   // 1. Network
   const stellarNetwork = (env.STEALTH_STELLAR_NETWORK as any) ?? (isProd ? "mainnet" : "testnet");
   const horizonUrl =
@@ -143,8 +149,6 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const coordinatorBinding = options.env?.STEALTH_COORDINATOR ?? env.STEALTH_COORDINATOR;
 
   // 3. Session & Security
-  const cursorSecret =
-    (env.STEALTH_CURSOR_SECRET as string) ?? (isProd ? "" : "dev-cursor-secret-change-me");
   const authChallengeLifetimeMs = parseNumber(env.STEALTH_AUTH_CHALLENGE_LIFETIME_MS, 300000);
   const authClockSkewMs = parseNumber(env.STEALTH_AUTH_CLOCK_SKEW_MS, 30000);
   const authNonceTtlMs = parseNumber(env.STEALTH_AUTH_NONCE_TTL_MS, 300000);
@@ -154,8 +158,16 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const relayUrl =
     (env.STEALTH_RELAY_URL as string) ??
     (isProd ? "https://relay.stealth.mail" : "https://relay-testnet.stealth.mail");
-  const relayApiKey = (env.STEALTH_RELAY_API_KEY as string) || undefined;
   const relayTimeoutMs = parseNumber(env.STEALTH_RELAY_TIMEOUT_MS, 10000);
+
+  // Secrets
+  const cursorSecret =
+    (env.STEALTH_CURSOR_SECRET as string) ?? (isProd ? "" : "dev-cursor-secret-change-me");
+  const relayApiKey = (env.STEALTH_RELAY_API_KEY as string) || undefined;
+  const storageSecret = (env.STEALTH_STORAGE_SECRET as string) || undefined;
+  const smtpPassword = (env.STEALTH_SMTP_PASSWORD as string) || undefined;
+  const rpcApiKey = (env.STEALTH_RPC_API_KEY as string) || undefined;
+  const operatorSecret = (env.STEALTH_OPERATOR_SECRET as string) || undefined;
 
   // 5. Contract
   const registryContractId =
@@ -194,7 +206,6 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const smtpSecure = parseBool(env.STEALTH_SMTP_SECURE, smtpPort === 465);
   const smtpStartTls = parseBool(env.STEALTH_SMTP_STARTTLS, smtpPort !== 465);
   const smtpUsername = (env.STEALTH_SMTP_USERNAME as string) || undefined;
-  const smtpPassword = (env.STEALTH_SMTP_PASSWORD as string) || undefined;
   const notificationFrom =
     (env.STEALTH_NOTIFICATION_FROM as string) ??
     (isProd ? "noreply@app.stealth.mail" : "stealth@localhost");
@@ -210,9 +221,37 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
 
   // Perform validation gates according to profile
   if (isProd) {
-    if (isPlaceholderSecret(cursorSecret)) {
+    if ((role === "all" || role === "web") && isPlaceholderSecret(cursorSecret)) {
       throw new Error(
-        "Configuration error: STEALTH_CURSOR_SECRET is required and must not be a default/placeholder secret in production.",
+        "Configuration error: STEALTH_CURSOR_SECRET is required and must not be a default/placeholder secret for web/all roles in production.",
+      );
+    }
+    if ((role === "all" || role === "web") && isPlaceholderSecret(smtpPassword)) {
+      throw new Error(
+        "Configuration error: STEALTH_SMTP_PASSWORD is required for web/all roles in production.",
+      );
+    }
+    if ((role === "all" || role === "relay") && isPlaceholderSecret(relayApiKey)) {
+      throw new Error(
+        "Configuration error: STEALTH_RELAY_API_KEY is required for relay/all roles in production.",
+      );
+    }
+    if ((role === "all" || role === "indexer") && isPlaceholderSecret(storageSecret)) {
+      throw new Error(
+        "Configuration error: STEALTH_STORAGE_SECRET is required for indexer/all roles in production.",
+      );
+    }
+    if (
+      (role === "all" || role === "indexer" || role === "operator") &&
+      isPlaceholderSecret(rpcApiKey)
+    ) {
+      throw new Error(
+        "Configuration error: STEALTH_RPC_API_KEY is required for operator/indexer/all roles in production.",
+      );
+    }
+    if ((role === "all" || role === "operator") && isPlaceholderSecret(operatorSecret)) {
+      throw new Error(
+        "Configuration error: STEALTH_OPERATOR_SECRET is required for operator/all roles in production.",
       );
     }
     if (isPlaceholderKvId(kvNamespaceId)) {
@@ -244,6 +283,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
 
   const rawConfig = {
     profile,
+    role,
     network: {
       network: profile,
       stellarNetwork,
@@ -258,7 +298,6 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
       coordinatorBinding,
     },
     session: {
-      cursorSecret,
       authChallengeLifetimeMs,
       authClockSkewMs,
       authNonceTtlMs,
@@ -266,8 +305,15 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     },
     relay: {
       relayUrl,
-      relayApiKey,
       relayTimeoutMs,
+    },
+    secrets: {
+      cursorSecret,
+      relayApiKey,
+      storageSecret,
+      smtpPassword,
+      rpcApiKey,
+      operatorSecret,
     },
     contract: {
       registryContractId,
@@ -309,6 +355,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     throw new Error(`Configuration validation failed: ${formattedErrors}`);
   }
 
+  validateRegistryDrift(parsed.data);
+
   return parsed.data;
 }
 
@@ -318,6 +366,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
 export function getPublicConfig(config: BetaRuntimeConfig): PublicConfig {
   return {
     profile: config.profile,
+    role: config.role,
     network: config.network,
     storage: {
       storageDriver: config.storage.storageDriver,
@@ -355,6 +404,7 @@ export function getPublicConfig(config: BetaRuntimeConfig): PublicConfig {
 export function getRedactedConfig(config: BetaRuntimeConfig): Record<string, unknown> {
   return {
     profile: config.profile,
+    role: config.role,
     network: config.network,
     storage: {
       storageDriver: config.storage.storageDriver,
@@ -363,7 +413,6 @@ export function getRedactedConfig(config: BetaRuntimeConfig): Record<string, unk
       hasCoordinatorBinding: Boolean(config.storage.coordinatorBinding),
     },
     session: {
-      cursorSecret: "[REDACTED]",
       authChallengeLifetimeMs: config.session.authChallengeLifetimeMs,
       authClockSkewMs: config.session.authClockSkewMs,
       authNonceTtlMs: config.session.authNonceTtlMs,
@@ -371,8 +420,6 @@ export function getRedactedConfig(config: BetaRuntimeConfig): Record<string, unk
     },
     relay: {
       relayUrl: config.relay.relayUrl,
-      hasRelayApiKey: Boolean(config.relay.relayApiKey),
-      relayApiKey: config.relay.relayApiKey ? "[REDACTED]" : undefined,
       relayTimeoutMs: config.relay.relayTimeoutMs,
     },
     contract: config.contract,
@@ -391,6 +438,14 @@ export function getRedactedConfig(config: BetaRuntimeConfig): Record<string, unk
         password: config.notifications.smtp.password ? "[REDACTED]" : undefined,
       },
     },
+    secrets: {
+      hasCursorSecret: Boolean(config.secrets.cursorSecret),
+      hasRelayApiKey: Boolean(config.secrets.relayApiKey),
+      hasStorageSecret: Boolean(config.secrets.storageSecret),
+      hasSmtpPassword: Boolean(config.secrets.smtpPassword),
+      hasRpcApiKey: Boolean(config.secrets.rpcApiKey),
+      hasOperatorSecret: Boolean(config.secrets.operatorSecret),
+    },
   };
 }
 
@@ -402,6 +457,7 @@ export function formatConfigMatrix(config: BetaRuntimeConfig): string {
   const lines: string[] = [
     `=== Stealth Mail Beta Runtime Configuration Matrix ===`,
     `Profile:                 ${config.profile}`,
+    `Role:                    ${config.role}`,
     `[Network]`,
     `  Stellar Network:       ${config.network.stellarNetwork}`,
     `  Horizon RPC:           ${config.network.horizonUrl}`,
@@ -413,15 +469,20 @@ export function formatConfigMatrix(config: BetaRuntimeConfig): string {
     `  Cloudflare KV:         ${redacted.storage.hasKvBinding ? "Bound" : "Unbound"}`,
     `  Durable Coordinator:   ${redacted.storage.hasCoordinatorBinding ? "Bound" : "Unbound"}`,
     `[Session & Security]`,
-    `  Cursor Secret:         [REDACTED]`,
     `  Challenge TTL:         ${config.session.authChallengeLifetimeMs} ms`,
     `  Clock Skew:            ${config.session.authClockSkewMs} ms`,
     `  Nonce TTL:             ${config.session.authNonceTtlMs} ms`,
     `  Quote Lifetime:        ${config.session.quoteLifetimeMs} ms`,
     `[Relay]`,
     `  Relay URL:             ${config.relay.relayUrl}`,
-    `  Relay API Key:         ${redacted.relay.hasRelayApiKey ? "[REDACTED]" : "None"}`,
     `  Relay Timeout:         ${config.relay.relayTimeoutMs} ms`,
+    `[Secrets (Redacted)]`,
+    `  Cursor Secret:         ${redacted.secrets.hasCursorSecret ? "[CONFIGURED]" : "Missing"}`,
+    `  Relay API Key:         ${redacted.secrets.hasRelayApiKey ? "[CONFIGURED]" : "Missing"}`,
+    `  Storage Secret:        ${redacted.secrets.hasStorageSecret ? "[CONFIGURED]" : "Missing"}`,
+    `  SMTP Password:         ${redacted.secrets.hasSmtpPassword ? "[CONFIGURED]" : "Missing"}`,
+    `  RPC API Key:           ${redacted.secrets.hasRpcApiKey ? "[CONFIGURED]" : "Missing"}`,
+    `  Operator Secret:       ${redacted.secrets.hasOperatorSecret ? "[CONFIGURED]" : "Missing"}`,
     `[Contract]`,
     `  Registry Contract:     ${config.contract.registryContractId}`,
     `  Postage Contract:      ${config.contract.postageContractId}`,

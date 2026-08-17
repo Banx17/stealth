@@ -17,6 +17,8 @@ import {
   storedEnvelopeSchema,
   verificationTokenSchema,
   policyWriteIntentSchema,
+  publishedKeySchema,
+  keyDirectoryRecordSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -219,6 +221,9 @@ registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
 // contract, so tampered or structurally invalid intents fail closed at the
 // adapter boundary instead of silently drifting the reconciliation state.
 registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
+// Issue #1934 (BETA-027): Versioned Public Encryption-Key Directory & Rotation
+registerRecordSchema("publishedKey", 1, publishedKeySchema);
+registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.
@@ -350,6 +355,11 @@ export interface ApiConfig {
   coordinatorBinding?: unknown;
   objectStoreBinding?: unknown;
   cursorSecret?: string;
+  smtpPassword?: string;
+  relayApiKey?: string;
+  storageSecret?: string;
+  rpcApiKey?: string;
+  operatorSecret?: string;
   supportedVersions: readonly string[];
 }
 
@@ -387,6 +397,11 @@ export function validateApiConfig(config: ApiConfig): void {
       STEALTH_KV: config.kvBinding,
       STEALTH_COORDINATOR: config.coordinatorBinding,
       STEALTH_CURSOR_SECRET: config.cursorSecret,
+      STEALTH_SMTP_PASSWORD: config.smtpPassword,
+      STEALTH_RELAY_API_KEY: config.relayApiKey,
+      STEALTH_STORAGE_SECRET: config.storageSecret,
+      STEALTH_RPC_API_KEY: config.rpcApiKey,
+      STEALTH_OPERATOR_SECRET: config.operatorSecret,
     },
   });
 }
@@ -406,6 +421,11 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
     // the cursor secret is read defensively so an undeclared secret fails the
     // validation gate rather than a type error.
     const cursorSecret = (env as Record<string, string | undefined>).STEALTH_CURSOR_SECRET;
+    const smtpPassword = (env as Record<string, string | undefined>).STEALTH_SMTP_PASSWORD;
+    const relayApiKey = (env as Record<string, string | undefined>).STEALTH_RELAY_API_KEY;
+    const storageSecret = (env as Record<string, string | undefined>).STEALTH_STORAGE_SECRET;
+    const rpcApiKey = (env as Record<string, string | undefined>).STEALTH_RPC_API_KEY;
+    const operatorSecret = (env as Record<string, string | undefined>).STEALTH_OPERATOR_SECRET;
 
     validateApiConfig({
       isProd: true,
@@ -413,6 +433,11 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
       coordinatorBinding: env.STEALTH_COORDINATOR,
       objectStoreBinding: env.STEALTH_OBJECT_STORE,
       cursorSecret,
+      smtpPassword,
+      relayApiKey,
+      storageSecret,
+      rpcApiKey,
+      operatorSecret,
       supportedVersions: ["v1"],
     });
 

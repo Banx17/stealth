@@ -37,6 +37,7 @@ import {
 } from "@/features/settings/mailbox-policy-templates";
 import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
+import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -1253,6 +1254,9 @@ function SecuritySettings() {
         <h3 className="text-sm font-medium text-foreground">Security</h3>
         <p className="mt-1 text-xs text-muted-foreground">Manage sessions, devices, and recovery</p>
       </div>
+
+      {/* External Wallet Linking */}
+      <ExternalWalletSettings />
 
       {/* Active Sessions */}
       <div className="space-y-3">

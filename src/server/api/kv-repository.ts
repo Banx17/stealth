@@ -6,12 +6,16 @@ import type {
 } from "./repository";
 import type {
   Credential,
+  ExternalWallet,
+  ExternalWalletChallenge,
   IdempotencyRecord,
+  KeyDirectoryRecord,
   MailboxPolicy,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
+  PublishedKey,
   Receipt,
   RetiredSession,
   SenderRule,
@@ -306,6 +310,64 @@ export class HybridApiRepository implements ApiRepository {
     return 0;
   }
 
+  async getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    const wallets = await this.kv.get(this.key("external-wallet", owner), "json");
+    return (wallets as ExternalWallet[]) ?? [];
+  }
+
+  async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    const wallets = (await this.kv.get(this.key("external-wallet", owner), "json")) as
+      | ExternalWallet[]
+      | null;
+    const existing = wallets ?? [];
+    const idx = existing.findIndex((w) => w.address === wallet.address);
+    if (idx >= 0) {
+      existing[idx] = wallet;
+    } else {
+      existing.push(wallet);
+    }
+    await this.kv.put(this.key("external-wallet", owner), JSON.stringify(existing));
+    await this.kv.put(this.key("external-wallet-address", wallet.address), owner);
+    return wallet;
+  }
+
+  async removeExternalWallet(owner: string, address: string): Promise<void> {
+    const wallets =
+      ((await this.kv.get(this.key("external-wallet", owner), "json")) as
+        | ExternalWallet[]
+        | null) ?? [];
+    await this.kv.put(
+      this.key("external-wallet", owner),
+      JSON.stringify(wallets.filter((w) => w.address !== address)),
+    );
+    await this.kv.delete(this.key("external-wallet-address", address));
+  }
+
+  async findExternalWalletOwner(address: string): Promise<string | null> {
+    const owner = await this.kv.get(this.key("external-wallet-address", address), "text");
+    return owner;
+  }
+
+  async getWalletChallenge(
+    owner: string,
+    address: string,
+  ): Promise<ExternalWalletChallenge | null> {
+    const challenge = await this.kv.get(this.key("wallet-challenge", owner, address), "json");
+    return (challenge as ExternalWalletChallenge) ?? null;
+  }
+
+  async setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    await this.kv.put(this.key("wallet-challenge", owner, address), JSON.stringify(challenge));
+  }
+
+  async deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    await this.kv.delete(this.key("wallet-challenge", owner, address));
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1936 (BETA-029) — Durable encrypted envelope persistence
   // ---------------------------------------------------------------------------
@@ -341,5 +403,35 @@ export class HybridApiRepository implements ApiRepository {
       await this.kv.put(this.key("envelope", envelope.messageId), JSON.stringify(result.envelope));
     }
     return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
+  // ---------------------------------------------------------------------------
+
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const dir = await this.kv.get(this.key("key-directory", owner.toUpperCase()), "json");
+    return (dir as KeyDirectoryRecord) ?? null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const key = await this.kv.get(this.key("keys", owner.toUpperCase(), keyId), "json");
+    return (key as PublishedKey) ?? null;
+  }
+
+  async savePublishedKey(owner: string, publishedKey: PublishedKey): Promise<PublishedKey> {
+    await this.kv.put(
+      this.key("keys", owner.toUpperCase(), publishedKey.keyId),
+      JSON.stringify(publishedKey),
+    );
+    return publishedKey;
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    await this.kv.put(
+      this.key("key-directory", record.owner.toUpperCase()),
+      JSON.stringify(record),
+    );
+    return record;
   }
 }

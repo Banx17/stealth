@@ -1,11 +1,15 @@
 import type {
   Credential,
+  ExternalWallet,
+  ExternalWalletChallenge,
   IdempotencyRecord,
+  KeyDirectoryRecord,
   MailboxPolicy,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
+  PublishedKey,
   Receipt,
   RetiredSession,
   SenderRule,
@@ -42,6 +46,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
+  private readonly externalWallets = new Map<string, ExternalWallet[]>();
+  private readonly walletChallenges = new Map<string, ExternalWalletChallenge>();
   private readonly receiptLocks = new Map<string, Promise<void>>();
   // Issue #1936: envelope store and per-key insert locks.
   private readonly envelopes = new Map<string, StoredEnvelope>();
@@ -82,6 +88,11 @@ export class MemoryApiRepository implements ApiRepository {
       }
     }
   }
+
+  // BETA-027: Key Directory storage
+  private readonly keyDirectories = new Map<string, KeyDirectoryRecord>();
+  private readonly publishedKeys = new Map<string, PublishedKey>(); // key: `${owner}:${keyId}`
+  private readonly keyDirectoryLocks = new Map<string, Promise<void>>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -579,6 +590,64 @@ export class MemoryApiRepository implements ApiRepository {
     this.idempotency.set(key, structuredClone(record));
   }
 
+  async getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return structuredClone(this.externalWallets.get(owner) ?? []);
+  }
+
+  async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    const wallets = this.externalWallets.get(owner) ?? [];
+    const existing = wallets.findIndex((w) => w.address === wallet.address);
+    if (existing >= 0) {
+      wallets[existing] = structuredClone(wallet);
+    } else {
+      wallets.push(structuredClone(wallet));
+    }
+    this.externalWallets.set(owner, wallets);
+    return structuredClone(wallet);
+  }
+
+  async removeExternalWallet(owner: string, address: string): Promise<void> {
+    const wallets = this.externalWallets.get(owner) ?? [];
+    this.externalWallets.set(
+      owner,
+      wallets.filter((w) => w.address !== address),
+    );
+  }
+
+  async findExternalWalletOwner(address: string): Promise<string | null> {
+    for (const [owner, wallets] of this.externalWallets.entries()) {
+      if (wallets.some((w) => w.address === address)) {
+        return owner;
+      }
+    }
+    return null;
+  }
+
+  walletChallengeKey(owner: string, address: string) {
+    return `${owner}:${address}`;
+  }
+
+  async getWalletChallenge(
+    owner: string,
+    address: string,
+  ): Promise<ExternalWalletChallenge | null> {
+    return structuredClone(
+      this.walletChallenges.get(this.walletChallengeKey(owner, address)) ?? null,
+    );
+  }
+
+  async setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    this.walletChallenges.set(this.walletChallengeKey(owner, address), structuredClone(challenge));
+  }
+
+  async deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    this.walletChallenges.delete(this.walletChallengeKey(owner, address));
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1936 (BETA-029) — Encrypted envelope persistence
   // ---------------------------------------------------------------------------
@@ -614,6 +683,28 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const dir = this.keyDirectories.get(owner.toUpperCase());
+    return dir ? structuredClone(dir) : null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const k = this.publishedKeys.get(`${owner.toUpperCase()}:${keyId}`);
+    return k ? structuredClone(k) : null;
+  }
+
+  async savePublishedKey(owner: string, publishedKey: PublishedKey): Promise<PublishedKey> {
+    const stored = structuredClone(publishedKey);
+    this.publishedKeys.set(`${owner.toUpperCase()}:${publishedKey.keyId}`, stored);
+    return structuredClone(stored);
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    const stored = structuredClone(record);
+    this.keyDirectories.set(record.owner.toUpperCase(), stored);
+    return structuredClone(stored);
+  }
+
   reset() {
     this.policies.clear();
     this.policyWriteIntents.clear();
@@ -622,6 +713,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.senderRules.clear();
     this.counters.clear();
     this.idempotency.clear();
+    this.externalWallets.clear();
+    this.walletChallenges.clear();
     this.receiptLocks.clear();
     this.envelopes.clear();
     this.envelopeLocks.clear();
@@ -636,5 +729,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.verificationTokens.clear();
     this.activeVerificationTokens.clear();
     this.verificationLocks.clear();
+    this.keyDirectories.clear();
+    this.publishedKeys.clear();
+    this.keyDirectoryLocks.clear();
   }
 }
