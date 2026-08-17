@@ -99,20 +99,19 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 
 ### Error codes
 
-| Code                 | HTTP status     | Raised when                                                                                           | Retryable |
-| -------------------- | --------------- | ----------------------------------------------------------------------------------------------------- | --------- |
-| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                        | No        |
-| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                                   | No        |
-| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read     | No        |
-| `not_found`          | 404             | No postage record exists for the message id                                                           | No        |
-| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                        | No        |
-| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                      | No        |
-| `expired_challenge`  | 422             | Quote was already expired at submission time                                                          | No        |
-| `invalid_quote`      | 422             | Quote digest is tampered, reused for another message/recipient, or bound to a different asset/network | No        |
-| `stale_quote`        | 422             | Recipient policy changed after the quote was issued                                                   | No        |
-| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                        | Yes       |
-| `method_not_allowed` | 405             | HTTP method not supported on the route                                                                | No        |
-| `internal_error`     | 500             | Unexpected server error                                                                               | Yes       |
+| Code                 | HTTP status     | Raised when                                                                                                                       | Retryable |
+| -------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `bad_request`        | 400 / 413 / 415 | Invalid JSON body, body over 64 KB, or non-JSON `Content-Type`                                                                    | No        |
+| `unauthorized`       | 401             | Missing or invalid `x-stealth-address` actor header                                                                               | No        |
+| `forbidden`          | 403             | Actor does not match the sender, recipient blocked the sender, or a non-participant tried to read                                 | No        |
+| `not_found`          | 404             | No postage record exists for the message id                                                                                       | No        |
+| `conflict`           | 409             | Duplicate submit, or settle/refund of already-resolved postage                                                                    | No        |
+| `validation_error`   | 422             | Schema validation failed, or amount is below the mailbox minimum                                                                  | No        |
+| `expired_challenge`  | 422             | Quote was already expired at submission time                                                                                      | No        |
+| `invalid_quote`      | 422             | Quote digest is tampered, reused for another message/recipient, bound to a different asset/network, or policy changed after issue | No        |
+| `too_many_requests`  | 429             | Account, IP, device, sender-recipient, or relay rate limit hit                                                                    | Yes       |
+| `method_not_allowed` | 405             | HTTP method not supported on the route                                                                                            | No        |
+| `internal_error`     | 500             | Unexpected server error                                                                                                           | Yes       |
 
 ### Retryable vs non-retryable
 
@@ -135,8 +134,7 @@ Clients should branch on `error.code`, not on `message` text. Every response als
 - `400` / `413` / `415` `bad_request` — malformed request body.
 - `422` `validation_error` — schema invalid, or `amount` is below the mailbox minimum (`details.minimumPostage`).
 - `422` `expired_challenge` — the quote was already expired when submitted; fetch a fresh quote and retry.
-- `422` `invalid_quote` — the quote digest does not match the submission (tampered `amount`/`recipient`/`sender`/`messageId`, or the quote was bound to a different `asset`/`network`); fetch a fresh quote for the exact message and retry.
-- `422` `stale_quote` — the recipient policy changed after the quote was issued; re-quote against the current policy and retry.
+- `422` `invalid_quote` — the quote digest does not match the submission (tampered `amount`/`recipient`/`sender`/`messageId`, a quote bound to a different `asset`/`network`, or a recipient policy that changed after the quote was issued); fetch a fresh quote for the exact message against the current policy and retry.
 - `429` `too_many_requests` — a rate limit was hit (`details.retryAfterSeconds`).
 - `409` `conflict` — postage already exists for this message id (unless replayed with an idempotency key).
 - `201` — record created with status `pending`.

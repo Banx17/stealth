@@ -334,7 +334,7 @@ export async function verifyQuoteSubmission(
 
   const policyVersion = await getPolicyVersion(context.repository, input.recipient);
   if (input.policyVersion !== policyVersion) {
-    throw new ApiError(422, "stale_quote", "Quote is stale: the recipient policy has changed", {
+    throw new ApiError(422, "invalid_quote", "Quote is stale: the recipient policy has changed", {
       expectedPolicyVersion: policyVersion,
       suppliedPolicyVersion: input.policyVersion,
     });

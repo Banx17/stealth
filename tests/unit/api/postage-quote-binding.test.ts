@@ -226,7 +226,7 @@ describe("authenticated postage quote binding (BETA-039)", () => {
         assetProvider: provider,
       }),
     ).rejects.toMatchObject({
-      code: "stale_quote",
+      code: "invalid_quote",
       status: 422,
       details: { expectedPolicyVersion: 2, suppliedPolicyVersion: 1 },
     });
