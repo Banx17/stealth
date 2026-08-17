@@ -91,8 +91,7 @@ export type MarkReceiptReadResult =
   | { outcome: "marked"; receipt: Receipt };
 
 export type UpdateUserResult =
-  | { updated: true; user: User }
-  | { updated: false; current: User | null };
+  { updated: true; user: User } | { updated: false; current: User | null };
 
 export type IssueVerificationTokenResult =
   | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
@@ -437,7 +436,9 @@ export class ValidatedApiRepository implements ApiRepository {
 
   async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
     const raw = await this.inner.getMessageDeliveryStatus(messageId);
-    return raw ? validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", raw) : null;
+    return raw
+      ? validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", raw)
+      : null;
   }
 
   async setMessageDeliveryStatus(
@@ -450,7 +451,6 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
-
     const result = await this.inner.createReceiptIfAbsent(versionRecord("receipt", receipt));
     if (result.created) {
       result.receipt = validateRecord<Receipt>("receipt", result.receipt);
@@ -824,6 +824,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "findExternalWalletOwner",
   "getVerificationToken",
   "getWalletChallenge",
+  "getMessageDeliveryStatus",
+  "setMessageDeliveryStatus",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -932,6 +934,20 @@ export class RetryableApiRepository implements ApiRepository {
 
   setReceipt(receipt: Receipt): Promise<Receipt> {
     return this.withRetry("setReceipt", () => this.inner.setReceipt(receipt));
+  }
+
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    return this.withRetry("getMessageDeliveryStatus", () =>
+      this.inner.getMessageDeliveryStatus(messageId),
+    );
+  }
+
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    return this.withRetry("setMessageDeliveryStatus", () =>
+      this.inner.setMessageDeliveryStatus(record),
+    );
   }
 
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {

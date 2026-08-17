@@ -139,7 +139,6 @@ export class HybridApiRepository implements ApiRepository {
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
-
     const existing = await this.getReceipt(receipt.messageId);
     if (existing) return { created: false, receipt: existing };
 
@@ -272,7 +271,6 @@ export class HybridApiRepository implements ApiRepository {
 
   async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
     return this.getStub().createRetiredSession(retiredSession);
->>>>>>> upstream/main
   }
 
   // Consistent layer delegated to Durable Object via RPC
@@ -333,8 +331,7 @@ export class HybridApiRepository implements ApiRepository {
 
   async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
     const wallets = (await this.kv.get(this.key("external-wallet", owner), "json")) as
-      | ExternalWallet[]
-      | null;
+      ExternalWallet[] | null;
     const existing = wallets ?? [];
     const idx = existing.findIndex((w) => w.address === wallet.address);
     if (idx >= 0) {
@@ -350,8 +347,7 @@ export class HybridApiRepository implements ApiRepository {
   async removeExternalWallet(owner: string, address: string): Promise<void> {
     const wallets =
       ((await this.kv.get(this.key("external-wallet", owner), "json")) as
-        | ExternalWallet[]
-        | null) ?? [];
+        ExternalWallet[] | null) ?? [];
     await this.kv.put(
       this.key("external-wallet", owner),
       JSON.stringify(wallets.filter((w) => w.address !== address)),

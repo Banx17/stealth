@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   IdempotencyRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   Postage,
   PostageStatus,
   Receipt,
@@ -104,6 +105,17 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setReceipt");
     return this.inner.setReceipt(receipt);
   }
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    this.maybeFail("getMessageDeliveryStatus");
+    return this.inner.getMessageDeliveryStatus(messageId);
+  }
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    this.maybeFail("setMessageDeliveryStatus");
+    return this.inner.setMessageDeliveryStatus(record);
+  }
+
   async acquireIdempotencyRecord(
     key: string,
     requestDigest: string,

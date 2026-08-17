@@ -15,7 +15,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
+
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
@@ -82,6 +84,12 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
+  id: '/api/v1/delivery/$messageId',
+  path: '/api/v1/delivery/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+
 const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
   id: '/api/v1/receipts/',
   path: '/api/v1/receipts/',
@@ -276,6 +284,8 @@ export interface FileRoutesByFullPath {
   '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
@@ -320,6 +330,8 @@ export interface FileRoutesByTo {
   '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
@@ -365,6 +377,8 @@ export interface FileRoutesById {
   '/policy-editor': typeof PolicyEditorRouteRoute
   '/motion-gallery': typeof MotionGalleryRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
@@ -544,6 +558,8 @@ export interface RootRouteChildren {
   PolicyEditorRouteRoute: typeof PolicyEditorRouteRoute
   MotionGalleryRoute: typeof MotionGalleryRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
+  ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
+
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
@@ -622,6 +638,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/delivery/$messageId': {
+      id: '/api/v1/delivery/$messageId'
+      path: '/api/v1/delivery/$messageId'
+      fullPath: '/api/v1/delivery/$messageId'
+      preLoaderRoute: typeof ApiV1DeliveryMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+
     '/api/v1/receipts/': {
       id: '/api/v1/receipts/'
       path: '/api/v1/receipts'

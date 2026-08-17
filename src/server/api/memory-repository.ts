@@ -523,7 +523,6 @@ export class MemoryApiRepository implements ApiRepository {
       this.verificationTokens.set(tokenHash, updated);
       return { recorded: true, token: structuredClone(updated) };
     });
->>>>>>> upstream/main
   }
 
   async getRelayQueueDepth(_relayId: string) {

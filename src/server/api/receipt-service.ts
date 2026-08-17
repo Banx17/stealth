@@ -137,4 +137,3 @@ export async function markReceiptRead(
 
   return result.receipt;
 }
-

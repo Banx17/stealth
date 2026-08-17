@@ -269,7 +269,7 @@ describe("BETA-035: Off-Chain Message Delivery State Machine", () => {
       expect(afterReceipt.state).toBe("delivered");
       expect(afterReceipt.isTerminal).toBe(false);
 
-      await markReceiptRead(repository, MESSAGE_ID);
+      await markReceiptRead(repository, MESSAGE_ID, RECIPIENT);
 
       const afterRead = await getDeliveryState(repository, MESSAGE_ID);
       expect(afterRead.state).toBe("read");
