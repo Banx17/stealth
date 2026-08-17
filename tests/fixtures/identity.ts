@@ -79,7 +79,7 @@ export function redactSecrets<T>(input: T): T {
     for (const [key, value] of Object.entries(input)) {
       const lowerKey = key.toLowerCase();
       if (
-        lowerKey.includes("password") ||
+        lowerKey.includes("pass") ||
         lowerKey.includes("secrethash") ||
         lowerKey.includes("walletkeyref") ||
         lowerKey.includes("secretkey") ||
