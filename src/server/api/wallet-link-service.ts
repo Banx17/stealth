@@ -1,3 +1,4 @@
+import { recordAuditEvent } from "./audit";
 import type { ExternalWallet, ExternalWalletChallenge, WalletCapability } from "./domain";
 import { ApiError } from "./errors";
 import type { ApiRepository } from "./repository";
@@ -89,17 +90,127 @@ export async function linkExternalWallet(
   return repository.setExternalWallet(owner, wallet);
 }
 
+export interface ActiveSigner {
+  signerType: "external" | "managed";
+  address: string;
+  capabilities: WalletCapability[];
+  isFallback: boolean;
+}
+
+export async function resolveActiveSigner(
+  repository: ApiRepository,
+  owner: string,
+): Promise<ActiveSigner> {
+  const wallets = await repository.getExternalWallets(owner);
+  const signWallet = wallets.find((w) => w.capabilities.includes("sign"));
+  if (signWallet) {
+    return {
+      signerType: "external",
+      address: signWallet.address,
+      capabilities: signWallet.capabilities,
+      isFallback: false,
+    };
+  }
+  return {
+    signerType: "managed",
+    address: owner,
+    capabilities: ["sign", "send", "read"],
+    isFallback: true,
+  };
+}
+
+export async function resolveTransactionSigner(
+  repository: ApiRepository,
+  owner: string,
+  targetSignerAddress?: string,
+): Promise<ActiveSigner> {
+  if (!targetSignerAddress) {
+    return resolveActiveSigner(repository, owner);
+  }
+  const wallets = await repository.getExternalWallets(owner);
+  const matched = wallets.find(
+    (w) => w.address === targetSignerAddress && w.capabilities.includes("sign"),
+  );
+  if (matched) {
+    return {
+      signerType: "external",
+      address: matched.address,
+      capabilities: matched.capabilities,
+      isFallback: false,
+    };
+  }
+  return {
+    signerType: "managed",
+    address: owner,
+    capabilities: ["sign", "send", "read"],
+    isFallback: true,
+  };
+}
+
 export async function unlinkExternalWallet(
   repository: ApiRepository,
   owner: string,
   address: string,
-): Promise<void> {
-  const wallets = await repository.getExternalWallets(owner);
-  const exists = wallets.some((w) => w.address === address);
-  if (!exists) {
-    throw new ApiError(404, "not_found", "External wallet not found");
+  requestId = "unknown",
+): Promise<ActiveSigner> {
+  try {
+    const wallets = await repository.getExternalWallets(owner);
+    const targetWallet = wallets.find((w) => w.address === address);
+
+    if (!targetWallet) {
+      recordAuditEvent({
+        actor: owner,
+        action: "wallet_link.unlink",
+        targetType: "external_wallet",
+        safeTargetReference: address,
+        result: "denied",
+        requestId,
+      });
+      throw new ApiError(404, "not_found", "External wallet not found");
+    }
+
+    if (address === owner && wallets.length <= 1) {
+      recordAuditEvent({
+        actor: owner,
+        action: "wallet_link.unlink",
+        targetType: "external_wallet",
+        safeTargetReference: address,
+        result: "denied",
+        requestId,
+      });
+      throw new ApiError(
+        400,
+        "bad_request",
+        "Cannot remove the primary or only account access method",
+      );
+    }
+
+    await repository.deleteWalletChallenge(owner, address);
+    await repository.removeExternalWallet(owner, address);
+
+    recordAuditEvent({
+      actor: owner,
+      action: "wallet_link.unlink",
+      targetType: "external_wallet",
+      safeTargetReference: address,
+      result: "success",
+      requestId,
+    });
+
+    return resolveActiveSigner(repository, owner);
+  } catch (error) {
+    if (!(error instanceof ApiError)) {
+      recordAuditEvent({
+        actor: owner,
+        action: "wallet_link.unlink",
+        targetType: "external_wallet",
+        safeTargetReference: address,
+        result: "denied",
+        requestId,
+      });
+    }
+    throw error;
   }
-  await repository.removeExternalWallet(owner, address);
 }
 
 export async function listExternalWallets(

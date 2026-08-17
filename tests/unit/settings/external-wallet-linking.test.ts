@@ -107,7 +107,20 @@ describe("wallet-link client service", () => {
     it("succeeds on 2xx", async () => {
       globalThis.fetch = mockFetchOnce(200, { data: { unlinked: true } }) as typeof fetch;
 
-      await expect(unlinkWallet(externalAddress)).resolves.toBeUndefined();
+      await expect(unlinkWallet(externalAddress)).resolves.toEqual({ unlinked: true });
+    });
+
+    it("passes explicit confirmation parameter when provided", async () => {
+      const mockFetch = mockFetchOnce(200, { data: { unlinked: true } });
+      globalThis.fetch = mockFetch as typeof fetch;
+
+      await unlinkWallet(externalAddress, { confirm: true });
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("confirm=true"),
+        expect.objectContaining({
+          headers: expect.objectContaining({ "x-stealth-confirm": "true" }),
+        }),
+      );
     });
 
     it("throws on failure", async () => {
