@@ -38,6 +38,7 @@ import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
+import { resolveSenderAddress } from "@/services/stellar/wallet";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -256,10 +257,23 @@ export function Compose({
     setSendError(null);
 
     if (!scheduled) {
+      const resolvedAccounts = resolvedRecipients
+        .filter((recipient) => recipient.state === "verified" || recipient.state === "unknown")
+        .map((recipient) => ({
+          address: recipient.address,
+          account: recipient.resolvedAccount ?? recipient.address,
+        }));
+      const resolvedSender = (await resolveSenderAddress()) ?? senderAddress;
       const pipeline =
         pipelineRef.current ??
         new SendPipeline(
-          { sender: "me", to: to.trim(), subject: subject.trim(), body },
+          {
+            sender: resolvedSender,
+            to: to.trim(),
+            subject: subject.trim(),
+            body,
+            recipients: resolvedAccounts,
+          },
           setSendStages,
         );
       pipelineRef.current = pipeline;

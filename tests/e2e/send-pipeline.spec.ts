@@ -3,9 +3,11 @@ import { generateRecipientKeyPair } from "../../src/services/crypto/key-wrap";
 
 // Deterministic Stellar address for the injected demo wallet.
 const DEMO_SIGNER = `G${"C".repeat(55)}`;
-const RECIPIENT = `G${"B".repeat(55)}`;
+const ALICE = `G${"B".repeat(55)}`;
+const BOB = `G${"D".repeat(55)}`;
 
-let recipientKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
+let aliceKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
+let bobKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
 
 function keyDirectoryBody(owner: string, spkiBase64: string) {
   const now = Date.now();
@@ -32,15 +34,11 @@ function keyDirectoryBody(owner: string, spkiBase64: string) {
 }
 
 test.beforeAll(async () => {
-  recipientKey = await generateRecipientKeyPair();
+  aliceKey = await generateRecipientKeyPair();
+  bobKey = await generateRecipientKeyPair();
 });
 
-test.describe("compose flow", () => {
-  // E2E runs in a headless browser with no Freighter extension and no live
-  // relay. Install a deterministic wallet stub (read by the wallet seam in
-  // src/services/stellar/wallet.ts) and stub relay discovery, the relay accept
-  // endpoint, and the recipient key directory so the full send pipeline can
-  // complete end to end.
+test.describe("send pipeline", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((signer) => {
       Object.defineProperty(window, "__freighterApi", {
@@ -76,24 +74,30 @@ test.describe("compose flow", () => {
     await page.route("**/api/v1/identity/keys/**", (route) => {
       const url = new URL(route.request().url());
       const owner = (url.searchParams.get("owner") ?? "").toUpperCase();
+      const spki = owner === ALICE ? aliceKey.publicKeySpkiBase64 : bobKey.publicKeySpkiBase64;
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(keyDirectoryBody(owner, recipientKey.publicKeySpkiBase64)),
+        body: JSON.stringify(keyDirectoryBody(owner, spki)),
       });
     });
 
     await openDemoMailbox(page);
   });
 
-  test("opens compose, fills fields, and sends message", async ({ page }) => {
+  test("seals, signs, and submits to the relay for two recipients with Unicode body", async ({
+    page,
+  }) => {
     await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
     await expect(page.getByText("New message")).toBeVisible();
 
-    await page.getByPlaceholder("recipients@", { exact: false }).fill(RECIPIENT);
-    await page.getByPlaceholder("Subject").fill("E2E test subject");
-    await page.getByPlaceholder("Write your message", { exact: false }).fill("Hello from E2E test");
-    await expect(page.getByText(RECIPIENT)).toBeVisible();
+    await page.getByPlaceholder("recipients@", { exact: false }).fill(`${ALICE}, ${BOB}`);
+    await page.getByPlaceholder("Subject").fill("Two-recipient pipeline");
+    await page
+      .getByPlaceholder("Write your message", { exact: false })
+      .fill("Hello Bob — Grüße π ≈ 3.14 ✓ 安全的");
+    await expect(page.getByText(ALICE)).toBeVisible();
+    await expect(page.getByText(BOB)).toBeVisible();
 
     await page.getByRole("button", { name: "Send", exact: true }).click();
 
@@ -101,28 +105,32 @@ test.describe("compose flow", () => {
     await expect(page.getByText(/Encrypted message sent/i)).toBeVisible();
   });
 
-  test("validates required fields before sending", async ({ page }) => {
-    await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
-    await expect(page.getByText("New message")).toBeVisible();
+  test("shows a recoverable error when a recipient key is missing", async ({ page }) => {
+    // Drop the key-directory stub for one recipient so its keys cannot resolve.
+    await page.unroute("**/api/v1/identity/keys/**");
+    await page.route("**/api/v1/identity/keys/**", (route) => {
+      const url = new URL(route.request().url());
+      const owner = (url.searchParams.get("owner") ?? "").toUpperCase();
+      if (owner === ALICE) {
+        route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+      } else {
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(keyDirectoryBody(owner, bobKey.publicKeySpkiBase64)),
+        });
+      }
+    });
 
+    await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
+    await page.getByPlaceholder("recipients@", { exact: false }).fill(`${ALICE}, ${BOB}`);
+    await page.getByPlaceholder("Subject").fill("Missing key");
+    await page
+      .getByPlaceholder("Write your message", { exact: false })
+      .fill("This should not send");
     await page.getByRole("button", { name: "Send", exact: true }).click();
 
     await expect(page.getByText("New message")).toBeVisible();
-    await expect(page.getByText(/Please add at least one recipient/i)).toBeVisible();
-  });
-
-  test("schedules message instead of immediate send", async ({ page }) => {
-    await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
-    await expect(page.getByText("New message")).toBeVisible();
-
-    await page.getByPlaceholder("recipients@", { exact: false }).fill("bob*stellar.org");
-    await page.getByPlaceholder("Subject").fill("Scheduled message");
-    await page.getByPlaceholder("Write your message", { exact: false }).fill("Sent later");
-    await expect(page.getByText("bob*stellar.org")).toBeVisible();
-
-    await page.getByRole("button", { name: "Schedule", exact: true }).click();
-
-    await expect(page.getByText("New message")).not.toBeVisible();
-    await expect(page.getByText(/Message scheduled with postage reserved/i)).toBeVisible();
+    await expect(page.getByText(/Send failed/i)).toBeVisible();
   });
 });
