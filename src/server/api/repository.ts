@@ -1,13 +1,16 @@
-import type { ZodSchema } from "zod";
 import type {
   Credential,
+  ExternalWallet,
+  ExternalWalletChallenge,
   IdempotencyRecord,
+  KeyDirectoryRecord,
   MailboxPolicy,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
   Profile,
   ProvisioningRecord,
+  PublishedKey,
   Receipt,
   RetiredSession,
   SenderRule,
@@ -17,6 +20,7 @@ import type {
   UsernameReservation,
   Wallet,
 } from "./domain";
+import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
 
 /**
@@ -178,6 +182,17 @@ export interface ApiRepository {
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
+  getExternalWallets(owner: string): Promise<ExternalWallet[]>;
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet>;
+  removeExternalWallet(owner: string, address: string): Promise<void>;
+  findExternalWalletOwner(address: string): Promise<string | null>;
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null>;
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void>;
+  deleteWalletChallenge(owner: string, address: string): Promise<void>;
   // BETA-002: User Account, Profile, and Credential Domain Methods
   getUserById(userId: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
@@ -291,6 +306,14 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
+  // ---------------------------------------------------------------------------
+  getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null>;
+  getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
+  savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
+  saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
 
   reset?(): void;
 }
@@ -715,6 +738,58 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return this.inner.getExternalWallets(owner);
+  }
+
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+
+  removeExternalWallet(owner: string, address: string): Promise<void> {
+    return this.inner.removeExternalWallet(owner, address);
+  }
+
+  findExternalWalletOwner(address: string): Promise<string | null> {
+    return this.inner.findExternalWalletOwner(address);
+  }
+
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null> {
+    return this.inner.getWalletChallenge(owner, address);
+  }
+
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+
+  deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    return this.inner.deleteWalletChallenge(owner, address);
+  }
+
+  async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    const raw = await this.inner.getKeyDirectory(owner);
+    return raw ? validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", raw) : null;
+  }
+
+  async getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    const raw = await this.inner.getPublishedKey(owner, keyId);
+    return raw ? validateRecord<PublishedKey>("publishedKey", raw) : null;
+  }
+
+  async savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey> {
+    const result = await this.inner.savePublishedKey(owner, versionRecord("publishedKey", key));
+    return validateRecord<PublishedKey>("publishedKey", result);
+  }
+
+  async saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    const result = await this.inner.saveKeyDirectory(versionRecord("keyDirectoryRecord", record));
+    return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -773,6 +848,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getWallet",
   "releaseUsernameReservation",
   "initializePolicyIfAbsent",
+  "getExternalWallets",
+  "findExternalWalletOwner",
+  "getWalletChallenge",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1083,6 +1161,58 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+
+  getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return this.withRetry("getExternalWallets", () => this.inner.getExternalWallets(owner));
+  }
+
+  setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    return this.inner.setExternalWallet(owner, wallet);
+  }
+
+  removeExternalWallet(owner: string, address: string): Promise<void> {
+    return this.inner.removeExternalWallet(owner, address);
+  }
+
+  findExternalWalletOwner(address: string): Promise<string | null> {
+    return this.withRetry("findExternalWalletOwner", () =>
+      this.inner.findExternalWalletOwner(address),
+    );
+  }
+
+  getWalletChallenge(owner: string, address: string): Promise<ExternalWalletChallenge | null> {
+    return this.withRetry("getWalletChallenge", () =>
+      this.inner.getWalletChallenge(owner, address),
+    );
+  }
+
+  setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    return this.inner.setWalletChallenge(owner, address, challenge);
+  }
+
+  deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    return this.inner.deleteWalletChallenge(owner, address);
+  }
+
+  getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
+    return this.withRetry("getKeyDirectory", () => this.inner.getKeyDirectory(owner));
+  }
+
+  getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null> {
+    return this.withRetry("getPublishedKey", () => this.inner.getPublishedKey(owner, keyId));
+  }
+
+  savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey> {
+    return this.withRetry("savePublishedKey", () => this.inner.savePublishedKey(owner, key));
+  }
+
+  saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
+    return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
   }
 
   reset(): void {

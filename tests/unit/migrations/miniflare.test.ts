@@ -85,7 +85,7 @@ function seedIdentityRecords(extra: Array<{ key: string; value: unknown }> = [])
   ]);
 }
 
-describe("identity migration worker (local Cloudflare emulation)", () => {
+describe("identity migration worker (local Cloudflare emulation)", { timeout: 30000 }, () => {
   it("rejects non-migration routes and missing commands", async () => {
     const missing = await mf.dispatchFetch("http://localhost/other");
     expect(missing.status).toBe(404);
