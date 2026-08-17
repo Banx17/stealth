@@ -200,6 +200,50 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setCredential");
     return this.inner.setCredential(credential);
   }
+  async getProvisioningRecord(userId: string) {
+    this.maybeFail("getProvisioningRecord");
+    return this.inner.getProvisioningRecord(userId);
+  }
+  async createProvisioningRecord(
+    record: import("../../../src/server/api/domain").ProvisioningRecord,
+  ) {
+    this.maybeFail("createProvisioningRecord");
+    return this.inner.createProvisioningRecord(record);
+  }
+  async setProvisioningRecord(
+    record: import("../../../src/server/api/domain").ProvisioningRecord,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("setProvisioningRecord");
+    return this.inner.setProvisioningRecord(record, expectedVersion);
+  }
+  async reserveUsername(username: string, userId: string, leaseMs: number) {
+    this.maybeFail("reserveUsername");
+    return this.inner.reserveUsername(username, userId, leaseMs);
+  }
+  async getUsernameReservation(username: string) {
+    this.maybeFail("getUsernameReservation");
+    return this.inner.getUsernameReservation(username);
+  }
+  async releaseUsernameReservation(username: string, userId: string) {
+    this.maybeFail("releaseUsernameReservation");
+    return this.inner.releaseUsernameReservation(username, userId);
+  }
+  async getWallet(userId: string) {
+    this.maybeFail("getWallet");
+    return this.inner.getWallet(userId);
+  }
+  async createWallet(wallet: import("../../../src/server/api/domain").Wallet) {
+    this.maybeFail("createWallet");
+    return this.inner.createWallet(wallet);
+  }
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: import("../../../src/server/api/domain").MailboxPolicy,
+  ) {
+    this.maybeFail("initializePolicyIfAbsent");
+    return this.inner.initializePolicyIfAbsent(owner, policy);
+  }
   async getSession(sessionId: string) {
     this.maybeFail("getSession");
     return this.inner.getSession(sessionId);

@@ -4,13 +4,16 @@ import type {
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   Receipt,
   RetiredSession,
   Session,
   StoredEnvelope,
   User,
+  UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  Wallet,
 } from "./domain";
 import type {
   AcquireIdempotencyResult,
@@ -19,7 +22,10 @@ import type {
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  UpdateProvisioningResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import { ApiError } from "./errors";
 import { identityRecordFamilies, selectFamilies } from "../migrations/adapters";
@@ -336,6 +342,156 @@ export class StealthCoordinator extends DurableObjectBase {
     return credential;
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-014: Transactional account-provisioning DO methods
+  //
+  // The coordinator is the single authority for provisioning state, username
+  // claims, wallet insert-once semantics, and policy initialization. Every
+  // mutation runs under a per-key lock so concurrent provisioners for the
+  // same account (or the same username) serialize instead of racing.
+  // ---------------------------------------------------------------------------
+
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    const record = (await this.ctx.storage.get(`provisioning:${userId}`)) as
+      | ProvisioningRecord
+      | undefined;
+    return record ?? null;
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.runExclusive(`provisioning:${record.userId}`, async () => {
+      const existing = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
+        | ProvisioningRecord
+        | undefined;
+      if (existing) {
+        return { created: false, record: existing };
+      }
+      await this.ctx.storage.put(`provisioning:${record.userId}`, record);
+      return { created: true, record };
+    });
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.runExclusive(`provisioning:${record.userId}`, async () => {
+      const current = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
+        | ProvisioningRecord
+        | undefined;
+      if (!current) {
+        return { updated: false, current: null };
+      }
+      if (current.version !== expectedVersion) {
+        return { updated: false, current };
+      }
+      const next: ProvisioningRecord = {
+        ...record,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      await this.ctx.storage.put(`provisioning:${record.userId}`, next);
+      return { updated: true, record: next };
+    });
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const norm = username.toLowerCase().trim();
+    const reservation = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
+      | UsernameReservation
+      | undefined;
+    return reservation ?? null;
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const norm = username.toLowerCase().trim();
+    return this.runExclusive(`username-reservation:${norm}`, async () => {
+      // A user record already bound to this username outranks any claim.
+      const boundUser = (await this.ctx.storage.get(`user:username:${norm}`)) as string | undefined;
+      if (boundUser && boundUser !== userId) {
+        return { outcome: "unavailable" as const };
+      }
+
+      const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
+        | UsernameReservation
+        | undefined;
+      const now = Date.now();
+
+      if (existing) {
+        if (existing.userId === userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "already-reserved" as const, reservation: existing };
+        }
+        if (existing.userId !== userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "unavailable" as const };
+        }
+      }
+
+      const reservation: UsernameReservation = {
+        username: norm,
+        userId,
+        reservedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + leaseMs).toISOString(),
+      };
+      await this.ctx.storage.put(`username-reservation:${norm}`, reservation);
+      return { outcome: "reserved" as const, reservation };
+    });
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    const norm = username.toLowerCase().trim();
+    return this.runExclusive(`username-reservation:${norm}`, async () => {
+      const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
+        | UsernameReservation
+        | undefined;
+      if (!existing) return false;
+      if (existing.userId !== userId) return false;
+      await this.ctx.storage.delete(`username-reservation:${norm}`);
+      return true;
+    });
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    const wallet = (await this.ctx.storage.get(`wallet:${userId}`)) as Wallet | undefined;
+    return wallet ?? null;
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.runExclusive(`wallet:${wallet.userId}`, async () => {
+      const existing = (await this.ctx.storage.get(`wallet:${wallet.userId}`)) as
+        | Wallet
+        | undefined;
+      if (existing) {
+        return { outcome: "already-exists" as const, wallet: existing };
+      }
+      await this.ctx.storage.put(`wallet:${wallet.userId}`, wallet);
+      return { outcome: "created" as const, wallet };
+    });
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: import("./domain").MailboxPolicy,
+  ): Promise<{ created: boolean; policy: import("./domain").MailboxPolicy }> {
+    const normOwner = owner.toUpperCase().trim();
+    return this.runExclusive(`policy-init:${normOwner}`, async () => {
+      const existing = (await this.ctx.storage.get(`policy-init:${normOwner}`)) as
+        | import("./domain").MailboxPolicy
+        | undefined;
+      if (existing) {
+        return { created: false, policy: existing };
+      }
+      await this.ctx.storage.put(`policy-init:${normOwner}`, policy);
+      return { created: true, policy };
+    });
+  }
+
+  // BETA-006: Durable Session Storage
   async getSession(sessionId: string): Promise<Session | null> {
     const session = (await this.ctx.storage.get(`session:${sessionId}`)) as Session | undefined;
     return session ?? null;

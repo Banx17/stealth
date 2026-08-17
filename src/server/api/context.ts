@@ -15,7 +15,10 @@ import {
   sessionSchema,
   retiredSessionSchema,
   storedEnvelopeSchema,
+  provisioningRecordSchema,
+  usernameReservationSchema,
   verificationTokenSchema,
+  walletSchema,
   policyWriteIntentSchema,
   publishedKeySchema,
   keyDirectoryRecordSchema,
@@ -217,6 +220,12 @@ registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
 // ValidatedApiRepository can detect tampered or structurally invalid
 // envelope records at the adapter boundary before they reach any caller.
 registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
+// Issue #1921 (BETA-014): provisioning state machine, username claims and
+// wallet records are versioned and validated at the adapter boundary like
+// every other durable record.
+registerRecordSchema("provisioning", 1, provisioningRecordSchema);
+registerRecordSchema("usernameReservation", 1, usernameReservationSchema);
+registerRecordSchema("wallet", 1, walletSchema);
 // Issue #1930 (BETA-023): durable scheduled-write intent for the Policies
 // contract, so tampered or structurally invalid intents fail closed at the
 // adapter boundary instead of silently drifting the reconciliation state.
