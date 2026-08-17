@@ -343,7 +343,9 @@ export class IdentityResolverService {
               updatedAt: rawProfile.updatedAt,
             };
           }
-        } catch {}
+        } catch {
+          // Ignore repository lookup failures on optional policy and profile
+        }
       }
 
       return {
