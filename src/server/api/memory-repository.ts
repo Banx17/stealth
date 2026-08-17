@@ -403,7 +403,6 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(credential);
   }
 
-<<<<<<< ours
   // BETA-014: Transactional account-provisioning implementation
   async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
     return structuredClone(this.provisioning.get(userId) ?? null);
