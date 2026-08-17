@@ -31,6 +31,10 @@ import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/regi
 import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
 import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
+import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
+import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
+import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
+import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
@@ -148,6 +152,27 @@ const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
   path: '/api/v1/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1WalletLinkIndexRoute = ApiV1WalletLinkIndexRouteImport.update({
+  id: '/api/v1/wallet/link/',
+  path: '/api/v1/wallet/link/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletLinkVerifyRoute = ApiV1WalletLinkVerifyRouteImport.update({
+  id: '/api/v1/wallet/link/verify',
+  path: '/api/v1/wallet/link/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletLinkChallengeRoute =
+  ApiV1WalletLinkChallengeRouteImport.update({
+    id: '/api/v1/wallet/link/challenge',
+    path: '/api/v1/wallet/link/challenge',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
+  id: '/api/v1/wallet/link/$address',
+  path: '/api/v1/wallet/link/$address',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -213,6 +238,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
+  '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
+  '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesByTo {
@@ -243,6 +272,10 @@ export interface FileRoutesByTo {
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
+  '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
+  '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/link': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRoutesById {
@@ -274,6 +307,10 @@ export interface FileRoutesById {
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
+  '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
+  '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
+  '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRouteTypes {
@@ -306,6 +343,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/wallet/link/$address'
+    | '/api/v1/wallet/link/challenge'
+    | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/link/'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -336,6 +377,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/wallet/link/$address'
+    | '/api/v1/wallet/link/challenge'
+    | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/link'
     | '/api/v1/policies/$owner/senders/$sender'
   id:
     | '__root__'
@@ -366,6 +411,10 @@ export interface FileRouteTypes {
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
     | '/api/v1/receipts/$messageId/read'
+    | '/api/v1/wallet/link/$address'
+    | '/api/v1/wallet/link/challenge'
+    | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/link/'
     | '/api/v1/policies/$owner/senders/$sender'
   fileRoutesById: FileRoutesById
 }
@@ -392,6 +441,10 @@ export interface RootRouteChildren {
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
+  ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
+  ApiV1WalletLinkChallengeRoute: typeof ApiV1WalletLinkChallengeRoute
+  ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
+  ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -550,6 +603,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/wallet/link/': {
+      id: '/api/v1/wallet/link/'
+      path: '/api/v1/wallet/link'
+      fullPath: '/api/v1/wallet/link/'
+      preLoaderRoute: typeof ApiV1WalletLinkIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/verify': {
+      id: '/api/v1/wallet/link/verify'
+      path: '/api/v1/wallet/link/verify'
+      fullPath: '/api/v1/wallet/link/verify'
+      preLoaderRoute: typeof ApiV1WalletLinkVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/challenge': {
+      id: '/api/v1/wallet/link/challenge'
+      path: '/api/v1/wallet/link/challenge'
+      fullPath: '/api/v1/wallet/link/challenge'
+      preLoaderRoute: typeof ApiV1WalletLinkChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/$address': {
+      id: '/api/v1/wallet/link/$address'
+      path: '/api/v1/wallet/link/$address'
+      fullPath: '/api/v1/wallet/link/$address'
+      preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/receipts/$messageId/read': {
       id: '/api/v1/receipts/$messageId/read'
       path: '/read'
@@ -662,6 +743,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
+  ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,
+  ApiV1WalletLinkChallengeRoute: ApiV1WalletLinkChallengeRoute,
+  ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
+  ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

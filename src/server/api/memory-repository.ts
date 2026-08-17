@@ -1,5 +1,7 @@
 import type {
   Credential,
+  ExternalWallet,
+  ExternalWalletChallenge,
   IdempotencyRecord,
   MailboxPolicy,
   PolicyWriteIntent,
@@ -33,6 +35,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
+  private readonly externalWallets = new Map<string, ExternalWallet[]>();
+  private readonly walletChallenges = new Map<string, ExternalWalletChallenge>();
   private readonly receiptLocks = new Map<string, Promise<void>>();
   // Issue #1936: envelope store and per-key insert locks.
   private readonly envelopes = new Map<string, StoredEnvelope>();
@@ -439,6 +443,64 @@ export class MemoryApiRepository implements ApiRepository {
     this.idempotency.set(key, structuredClone(record));
   }
 
+  async getExternalWallets(owner: string): Promise<ExternalWallet[]> {
+    return structuredClone(this.externalWallets.get(owner) ?? []);
+  }
+
+  async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
+    const wallets = this.externalWallets.get(owner) ?? [];
+    const existing = wallets.findIndex((w) => w.address === wallet.address);
+    if (existing >= 0) {
+      wallets[existing] = structuredClone(wallet);
+    } else {
+      wallets.push(structuredClone(wallet));
+    }
+    this.externalWallets.set(owner, wallets);
+    return structuredClone(wallet);
+  }
+
+  async removeExternalWallet(owner: string, address: string): Promise<void> {
+    const wallets = this.externalWallets.get(owner) ?? [];
+    this.externalWallets.set(
+      owner,
+      wallets.filter((w) => w.address !== address),
+    );
+  }
+
+  async findExternalWalletOwner(address: string): Promise<string | null> {
+    for (const [owner, wallets] of this.externalWallets.entries()) {
+      if (wallets.some((w) => w.address === address)) {
+        return owner;
+      }
+    }
+    return null;
+  }
+
+  walletChallengeKey(owner: string, address: string) {
+    return `${owner}:${address}`;
+  }
+
+  async getWalletChallenge(
+    owner: string,
+    address: string,
+  ): Promise<ExternalWalletChallenge | null> {
+    return structuredClone(
+      this.walletChallenges.get(this.walletChallengeKey(owner, address)) ?? null,
+    );
+  }
+
+  async setWalletChallenge(
+    owner: string,
+    address: string,
+    challenge: ExternalWalletChallenge,
+  ): Promise<void> {
+    this.walletChallenges.set(this.walletChallengeKey(owner, address), structuredClone(challenge));
+  }
+
+  async deleteWalletChallenge(owner: string, address: string): Promise<void> {
+    this.walletChallenges.delete(this.walletChallengeKey(owner, address));
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1936 (BETA-029) — Encrypted envelope persistence
   // ---------------------------------------------------------------------------
@@ -482,6 +544,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.senderRules.clear();
     this.counters.clear();
     this.idempotency.clear();
+    this.externalWallets.clear();
+    this.walletChallenges.clear();
     this.receiptLocks.clear();
     this.envelopes.clear();
     this.envelopeLocks.clear();
