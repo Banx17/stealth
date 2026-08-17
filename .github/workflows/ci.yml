@@ -28,7 +28,8 @@ jobs:
         run: bun install
 
       - name: Format Check
-        run: bun x prettier --check .
+        run: bun run prettier --check .
+
 
       - name: Lint
         run: bun run lint
