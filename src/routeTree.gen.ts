@@ -35,7 +35,6 @@ import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
-import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
@@ -172,9 +171,6 @@ const ApiV1WalletLinkChallengeRoute =
 const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
   id: '/api/v1/wallet/link/$address',
   path: '/api/v1/wallet/link/$address',
-const ApiV1AuthRegisterRoute = ApiV1AuthRegisterRouteImport.update({
-  id: '/api/v1/auth/register',
-  path: '/api/v1/auth/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
@@ -633,11 +629,6 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/wallet/link/$address'
       fullPath: '/api/v1/wallet/link/$address'
       preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
-    '/api/v1/auth/register': {
-      id: '/api/v1/auth/register'
-      path: '/api/v1/auth/register'
-      fullPath: '/api/v1/auth/register'
-      preLoaderRoute: typeof ApiV1AuthRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/receipts/$messageId/read': {
