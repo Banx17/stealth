@@ -30,7 +30,14 @@
     "migrations:integrity-check": "node scripts/identity-migrate.mjs integrity-check"
   },
   "overrides": {
-    "ws": "8.21.0"
+    "ws": "8.21.0",
+    "undici": ">=6.21.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "ws": "8.21.0",
+      "undici": ">=6.21.1"
+    }
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
