@@ -197,7 +197,7 @@ export class IdentityResolverService {
     }
 
     // Setup timeout controller
-    const timeoutMs = options.timeoutMs ?? 5000;
+    const timeoutMs = options.timeoutMs ?? 2000;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 

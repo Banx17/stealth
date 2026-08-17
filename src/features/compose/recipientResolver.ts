@@ -131,7 +131,7 @@ export async function resolveRecipient(
   // Try resolving via unified IdentityResolverService
   const resolver = context?.identityResolver ?? defaultIdentityResolver;
   try {
-    const resolved = await resolver.resolve(normalized);
+    const resolved = await resolver.resolve(normalized, { timeoutMs: 1500 });
     if (resolved.resolved && resolved.status === "active") {
       return {
         address,
