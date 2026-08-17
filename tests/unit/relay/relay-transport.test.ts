@@ -295,7 +295,7 @@ describe("relay auth & anti-replay security boundary", () => {
     const res2 = await handleRelaySubmit(req2, service);
     expect(res2.status).toBe(409);
     await expect(res2.json()).resolves.toMatchObject({
-      error: { code: "REPLAY_DETECTED" },
+      error: { code: "conflict", message: expect.stringContaining("REPLAY_DETECTED") },
     });
   });
 
@@ -310,7 +310,7 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "INVALID_SIGNATURE" },
+      error: { code: "unauthorized", message: expect.stringContaining("INVALID_SIGNATURE") },
     });
   });
 
@@ -325,7 +325,7 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "STALE_REQUEST" },
+      error: { code: "bad_request", message: expect.stringContaining("STALE_REQUEST") },
     });
   });
 
@@ -340,7 +340,7 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "FUTURE_REQUEST" },
+      error: { code: "bad_request", message: expect.stringContaining("FUTURE_REQUEST") },
     });
   });
 
@@ -355,7 +355,7 @@ describe("relay auth & anti-replay security boundary", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "AUDIENCE_MISMATCH" },
+      error: { code: "forbidden", message: expect.stringContaining("AUDIENCE_MISMATCH") },
     });
   });
 

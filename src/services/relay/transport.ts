@@ -69,6 +69,27 @@ function defaultVerify({
   }
 }
 
+function mapRelayAuthErrorToApiError(err: RelayAuthError): ApiError {
+  let apiCode: "unauthorized" | "forbidden" | "conflict" | "bad_request";
+  switch (err.code) {
+    case "INVALID_SIGNATURE":
+      apiCode = "unauthorized";
+      break;
+    case "AUDIENCE_MISMATCH":
+      apiCode = "forbidden";
+      break;
+    case "REPLAY_DETECTED":
+      apiCode = "conflict";
+      break;
+    default:
+      apiCode = "bad_request";
+      break;
+  }
+  return new ApiError(err.httpStatus, apiCode, `${err.code}: ${err.message}`, {
+    relayErrorCode: err.code,
+  });
+}
+
 export function handleRelayHealth(request: Request, service: RelayService) {
   return handleApiRequest(request, async () => {
     const health = await service.checkHealth();
@@ -162,7 +183,7 @@ export function handleRelaySubmit(request: Request, service: RelayService) {
         }
       } catch (err) {
         if (err instanceof RelayAuthError) {
-          throw new ApiError(err.code as any, err.message);
+          throw mapRelayAuthErrorToApiError(err);
         }
         throw err;
       }
