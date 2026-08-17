@@ -93,6 +93,22 @@ export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
 
+export type IssueVerificationTokenResult =
+  | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
+  | { outcome: "conflict"; token: VerificationToken };
+
+export type ConsumeVerificationTokenResult =
+  | { outcome: "not-found" }
+  | { outcome: "already-consumed"; token: VerificationToken }
+  | { outcome: "replaced"; token: VerificationToken }
+  | { outcome: "brute-force-blocked"; token: VerificationToken }
+  | { outcome: "expired"; token: VerificationToken }
+  | { outcome: "consumed"; token: VerificationToken };
+
+export type RecordVerificationAttemptResult =
+  | { recorded: false; token: VerificationToken | null }
+  | { recorded: true; token: VerificationToken };
+
 export interface MailboxQueryOptions {
   status?: "pending" | "delivered" | "all";
   includeTombstones?: boolean;
