@@ -8,18 +8,10 @@ import {
   validateSession,
 } from "@/server/api/auth/session-service";
 import { initializeMailboxPolicyDefaults } from "@/server/api/account-provisioning";
-import {
-  toPublicProfile,
-  toPublicUser,
-  type User,
-} from "@/server/api/domain";
+import { toPublicProfile, toPublicUser, type User } from "@/server/api/domain";
 import { ApiError } from "@/server/api/errors";
 import { MemoryApiRepository } from "@/server/api/memory-repository";
-import {
-  getMailboxPolicy,
-  getPolicyWriteIntent,
-  setSenderRule,
-} from "@/server/api/policy-service";
+import { getMailboxPolicy, getPolicyWriteIntent, setSenderRule } from "@/server/api/policy-service";
 import { requireActorMatches } from "@/server/api/actor";
 import type { ApiContext } from "@/server/api/context";
 
@@ -178,10 +170,7 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       const bobUser = (await repository.getUserByEmail("bob@stealth.mail"))!;
 
       // Provision Alice
-      const aliceProvision = await initializeMailboxPolicyDefaults(
-        repository,
-        aliceUser.address,
-      );
+      const aliceProvision = await initializeMailboxPolicyDefaults(repository, aliceUser.address);
       expect(aliceProvision.provisioned).toBe(true);
       expect(aliceProvision.source).toBe("default");
       expect(aliceProvision.offchainVersion).toBe(1);
@@ -189,10 +178,7 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       expect(aliceProvision.policy).toMatchObject(EXPECTED_BETA_DEFAULT_POLICY);
 
       // Provision Bob
-      const bobProvision = await initializeMailboxPolicyDefaults(
-        repository,
-        bobUser.address,
-      );
+      const bobProvision = await initializeMailboxPolicyDefaults(repository, bobUser.address);
       expect(bobProvision.provisioned).toBe(true);
       expect(bobProvision.source).toBe("default");
       expect(bobProvision.offchainVersion).toBe(1);
@@ -211,10 +197,7 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
       expect(bobIntent?.offchainVersion).toBe(1);
 
       // Idempotency check: repeated provisioning is safe and does not duplicate or bump version
-      const aliceRetry = await initializeMailboxPolicyDefaults(
-        repository,
-        aliceUser.address,
-      );
+      const aliceRetry = await initializeMailboxPolicyDefaults(repository, aliceUser.address);
       expect(aliceRetry.provisioned).toBe(false);
       expect(aliceRetry.scheduled).toBe(false);
       expect(aliceRetry.offchainVersion).toBe(1);

@@ -1,6 +1,9 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import type { RegistrationRequest } from "@/features/identity/registration";
-import { CURRENT_PRIVACY_POLICY_VERSION, CURRENT_TERMS_VERSION } from "@/features/identity/registration";
+import {
+  CURRENT_PRIVACY_POLICY_VERSION,
+  CURRENT_TERMS_VERSION,
+} from "@/features/identity/registration";
 import type { MailboxPolicy } from "@/server/api/domain";
 
 /**
