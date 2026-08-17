@@ -227,7 +227,9 @@ export function validateCommittedConfig(text: string): GuardResult {
   const shared = previewIds.filter((id) => productionIds.includes(id));
   if (shared.length > 0) {
     errors.push(
-      `Preview and production share KV namespace id(s) ${shared.join(", ")}; environments must not share storage`,
+      `Preview and production share KV namespace id(s) ${shared.join(
+        ", ",
+      )}; environments must not share storage`,
     );
   }
 
@@ -253,7 +255,9 @@ export function validateResolvedConfig(config: Record<string, any>): GuardResult
   const shared = previewIds.filter((id) => productionIds.includes(id));
   if (shared.length > 0) {
     errors.push(
-      `Preview and production resolve to the same KV namespace id ${shared.join(", ")}; environments must not share storage`,
+      `Preview and production resolve to the same KV namespace id ${shared.join(
+        ", ",
+      )}; environments must not share storage`,
     );
   }
   return { ok: errors.length === 0, errors };

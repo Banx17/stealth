@@ -1,8 +1,7 @@
 .event-mail-hero {
   contain: paint;
   isolation: isolate;
-  background:
-    radial-gradient(520px 240px at 24% 16%, oklch(0.72 0.006 270 / 0.32), transparent 66%),
+  background: radial-gradient(520px 240px at 24% 16%, oklch(0.72 0.006 270 / 0.32), transparent 66%),
     radial-gradient(520px 260px at 76% 8%, oklch(0.45 0.006 270 / 0.22), transparent 68%),
     linear-gradient(
       122deg,
@@ -16,8 +15,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(105deg, oklch(1 0 0 / 0.16), transparent 28%),
+  background: linear-gradient(105deg, oklch(1 0 0 / 0.16), transparent 28%),
     radial-gradient(700px 180px at 50% 116%, oklch(0 0 0 / 0.72), transparent 66%);
   pointer-events: none;
 }
@@ -37,9 +35,7 @@
     oklch(0 0 0 / 0.98) 9px 15px
   );
   border-top: 1px solid oklch(1 0 0 / 0.18);
-  box-shadow:
-    0 -24px 42px -26px oklch(1 0 0 / 0.45),
-    0 -10px 30px oklch(0 0 0 / 0.7) inset;
+  box-shadow: 0 -24px 42px -26px oklch(1 0 0 / 0.45), 0 -10px 30px oklch(0 0 0 / 0.7) inset;
 }
 
 .event-mail-ridges::after {
@@ -56,21 +52,22 @@
 }
 
 .event-calendar-card {
-  background:
-    linear-gradient(145deg, oklch(1 0 0 / 0.2), oklch(1 0 0 / 0.075) 40%, oklch(0 0 0 / 0.24)),
+  background: linear-gradient(
+      145deg,
+      oklch(1 0 0 / 0.2),
+      oklch(1 0 0 / 0.075) 40%,
+      oklch(0 0 0 / 0.24)
+    ),
     oklch(0.21 0.005 270 / 0.5);
   backdrop-filter: blur(28px) saturate(145%);
   -webkit-backdrop-filter: blur(28px) saturate(145%);
 }
 
 .calendar-workspace {
-  background:
-    radial-gradient(900px 520px at 8% 0%, oklch(0.52 0.018 260 / 0.14), transparent 60%),
+  background: radial-gradient(900px 520px at 8% 0%, oklch(0.52 0.018 260 / 0.14), transparent 60%),
     radial-gradient(760px 480px at 100% 100%, oklch(0.38 0.018 200 / 0.12), transparent 62%),
     oklch(0.145 0.006 270 / 0.98);
-  box-shadow:
-    0 48px 120px -36px oklch(0 0 0 / 0.9),
-    inset 0 1px 0 oklch(1 0 0 / 0.08);
+  box-shadow: 0 48px 120px -36px oklch(0 0 0 / 0.9), inset 0 1px 0 oklch(1 0 0 / 0.08);
 }
 
 .calendar-picker {
@@ -79,8 +76,7 @@
 }
 
 .calendar-editor {
-  background:
-    radial-gradient(620px 300px at 10% 0%, oklch(0.5 0.018 260 / 0.14), transparent 60%),
+  background: radial-gradient(620px 300px at 10% 0%, oklch(0.5 0.018 260 / 0.14), transparent 60%),
     oklch(0.17 0.006 270 / 0.98);
 }
 
@@ -97,11 +93,7 @@
   padding: 0 0.75rem;
   font-size: 0.7rem;
   font-weight: 500;
-  transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
 .calendar-control {
@@ -163,9 +155,7 @@
   color: var(--foreground);
   font-size: 0.75rem;
   outline: none;
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .calendar-input:focus {
@@ -175,8 +165,7 @@
 
 :root[data-theme="light"] .calendar-workspace,
 :root[data-theme="light"] .calendar-editor {
-  background:
-    radial-gradient(760px 420px at 0% 0%, oklch(0.86 0.035 255 / 0.65), transparent 62%),
+  background: radial-gradient(760px 420px at 0% 0%, oklch(0.86 0.035 255 / 0.65), transparent 62%),
     oklch(0.98 0.004 270 / 0.98);
 }
 

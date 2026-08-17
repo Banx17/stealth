@@ -65,7 +65,9 @@ async function scenarioConcurrentTransitions() {
       method: "POST",
       headers: {
         "x-stealth-address": sender,
-        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.0.1`,
+        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(
+          Math.random() * 255,
+        )}.0.1`,
         "user-agent": `LoadTester-${Math.random()}`,
         "Content-Type": "application/json",
       },
@@ -98,7 +100,9 @@ async function scenarioConcurrentTransitions() {
       method: "POST",
       headers: {
         "x-stealth-address": owner,
-        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.0.1`,
+        "x-forwarded-for": `${Math.floor(Math.random() * 255)}.${Math.floor(
+          Math.random() * 255,
+        )}.0.1`,
         "user-agent": `LoadTester-${Math.random()}`,
       },
     }),

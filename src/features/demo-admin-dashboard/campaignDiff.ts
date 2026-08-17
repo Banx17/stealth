@@ -104,10 +104,8 @@ function compareMetadata(
   comparison: CampaignSnapshot,
 ): CampaignDiffEntry[] {
   return metadataFields.map(({ key, label, section }) => {
-    const before = normalizeValue(key === "status" ? (base.status ?? "draft") : base[key]);
-    const after = normalizeValue(
-      key === "status" ? (comparison.status ?? "draft") : comparison[key],
-    );
+    const before = normalizeValue(key === "status" ? base.status ?? "draft" : base[key]);
+    const after = normalizeValue(key === "status" ? comparison.status ?? "draft" : comparison[key]);
     const changed = before !== after;
 
     return {

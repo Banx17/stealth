@@ -30,7 +30,6 @@ jobs:
       - name: Format Check
         run: bun run prettier --check .
 
-
       - name: Lint
         run: bun run lint
 

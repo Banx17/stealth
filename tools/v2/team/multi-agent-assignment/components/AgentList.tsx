@@ -73,8 +73,8 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                         agent.status === "active"
                           ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10"
                           : agent.status === "busy"
-                            ? "text-amber-400 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
-                            : "text-zinc-400 border-zinc-700 bg-zinc-800/20 hover:bg-zinc-800/40"
+                          ? "text-amber-400 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
+                          : "text-zinc-400 border-zinc-700 bg-zinc-800/20 hover:bg-zinc-800/40"
                       }`}
                     >
                       <option value="active" className="text-emerald-400 bg-zinc-950">
@@ -111,8 +111,8 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                         agent.workload > 2
                           ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                           : agent.workload > 0
-                            ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                            : "bg-zinc-800 text-zinc-500"
+                          ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                          : "bg-zinc-800 text-zinc-500"
                       }`}
                     >
                       {agent.workload} {agent.workload === 1 ? "thread" : "threads"}
@@ -136,8 +136,8 @@ export function AgentList({ agents, threads, onStatusChange }: AgentListProps) {
                                 t.priority === "high"
                                   ? "bg-rose-950 text-rose-400"
                                   : t.priority === "medium"
-                                    ? "bg-amber-950 text-amber-400"
-                                    : "bg-zinc-800 text-zinc-400"
+                                  ? "bg-amber-950 text-amber-400"
+                                  : "bg-zinc-800 text-zinc-400"
                               }`}
                             >
                               {t.priority}

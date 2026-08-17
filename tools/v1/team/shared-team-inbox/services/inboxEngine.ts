@@ -27,10 +27,7 @@ const TRIAGE_TRANSITIONS: Record<TriageStatus, TriageStatus[]> = {
 
 /** Error raised when a requested status transition is not permitted. */
 export class TriageTransitionError extends Error {
-  constructor(
-    public readonly from: TriageStatus,
-    public readonly to: TriageStatus,
-  ) {
+  constructor(public readonly from: TriageStatus, public readonly to: TriageStatus) {
     super(`Illegal triage transition: ${from} -> ${to}`);
     this.name = "TriageTransitionError";
   }

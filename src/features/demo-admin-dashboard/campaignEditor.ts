@@ -103,10 +103,10 @@ export function campaignEditorStateToSnapshot(
 export function hasAnyCampaignEditorContent(state: CampaignEditorState): boolean {
   return Boolean(
     state.name.trim() ||
-    state.description.trim() ||
-    state.targetAudience.trim() ||
-    state.tagsInput.trim() ||
-    state.drafts.length > 0,
+      state.description.trim() ||
+      state.targetAudience.trim() ||
+      state.tagsInput.trim() ||
+      state.drafts.length > 0,
   );
 }
 

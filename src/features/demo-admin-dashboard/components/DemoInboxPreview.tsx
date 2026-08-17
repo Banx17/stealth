@@ -27,7 +27,7 @@ export function DemoInboxPreview({ className }: DemoInboxPreviewProps) {
   const demoData = createDemoInboxData();
 
   const selectedMessage = selectedMessageId
-    ? (demoData.messages.find((msg) => msg.id === selectedMessageId) ?? null)
+    ? demoData.messages.find((msg) => msg.id === selectedMessageId) ?? null
     : null;
 
   const handleMessageSelect = (messageId: string) => {

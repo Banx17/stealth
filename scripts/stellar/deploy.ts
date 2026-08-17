@@ -107,7 +107,9 @@ async function main() {
 
   const deployedIds: Record<string, string> = {};
 
-  const networkArgs = `--network-passphrase "${networkPassphrase}" ${values.rpc ? `--rpc-url ${values.rpc}` : `--network ${values.network}`}`;
+  const networkArgs = `--network-passphrase "${networkPassphrase}" ${
+    values.rpc ? `--rpc-url ${values.rpc}` : `--network ${values.network}`
+  }`;
 
   // 2. Optimize & 3. Deploy
   for (const contract of contracts) {

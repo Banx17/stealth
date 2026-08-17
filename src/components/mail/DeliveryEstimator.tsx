@@ -62,10 +62,10 @@ export function DeliveryEstimator({
       detail: hasBlocked
         ? "One or more recipients are blocked"
         : hasUnresolved
-          ? "Resolving addresses…"
-          : hasUnknown
-            ? "Unverified — no Stealth account found"
-            : `${recipients.length} recipient${recipients.length > 1 ? "s" : ""} verified`,
+        ? "Resolving addresses…"
+        : hasUnknown
+        ? "Unverified — no Stealth account found"
+        : `${recipients.length} recipient${recipients.length > 1 ? "s" : ""} verified`,
       cta:
         hasUnknown && onResolveIdentity
           ? { label: "Request approval", action: onResolveIdentity }
@@ -79,8 +79,8 @@ export function DeliveryEstimator({
       detail: !encrypted
         ? "Encryption disabled"
         : missingKey
-          ? "Key unavailable for one or more recipients"
-          : "Keys ready",
+        ? "Key unavailable for one or more recipients"
+        : "Keys ready",
     },
     // Postage check
     {
@@ -90,8 +90,8 @@ export function DeliveryEstimator({
       detail: postageNeeded
         ? "Recipient policy requires postage"
         : Number.parseFloat(postage) > 0
-          ? `${postage} XLM attached`
-          : "No postage (allowed)",
+        ? `${postage} XLM attached`
+        : "No postage (allowed)",
       cta:
         postageNeeded && onAddPostage ? { label: "Set postage", action: onAddPostage } : undefined,
     },
@@ -103,18 +103,18 @@ export function DeliveryEstimator({
         relayStatus === "healthy"
           ? "ok"
           : relayStatus === "degraded"
-            ? "warn"
-            : relayStatus === "failing"
-              ? "error"
-              : "warn",
+          ? "warn"
+          : relayStatus === "failing"
+          ? "error"
+          : "warn",
       detail:
         relayStatus === "healthy"
           ? "Relay online"
           : relayStatus === "degraded"
-            ? "Relay degraded — delivery may be delayed"
-            : relayStatus === "failing"
-              ? "Relay offline — delivery will fail"
-              : "Relay status unknown",
+          ? "Relay degraded — delivery may be delayed"
+          : relayStatus === "failing"
+          ? "Relay offline — delivery will fail"
+          : "Relay status unknown",
     },
   ];
 

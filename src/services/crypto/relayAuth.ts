@@ -37,10 +37,10 @@ export class RelayAuthError extends Error {
       code === "INVALID_SIGNATURE"
         ? 401
         : code === "AUDIENCE_MISMATCH"
-          ? 403
-          : code === "REPLAY_DETECTED"
-            ? 409
-            : 400;
+        ? 403
+        : code === "REPLAY_DETECTED"
+        ? 409
+        : 400;
   }
 }
 

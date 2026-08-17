@@ -92,8 +92,8 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         {focusedField === "start"
           ? "Start date field focused"
           : focusedField === "end"
-            ? "End date field focused"
-            : ""}
+          ? "End date field focused"
+          : ""}
       </p>
     </div>
   );

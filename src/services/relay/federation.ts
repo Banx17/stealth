@@ -24,7 +24,11 @@
 import type { MessageDeliveryState } from "@/server/api/domain";
 
 export type DeliveryState =
-  "DISCOVERY" | "HANDOFF" | "ACKNOWLEDGED" | "DEDUPLICATED" | "DEAD_LETTER";
+  | "DISCOVERY"
+  | "HANDOFF"
+  | "ACKNOWLEDGED"
+  | "DEDUPLICATED"
+  | "DEAD_LETTER";
 
 export function mapRelayStateToMessageDeliveryState(
   relayState: DeliveryState,

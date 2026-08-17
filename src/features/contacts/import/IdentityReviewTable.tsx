@@ -174,8 +174,8 @@ export function IdentityReviewTable({ rows, onChange }: Props) {
                 row.error
                   ? "border-red-400/20 bg-red-400/[0.03]"
                   : row.match?.type === "ambiguous"
-                    ? "border-amber-400/20 bg-amber-400/[0.03]"
-                    : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]",
+                  ? "border-amber-400/20 bg-amber-400/[0.03]"
+                  : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]",
               )}
             >
               <div className="flex items-center gap-2">

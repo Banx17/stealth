@@ -25,8 +25,8 @@ function openingFor(input: ColdEmailWriterInput, tone: ColdEmailTone): string {
   const context = input.recipient.company
     ? ` at ${input.recipient.company}`
     : input.recipient.role
-      ? ` in your role as ${input.recipient.role}`
-      : "";
+    ? ` in your role as ${input.recipient.role}`
+    : "";
   if (tone === "friendly") {
     return `Hi ${input.recipient.name}, I thought this might be useful for you${context}.`;
   }

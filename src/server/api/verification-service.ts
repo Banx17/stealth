@@ -44,7 +44,12 @@ export const VERIFICATION_PURPOSE = "email_verification" as const;
 export const VERIFICATION_TOKEN_BYTES = 32;
 
 export type VerifyFailureReason =
-  "invalid_token" | "expired" | "reused" | "replaced" | "brute_force_blocked" | "activation_failed";
+  | "invalid_token"
+  | "expired"
+  | "reused"
+  | "replaced"
+  | "brute_force_blocked"
+  | "activation_failed";
 
 export type VerifyOutcome =
   | { outcome: "verified"; userId: string }
@@ -230,10 +235,10 @@ export async function verifyEmailVerificationToken(
     result.outcome === "expired"
       ? "expired"
       : result.outcome === "replaced"
-        ? "replaced"
-        : result.outcome === "brute-force-blocked"
-          ? "brute_force_blocked"
-          : "reused";
+      ? "replaced"
+      : result.outcome === "brute-force-blocked"
+      ? "brute_force_blocked"
+      : "reused";
 
   recordAuditEvent({
     actor: tokenUserId,

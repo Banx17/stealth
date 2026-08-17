@@ -474,8 +474,8 @@ function InlineReplyComposer({
                   recipient.policyType === "block"
                     ? "border-red-300/20 bg-red-300/[0.06] text-red-200"
                     : recipient.postage === "ready"
-                      ? "border-emerald-200/20 bg-emerald-200/[0.06] text-emerald-100"
-                      : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
+                    ? "border-emerald-200/20 bg-emerald-200/[0.06] text-emerald-100"
+                    : "border-amber-200/20 bg-amber-200/[0.06] text-amber-100",
                 )}
               >
                 {recipient.address} · {recipient.policyType || "default"} · postage{" "}

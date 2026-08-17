@@ -10,13 +10,10 @@ interface TemplateRenderFormProps {
 
 export function TemplateRenderForm({ template, onRender, renderResult }: TemplateRenderFormProps) {
   const [values, setValues] = useState<Record<string, string>>(() =>
-    template.variables.reduce(
-      (acc, variable) => {
-        acc[variable.key] = "";
-        return acc;
-      },
-      {} as Record<string, string>,
-    ),
+    template.variables.reduce((acc, variable) => {
+      acc[variable.key] = "";
+      return acc;
+    }, {} as Record<string, string>),
   );
 
   const handleInputChange = (key: string, value: string) => {

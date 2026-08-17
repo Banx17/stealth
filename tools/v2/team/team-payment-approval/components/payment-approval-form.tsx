@@ -235,15 +235,15 @@ export function PaymentApprovalForm({
             decision === "approve"
               ? "bg-emerald-600 hover:bg-emerald-700"
               : decision === "reject"
-                ? "bg-destructive hover:bg-destructive/90"
-                : "bg-muted cursor-not-allowed"
+              ? "bg-destructive hover:bg-destructive/90"
+              : "bg-muted cursor-not-allowed"
           }`}
           aria-label={
             decision === "approve"
               ? `Confirm approval of ${payment.amount} ${payment.currency}`
               : decision === "reject"
-                ? `Confirm rejection of ${payment.amount} ${payment.currency}`
-                : "Select a decision to continue"
+              ? `Confirm rejection of ${payment.amount} ${payment.currency}`
+              : "Select a decision to continue"
           }
         >
           {isSubmitting ? "Processing..." : "Confirm Decision"}

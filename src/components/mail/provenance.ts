@@ -130,8 +130,8 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   const senderProvider = isSmtpBridge
     ? "SMTP DNS Resolver"
     : rawIdentity.includes("*")
-      ? "Stellar Federation Server"
-      : "Stellar Account Indexer";
+    ? "Stellar Federation Server"
+    : "Stellar Account Indexer";
 
   const senderDetails = isSmtpBridge
     ? "DNS verification passed (SPF/DKIM matching domain), but message is missing an on-chain cryptographic signature. Bridged to Stellar by Stealth Bridge Relay."
@@ -306,13 +306,13 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   const postageAmount = isSmtpBridge
     ? "0.00000 XLM (No postage)"
     : isRequest
-      ? "0.00500 XLM"
-      : "0.00001 XLM";
+    ? "0.00500 XLM"
+    : "0.00001 XLM";
   const postageStatus = isSmtpBridge
     ? "Bypassed (Bridge Route)"
     : isRequest
-      ? "Held in Escrow"
-      : "Settled / Fees Burned";
+    ? "Held in Escrow"
+    : "Settled / Fees Burned";
 
   const postageRecordInspector: ProvenanceItemDetails = {
     title: "On-chain Postage Ledger Entry",
@@ -430,13 +430,13 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
       description: isSmtpBridge
         ? "No receipt proof is available for bridged delivery."
         : receiptStatus === "Confirmed / Proof Written"
-          ? "A Soroban delivery receipt was written when the recipient read the message."
-          : "Receipt proof is pending until delivery is confirmed.",
+        ? "A Soroban delivery receipt was written when the recipient read the message."
+        : "Receipt proof is pending until delivery is confirmed.",
       status: isSmtpBridge
         ? "skipped"
         : receiptStatus === "Confirmed / Proof Written"
-          ? "complete"
-          : "pending",
+        ? "complete"
+        : "pending",
       timestamp: receiptTimestamp,
     },
   ];

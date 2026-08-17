@@ -54,8 +54,8 @@ async function checkStorage(
   return withTimeout(
     repository
       .getPolicy(HEALTH_POLICY_OWNER)
-      .then(() => ({ name: "storage", status: "ok" }) as const)
-      .catch(() => ({ name: "storage", status: "unavailable" }) as const),
+      .then(() => ({ name: "storage", status: "ok" } as const))
+      .catch(() => ({ name: "storage", status: "unavailable" } as const)),
     timeoutMs,
     () => timeoutResult("storage"),
   );
@@ -68,8 +68,8 @@ async function checkCoordinator(
   return withTimeout(
     repository
       .getCounter(HEALTH_COORDINATOR_KEY)
-      .then(() => ({ name: "coordinator", status: "ok" }) as const)
-      .catch(() => ({ name: "coordinator", status: "unavailable" }) as const),
+      .then(() => ({ name: "coordinator", status: "ok" } as const))
+      .catch(() => ({ name: "coordinator", status: "unavailable" } as const)),
     timeoutMs,
     () => timeoutResult("coordinator"),
   );

@@ -1,8 +1,5 @@
 export class DraftValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly field: string,
-  ) {
+  constructor(message: string, public readonly field: string) {
     super(message);
     this.name = "DraftValidationError";
   }

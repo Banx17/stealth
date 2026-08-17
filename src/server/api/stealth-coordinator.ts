@@ -68,7 +68,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null> {
     const record = (await this.ctx.storage.get(`idempotency:${key}`)) as
-      IdempotencyRecord | undefined;
+      | IdempotencyRecord
+      | undefined;
     return record ?? null;
   }
 
@@ -266,7 +267,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
       const normEmail = user.email.toLowerCase().trim();
       const existingEmailOwner = (await this.ctx.storage.get(`user:email:${normEmail}`)) as
-        string | undefined;
+        | string
+        | undefined;
       if (existingEmailOwner && existingEmailOwner !== user.userId) {
         throw new ApiError(409, "conflict", `User with email ${user.email} already exists`);
       }
@@ -281,7 +283,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
       const normAddress = user.address.toUpperCase().trim();
       const existingAddressOwner = (await this.ctx.storage.get(`user:address:${normAddress}`)) as
-        string | undefined;
+        | string
+        | undefined;
       if (existingAddressOwner && existingAddressOwner !== user.userId) {
         throw new ApiError(409, "conflict", `Stellar address ${user.address} is already bound`);
       }
@@ -323,7 +326,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getCredential(userId: string): Promise<Credential | null> {
     const credential = (await this.ctx.storage.get(`credential:${userId}`)) as
-      Credential | undefined;
+      | Credential
+      | undefined;
     return credential ?? null;
   }
 
@@ -375,7 +379,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     const retiredSession = (await this.ctx.storage.get(`retired-session:${sessionId}`)) as
-      RetiredSession | undefined;
+      | RetiredSession
+      | undefined;
     return retiredSession ?? null;
   }
 
@@ -387,7 +392,8 @@ export class StealthCoordinator extends DurableObjectBase {
   // BETA-005: Durable verification-token lifecycle methods
   async getVerificationToken(tokenHash: string): Promise<VerificationToken | null> {
     const token = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
-      VerificationToken | undefined;
+      | VerificationToken
+      | undefined;
     return token ?? null;
   }
 
@@ -422,7 +428,8 @@ export class StealthCoordinator extends DurableObjectBase {
         let replacedToken: VerificationToken | null = null;
         if (activeHash && activeHash !== token.tokenHash) {
           const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
-            VerificationToken | undefined;
+            | VerificationToken
+            | undefined;
           if (current && current.consumedAt === null && current.replacedAt === null) {
             const invalidated: VerificationToken = {
               ...current,
@@ -450,7 +457,8 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<ConsumeVerificationTokenResult> {
     return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
       const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
-        VerificationToken | undefined;
+        | VerificationToken
+        | undefined;
       if (!current) {
         return { outcome: "not-found" as const };
       }
@@ -481,7 +489,8 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<RecordVerificationAttemptResult> {
     return this.runExclusive(`verification-token:consume:${tokenHash}`, async () => {
       const current = (await this.ctx.storage.get(`verification-token:hash:${tokenHash}`)) as
-        VerificationToken | undefined;
+        | VerificationToken
+        | undefined;
       if (!current) {
         return { recorded: false, token: null };
       }
@@ -529,7 +538,8 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
     const envelope = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-      StoredEnvelope | undefined;
+      | StoredEnvelope
+      | undefined;
     return envelope ?? null;
   }
 
@@ -543,7 +553,8 @@ export class StealthCoordinator extends DurableObjectBase {
   async insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {
     return this.runExclusive(`envelope:${envelope.messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${envelope.messageId}`)) as
-        StoredEnvelope | undefined;
+        | StoredEnvelope
+        | undefined;
 
       if (existing) {
         // Byte-equality check — serialize both deterministically for comparison.
@@ -601,7 +612,8 @@ export class StealthCoordinator extends DurableObjectBase {
   async tombstoneEnvelope(messageId: string, recipient: string): Promise<StoredEnvelope> {
     return this.runExclusive(`envelope:${messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-        StoredEnvelope | undefined;
+        | StoredEnvelope
+        | undefined;
       if (!existing) {
         throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
       }
@@ -627,7 +639,8 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<StoredEnvelope> {
     return this.runExclusive(`envelope:${messageId}`, async () => {
       const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
-        StoredEnvelope | undefined;
+        | StoredEnvelope
+        | undefined;
       if (!existing) {
         throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
       }

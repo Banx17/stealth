@@ -85,7 +85,7 @@ export function parseImportCsv(raw: string, source: ImportSource = "csv"): Impor
       name = parts[emailIdx]?.trim() ?? "";
       address = parts[addressIdx]?.trim() ?? "";
     } else if (hasHeader && addressIdx >= 0) {
-      name = parts.length > 1 ? (parts[0]?.trim() ?? "") : "";
+      name = parts.length > 1 ? parts[0]?.trim() ?? "" : "";
       address = parts[addressIdx]?.trim() ?? "";
     } else if (parts.length === 1) {
       name = "";

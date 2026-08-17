@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import { actionButtonVariants } from "./action-button.styles";
 
 interface ActionButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof actionButtonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof actionButtonVariants> {
   asChild?: boolean;
 }
 

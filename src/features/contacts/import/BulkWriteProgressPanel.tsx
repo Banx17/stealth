@@ -42,17 +42,17 @@ export function BulkWriteProgressPanel({ progress, onPause, onResume, onCancel }
           {isCompleted
             ? "Migration complete"
             : isFailed
-              ? "Migration failed"
-              : isPaused
-                ? "Migration paused"
-                : "Migrating contacts"}
+            ? "Migration failed"
+            : isPaused
+            ? "Migration paused"
+            : "Migrating contacts"}
         </h2>
         <p className="text-sm text-muted-foreground">
           {isCompleted
             ? "All sender rules have been written."
             : isPaused
-              ? "You can resume or cancel below."
-              : "Writing sender rules to your mailbox policy…"}
+            ? "You can resume or cancel below."
+            : "Writing sender rules to your mailbox policy…"}
         </p>
       </div>
 

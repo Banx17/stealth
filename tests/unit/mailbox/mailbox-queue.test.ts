@@ -140,7 +140,9 @@ describe("Authenticated Recipient Mailbox Queue API (BETA-033)", () => {
 
       // Page 2
       const req2 = new Request(
-        `http://localhost/api/v1/mailbox/queue?limit=2&cursor=${encodeURIComponent(json1.data.nextCursor)}`,
+        `http://localhost/api/v1/mailbox/queue?limit=2&cursor=${encodeURIComponent(
+          json1.data.nextCursor,
+        )}`,
         { headers: { "x-stealth-address": ALICE } },
       );
       const res2 = await queueHandlers.GET({

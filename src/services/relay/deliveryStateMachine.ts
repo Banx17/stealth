@@ -16,7 +16,9 @@ export class IllegalStateTransitionError extends Error {
     public readonly reasonDetail: string,
   ) {
     super(
-      `Illegal transition for message '${messageId}' from state '${fromState ?? "initial"}' to '${toState}': ${reasonDetail}`,
+      `Illegal transition for message '${messageId}' from state '${
+        fromState ?? "initial"
+      }' to '${toState}': ${reasonDetail}`,
     );
     this.name = "IllegalStateTransitionError";
   }

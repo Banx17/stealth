@@ -1,5 +1,9 @@
 export type GrammarIssueCategory =
-  "spelling" | "grammar" | "punctuation" | "capitalization" | "redundancy";
+  | "spelling"
+  | "grammar"
+  | "punctuation"
+  | "capitalization"
+  | "redundancy";
 
 export interface TextRange {
   start: number;
@@ -28,7 +32,10 @@ export interface GrammarResult {
 }
 
 export type GrammarErrorCode =
-  "empty-body" | "unsupported-input" | "input-too-large" | "unsupported-dataset";
+  | "empty-body"
+  | "unsupported-input"
+  | "input-too-large"
+  | "unsupported-dataset";
 
 export type GrammarResultStatus =
   | { status: "ok"; result: GrammarResult }

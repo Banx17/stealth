@@ -5,10 +5,10 @@ import type { AuditEvent, AuditFilter } from "./types";
 export function formatEventAsText(e: AuditEvent): string {
   const actor =
     e.actor.type === "user"
-      ? (e.actor.displayName ?? e.actor.address)
+      ? e.actor.displayName ?? e.actor.address
       : e.actor.type === "relay"
-        ? e.actor.relayId
-        : "system";
+      ? e.actor.relayId
+      : "system";
   const ctx = e.context
     ? Object.entries(e.context)
         .map(([k, v]) => `${k}=${v}`)

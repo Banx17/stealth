@@ -204,8 +204,8 @@ export function ProvenancePanel({
             {isVerified
               ? `Delivered via ${provenance.relaySource.nodeId} with a verified postage record.`
               : isSpam
-                ? "Bridged message without Stellar cryptographic signatures."
-                : "Message processed but security verification is currently in progress."}
+              ? "Bridged message without Stellar cryptographic signatures."
+              : "Message processed but security verification is currently in progress."}
           </p>
         </div>
       </section>
@@ -230,8 +230,8 @@ export function ProvenancePanel({
               item.status === "complete"
                 ? "border-emerald-500 bg-emerald-500 text-black"
                 : item.status === "pending"
-                  ? "border-amber-300 bg-amber-300 text-black"
-                  : "border-white/10 bg-white/10 text-muted-foreground";
+                ? "border-amber-300 bg-amber-300 text-black"
+                : "border-white/10 bg-white/10 text-muted-foreground";
 
             return (
               <li

@@ -27,9 +27,7 @@
 
   .glow-ring:focus-visible {
     outline: none;
-    box-shadow:
-      0 0 0 2px oklch(1 0 0 / 0.2),
-      0 0 24px oklch(1 0 0 / 0.08);
+    box-shadow: 0 0 0 2px oklch(1 0 0 / 0.2), 0 0 24px oklch(1 0 0 / 0.08);
   }
 
   @keyframes pulse-dot {

@@ -370,19 +370,19 @@ function DeliveryStep({
               state.deliveryStatus === "delivered"
                 ? "text-emerald-400"
                 : state.deliveryStatus === "failed"
-                  ? "text-rose-400"
-                  : state.deliveryStatus === "pending"
-                    ? "text-blue-400"
-                    : "text-muted-foreground",
+                ? "text-rose-400"
+                : state.deliveryStatus === "pending"
+                ? "text-blue-400"
+                : "text-muted-foreground",
             )}
           >
             {state.deliveryStatus === "delivered"
               ? "Delivered"
               : state.deliveryStatus === "failed"
-                ? "Failed"
-                : state.deliveryStatus === "pending"
-                  ? "Sending..."
-                  : "Ready"}
+              ? "Failed"
+              : state.deliveryStatus === "pending"
+              ? "Sending..."
+              : "Ready"}
           </span>
         </div>
 

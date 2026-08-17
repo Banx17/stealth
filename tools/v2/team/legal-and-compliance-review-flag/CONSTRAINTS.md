@@ -5,10 +5,12 @@
 As this tool will process data sourced from potentially untrusted or highly complex sources (such as external emails, attachments, and deep thread histories), we assume the following threat vectors:
 
 1. **Malicious Payloads (Injection & XSS)**
+
    - **Assumption**: `flagReason`, `reviewer`, `targetResource`, and `evidenceRefs` could contain malicious strings, HTML, or command injection sequences.
    - **Mitigation**: The `contract.ts` strictly validates inputs as strings and guarantees output only in structured data formats. Downstream consumers (e.g., UIs displaying the `flagReason`) must handle HTML escaping. No data is interpreted as executable code.
 
 2. **Resource Exhaustion (Large Payloads)**
+
    - **Assumption**: An attacker or an automated script might submit excessively large strings for the reason or resource IDs to exhaust memory or database storage.
    - **Mitigation**: The `sanitizeReviewFlagInput` and `invalidFields` functions enforce strict character limits:
      - `MAX_REASON_LENGTH = 2000`
@@ -16,6 +18,7 @@ As this tool will process data sourced from potentially untrusted or highly comp
      - `MAX_RESOURCE_LENGTH = 256`
 
 3. **Array Explosion (DDoS)**
+
    - **Assumption**: `evidenceRefs` could be sent as an array with millions of elements, causing CPU exhaustion during validation or out-of-memory errors.
    - **Mitigation**: `evidenceRefs` is strictly capped at a maximum of `10` items (`MAX_EVIDENCE_REFS`), and each reference string is capped at `512` characters (`MAX_EVIDENCE_REF_LENGTH`).
 
@@ -26,6 +29,7 @@ As this tool will process data sourced from potentially untrusted or highly comp
 ## Performance Notes
 
 1. **Large Emails and Attachments**
+
    - The flag service does _not_ read the entire email body or parse attachments. It only operates on the opaque `targetResource` identifier (e.g. `mail:thread:abc`).
    - Resolving what `targetResource` points to is delegated to the downstream `ReviewFlagDependency.resourceExists()`. The main mail app must implement this check efficiently, ideally using indexed database lookups, without fetching the entire email blob or attachment contents into memory.
 

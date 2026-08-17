@@ -49,22 +49,26 @@ if (error instanceof ZodError) {
 **Test Coverage** (120+ test cases across 2 test files):
 
 1. **Empty/Whitespace**:
+
    - Empty strings
    - Whitespace-only strings
    - Strings that become empty after trimming
 
 2. **Malformed**:
+
    - Wrong prefix (not 'G')
    - Invalid base32 characters (0, 1, 8, 9, special chars)
    - Invalid length (< 56 or > 56 characters)
    - Special characters (@, \*, etc.)
 
 3. **Oversized**:
+
    - 57 characters (one above boundary)
    - 100+ characters
    - 1,000,000+ characters (stress test)
 
 4. **Type Safety**:
+
    - Null values
    - Undefined values
    - Numeric values
@@ -119,6 +123,7 @@ if (error instanceof ZodError) {
 ### Files Created
 
 1. **`tests/unit/api/postage-quote-validation.test.ts`** (70+ test cases)
+
    - Recipient validation (20 tests)
    - Sender validation (10 tests)
    - Quote service integration (2 tests)
@@ -126,12 +131,14 @@ if (error instanceof ZodError) {
    - Error message verification (3 tests)
 
 2. **`tests/unit/api/postage-quote-endpoint-validation.test.ts`** (50+ test cases)
+
    - HTTP 422 validation errors (15 tests)
    - Valid requests preserve shape (5 tests)
    - Deterministic error responses (2 tests)
    - Boundary value stress tests (4 tests)
 
 3. **`docs/api/POSTAGE_QUOTE_VALIDATION.md`**
+
    - Complete validation documentation
    - All validation rules explained
    - Error response examples
@@ -204,14 +211,17 @@ All existing tests continue to pass:
 ## Commits
 
 1. **9f79d580** - `feat: add comprehensive validation documentation and tests for postage quote endpoint`
+
    - Initial documentation
    - Comprehensive test suite
 
 2. **aa26d196** - `test: add comprehensive endpoint validation tests for postage quote`
+
    - HTTP 422 error tests
    - Boundary case coverage
 
 3. **ced00d2b** - `docs: add comprehensive validation documentation for postage quote endpoint`
+
    - Complete API documentation
    - Client best practices
 

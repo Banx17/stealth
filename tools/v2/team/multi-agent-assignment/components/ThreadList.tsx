@@ -126,8 +126,8 @@ export function ThreadList({
                   thread.status === "resolved"
                     ? "border-zinc-800/40 opacity-70 bg-zinc-950/20"
                     : thread.status === "assigned"
-                      ? "border-zinc-800/80 hover:border-zinc-700/80"
-                      : "border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.03)] hover:border-sky-500/40"
+                    ? "border-zinc-800/80 hover:border-zinc-700/80"
+                    : "border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.03)] hover:border-sky-500/40"
                 }`}
               >
                 {/* Header: Priority, Category, Date, Status */}
@@ -138,8 +138,8 @@ export function ThreadList({
                         thread.priority === "high"
                           ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
                           : thread.priority === "medium"
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                            : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : "bg-zinc-800/40 text-zinc-400 border-zinc-700/50"
                       }`}
                     >
                       {thread.priority} Priority

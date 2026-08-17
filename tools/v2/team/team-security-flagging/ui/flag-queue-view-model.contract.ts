@@ -94,4 +94,7 @@ export type FlagQueueSuccessView = QueueViewBase & {
 };
 
 export type FlagQueueView =
-  FlagQueueLoadingView | FlagQueueErrorView | FlagQueueEmptyView | FlagQueueSuccessView;
+  | FlagQueueLoadingView
+  | FlagQueueErrorView
+  | FlagQueueEmptyView
+  | FlagQueueSuccessView;

@@ -108,8 +108,8 @@ function ResponseTimeMetricsDisplay({ metrics }: ResponseTimeMetricsDisplayProps
           metrics.withinSLAPercentage >= 80
             ? "up"
             : metrics.withinSLAPercentage >= 50
-              ? "neutral"
-              : "down"
+            ? "neutral"
+            : "down"
         }
         trendLabel={`${metrics.metCount} of ${metrics.totalResponses} responses`}
       />

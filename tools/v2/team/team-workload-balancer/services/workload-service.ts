@@ -231,8 +231,8 @@ export function balanceWorkload(
       config.strategy === "round-robin"
         ? pickRoundRobin(sorted, candidates, workingItems, i)
         : config.strategy === "capacity-weighted"
-          ? pickCapacityWeighted(item, candidates, workingItems)
-          : pickLeastLoaded(item, candidates, workingItems);
+        ? pickCapacityWeighted(item, candidates, workingItems)
+        : pickLeastLoaded(item, candidates, workingItems);
 
     workingItems.push({ ...item, assignedTo: suggestion.suggestedMemberId });
     assignments.push(suggestion);

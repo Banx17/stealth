@@ -111,10 +111,10 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         typeof signed.signedMessage === "string"
           ? signed.signedMessage
           : Array.isArray(signed.signedMessage)
-            ? Array.from(signed.signedMessage, (b: number) => b.toString(16).padStart(2, "0")).join(
-                "",
-              )
-            : "";
+          ? Array.from(signed.signedMessage, (b: number) => b.toString(16).padStart(2, "0")).join(
+              "",
+            )
+          : "";
 
       setLinkingState({ status: "verifying" });
 
@@ -133,8 +133,8 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         err instanceof WalletLinkError
           ? err.message
           : err instanceof Error
-            ? err.message
-            : "Failed to connect wallet";
+          ? err.message
+          : "Failed to connect wallet";
       setLinkingState({ status: "error", message });
     }
   }

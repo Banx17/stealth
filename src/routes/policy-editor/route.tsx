@@ -152,8 +152,8 @@ function PolicyEditorPage() {
                       requireVerified && !verificationDisabled
                         ? "bg-emerald-500 hover:bg-emerald-400"
                         : verificationDisabled
-                          ? "bg-white/20"
-                          : "bg-white/20 hover:bg-white/30",
+                        ? "bg-white/20"
+                        : "bg-white/20 hover:bg-white/30",
                     )}
                   >
                     <span

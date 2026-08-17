@@ -43,7 +43,11 @@ export interface PrivateNoteAttachmentOutput {
 }
 
 export type PrivateNoteErrorCode =
-  "invalid-input" | "invalid-options" | "note-too-long" | "too-many-tags" | "empty-note";
+  | "invalid-input"
+  | "invalid-options"
+  | "note-too-long"
+  | "too-many-tags"
+  | "empty-note";
 
 export interface PrivateNoteValidationIssue {
   field: string;

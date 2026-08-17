@@ -476,12 +476,12 @@ function MigrationDoneStep({
             {retention === "session"
               ? "Session only"
               : retention === "1h"
-                ? "1 hour"
-                : retention === "24h"
-                  ? "24 hours"
-                  : retention === "7d"
-                    ? "7 days"
-                    : "Never"}
+              ? "1 hour"
+              : retention === "24h"
+              ? "24 hours"
+              : retention === "7d"
+              ? "7 days"
+              : "Never"}
           </span>
         </div>
       </div>

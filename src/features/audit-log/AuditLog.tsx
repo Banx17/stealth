@@ -162,10 +162,10 @@ export function AuditLog() {
     copyState === "loading"
       ? "Copying…"
       : copyState === "success"
-        ? "Copied"
-        : copyState === "error"
-          ? "Copy failed"
-          : "Copy diagnostics";
+      ? "Copied"
+      : copyState === "error"
+      ? "Copy failed"
+      : "Copy diagnostics";
 
   const exportLabel = exportState === "loading" ? "Exporting…" : "Export JSON";
 

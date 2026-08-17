@@ -62,7 +62,9 @@ function parseDuration(
   const minimum = allowZero ? 0 : 1;
   if (!Number.isSafeInteger(duration) || duration < minimum) {
     throw new Error(
-      `Configuration error: ${name} must be ${allowZero ? "a non-negative" : "a positive"} integer number of milliseconds.`,
+      `Configuration error: ${name} must be ${
+        allowZero ? "a non-negative" : "a positive"
+      } integer number of milliseconds.`,
     );
   }
   return duration;

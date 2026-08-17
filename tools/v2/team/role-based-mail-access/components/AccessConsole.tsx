@@ -325,8 +325,8 @@ export function AccessConsole() {
                       log.isAllowed
                         ? "border-emerald-500/10 bg-emerald-500/5 text-zinc-300"
                         : log.error
-                          ? "border-rose-500/10 bg-rose-500/5 text-zinc-400"
-                          : "border-amber-500/10 bg-amber-500/5 text-zinc-300"
+                        ? "border-rose-500/10 bg-rose-500/5 text-zinc-400"
+                        : "border-amber-500/10 bg-amber-500/5 text-zinc-300"
                     }`}
                   >
                     <div className="flex justify-between items-center text-[10px] text-zinc-500">
@@ -354,8 +354,8 @@ export function AccessConsole() {
                           log.isAllowed
                             ? "bg-emerald-950 text-emerald-400"
                             : log.error
-                              ? "bg-rose-950 text-rose-400"
-                              : "bg-amber-950 text-amber-400"
+                            ? "bg-rose-950 text-rose-400"
+                            : "bg-amber-950 text-amber-400"
                         }`}
                       >
                         {log.isAllowed ? "Permitted" : log.error ? "Blocked (Error)" : "Denied"}

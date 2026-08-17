@@ -206,8 +206,8 @@ export function AccessVerifier({ isVerifying, verificationResult, onVerify }: Ac
             verificationResult.status === "granted"
               ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
               : verificationResult.status === "denied"
-                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+              ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+              : "bg-rose-500/10 border-rose-500/20 text-rose-400"
           }`}
         >
           <div className="flex items-center gap-2">
@@ -215,15 +215,15 @@ export function AccessVerifier({ isVerifying, verificationResult, onVerify }: Ac
               {verificationResult.status === "granted"
                 ? "✓"
                 : verificationResult.status === "denied"
-                  ? "✕"
-                  : "⚠"}
+                ? "✕"
+                : "⚠"}
             </span>
             <span className="uppercase tracking-wider text-[10px]">
               {verificationResult.status === "granted"
                 ? "Access Authorization Succeeded"
                 : verificationResult.status === "denied"
-                  ? "Access Authorization Denied"
-                  : "Validation Guards Triggered"}
+                ? "Access Authorization Denied"
+                : "Validation Guards Triggered"}
             </span>
           </div>
           {/* Don't show redundant duplicate warning text if field warning handles it */}

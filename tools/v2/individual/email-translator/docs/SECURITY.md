@@ -332,26 +332,32 @@ logger.securityEvent({
 ### Test Cases (required)
 
 1. **XSS Prevention**
+
    - Input: `<script>alert('xss')</script>Hello`
    - Expected: `Hello` (script stripped)
 
 2. **Size Limits**
+
    - Input: 10MB text blob
    - Expected: `SecurityError` thrown
 
 3. **Language Code Validation**
+
    - Input: `en'; DROP TABLE users--`
    - Expected: `ValidationError` thrown
 
 4. **Provider Response Sanitization**
+
    - Mock response: `<img src=x onerror=alert(1)>Translated`
    - Expected: `Translated` only
 
 5. **Encoding Attacks**
+
    - Input: `\u003cscript\u003ealert(1)\u003c/script\u003e`
    - Expected: Decoded and sanitized
 
 6. **Null Byte Injection**
+
    - Input: `Hello\x00World`
    - Expected: `HelloWorld` (null byte removed)
 

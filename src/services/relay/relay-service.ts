@@ -252,9 +252,9 @@ export class RelayService {
     const { horizonUrl, sorobanRpcUrl, networkPassphrase } = this.config.network;
     return Boolean(
       networkPassphrase &&
-      networkPassphrase.length > 0 &&
-      isValidHttpUrl(horizonUrl) &&
-      isValidHttpUrl(sorobanRpcUrl),
+        networkPassphrase.length > 0 &&
+        isValidHttpUrl(horizonUrl) &&
+        isValidHttpUrl(sorobanRpcUrl),
     );
   }
 

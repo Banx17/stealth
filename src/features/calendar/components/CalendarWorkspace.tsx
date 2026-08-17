@@ -145,16 +145,16 @@ export function CalendarWorkspace({
           action: "Create event",
         }
       : view === "agenda"
-        ? {
-            title: "No events on this day",
-            description: "Create a schedule from this mailbox context or choose another day.",
-            action: "Create event",
-          }
-        : {
-            title: "No visible events this month",
-            description: "Try another month or create a new schedule from the selected date.",
-            action: "Create event",
-          };
+      ? {
+          title: "No events on this day",
+          description: "Create a schedule from this mailbox context or choose another day.",
+          action: "Create event",
+        }
+      : {
+          title: "No visible events this month",
+          description: "Try another month or create a new schedule from the selected date.",
+          action: "Create event",
+        };
 
   const openNewEvent = () => {
     setEditorEvent(null);
@@ -644,8 +644,8 @@ function EventDetails({
           {copyStatus === "copying"
             ? "Copying"
             : copyStatus === "copied"
-              ? "Copied"
-              : "Copy details"}
+            ? "Copied"
+            : "Copy details"}
         </button>
       </div>
 

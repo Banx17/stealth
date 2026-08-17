@@ -22,8 +22,11 @@
   --silver: oklch(0.85 0.005 270);
   --glass: oklch(0.22 0.006 270 / 0.32);
   --glass-strong: oklch(0.18 0.005 270 / 0.55);
-  --gradient-ambient:
-    radial-gradient(1200px 600px at 10% -10%, oklch(0.45 0.02 270 / 0.35), transparent 60%),
+  --gradient-ambient: radial-gradient(
+      1200px 600px at 10% -10%,
+      oklch(0.45 0.02 270 / 0.35),
+      transparent 60%
+    ),
     radial-gradient(900px 500px at 90% 10%, oklch(0.4 0.015 240 / 0.3), transparent 60%),
     radial-gradient(700px 500px at 50% 110%, oklch(0.35 0.015 280 / 0.35), transparent 60%);
   --gradient-glass: linear-gradient(135deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.02));
@@ -52,8 +55,11 @@
   --ring: oklch(0.4 0.01 270 / 35%);
   --glass: oklch(1 0 0 / 0.58);
   --glass-strong: oklch(1 0 0 / 0.82);
-  --gradient-ambient:
-    radial-gradient(900px 500px at 10% -10%, oklch(0.8 0.03 260 / 0.45), transparent 60%),
+  --gradient-ambient: radial-gradient(
+      900px 500px at 10% -10%,
+      oklch(0.8 0.03 260 / 0.45),
+      transparent 60%
+    ),
     radial-gradient(800px 480px at 95% 10%, oklch(0.85 0.03 210 / 0.38), transparent 60%);
 }
 

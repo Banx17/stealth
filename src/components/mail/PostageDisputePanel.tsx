@@ -26,7 +26,12 @@ import { cn } from "@/lib/utils";
  *   Pending | Expired | Disputed | Settled | Refunded | Reclaimed
  */
 export type PostageDisputeStatus =
-  "pending" | "expired" | "disputed" | "settled" | "refunded" | "reclaimed";
+  | "pending"
+  | "expired"
+  | "disputed"
+  | "settled"
+  | "refunded"
+  | "reclaimed";
 
 interface PostageDisputePanelProps {
   postageStatus: PostageDisputeStatus;

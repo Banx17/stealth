@@ -179,6 +179,7 @@ npx vitest run --coverage --config tools/v2/individual/task-extractor/vitest.con
 ✅ **Check**: Tests cover all major scenarios
 
 1. **taskExtractor.test.ts**: Core extraction logic
+
    - All fixtures pass
    - Rule matching (checkbox, request, bullet, imperative)
    - Confidence levels (high, medium, low)
@@ -189,6 +190,7 @@ npx vitest run --coverage --config tools/v2/individual/task-extractor/vitest.con
    - Determinism and immutability
 
 2. **guards.test.ts**: Validation and sanitization
+
    - Input validation
    - Options validation
    - Size limit checks
@@ -197,6 +199,7 @@ npx vitest run --coverage --config tools/v2/individual/task-extractor/vitest.con
    - All error codes covered
 
 3. **fixtures.test.ts**: Fixture integrity
+
    - Fixture structure validation
    - Success/failure path validation
    - Coverage analysis (all triggers, confidence levels, priorities)

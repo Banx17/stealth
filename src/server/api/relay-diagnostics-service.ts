@@ -68,10 +68,10 @@ export function toRelayDiagnosticsResponse(
     status: isEmpty
       ? "empty"
       : diagnostics.deadLetterCount > 5 || isRetryStorm
-        ? "failing"
-        : isDegraded
-          ? "degraded"
-          : "healthy",
+      ? "failing"
+      : isDegraded
+      ? "degraded"
+      : "healthy",
     signals: {
       isDelayed,
       isRetryStorm,

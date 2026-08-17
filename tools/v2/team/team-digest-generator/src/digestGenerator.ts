@@ -20,13 +20,10 @@ export type TeamDigestSummary = {
 };
 
 function countValues<T extends string>(items: readonly T[] | undefined): Record<T, number> {
-  return (items ?? []).reduce(
-    (acc, value) => {
-      acc[value] = (acc[value] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<T, number>,
-  );
+  return (items ?? []).reduce((acc, value) => {
+    acc[value] = (acc[value] ?? 0) + 1;
+    return acc;
+  }, {} as Record<T, number>);
 }
 
 export function generateTeamDigest(

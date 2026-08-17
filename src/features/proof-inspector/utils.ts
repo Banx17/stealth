@@ -47,7 +47,7 @@ export function generateMockProofRecords(emails: Email[]): MockProofRecord[] {
       postageAmount: email.postageAmount ?? "10000000",
       postageStatus:
         email.folder === "requests" ? "pending" : email.folder === "spam" ? "refunded" : "settled",
-      senderRule: email.senderPolicy === "verify" ? "default" : (email.senderPolicy ?? "default"),
+      senderRule: email.senderPolicy === "verify" ? "default" : email.senderPolicy ?? "default",
       email,
     };
   });

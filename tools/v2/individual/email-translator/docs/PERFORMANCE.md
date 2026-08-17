@@ -439,7 +439,7 @@ function useTranslation() {
 **Solution:**
 
 ```typescript
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 function TranslationHistory({ entries }: { entries: TranslationEntry[] }) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -452,16 +452,16 @@ function TranslationHistory({ entries }: { entries: TranslationEntry[] }) {
   });
 
   return (
-    <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
-      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
-        {virtualizer.getVirtualItems().map(virtualItem => (
+    <div ref={parentRef} style={{ height: "400px", overflow: "auto" }}>
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+        {virtualizer.getVirtualItems().map((virtualItem) => (
           <div
             key={virtualItem.index}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
-              width: '100%',
+              width: "100%",
               transform: `translateY(${virtualItem.start}px)`,
             }}
           >
@@ -481,10 +481,10 @@ function TranslationHistory({ entries }: { entries: TranslationEntry[] }) {
 **Solution:**
 
 ```typescript
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from "react";
 
-const TranslationHistory = lazy(() => import('./TranslationHistory'));
-const AdvancedSettings = lazy(() => import('./AdvancedSettings'));
+const TranslationHistory = lazy(() => import("./TranslationHistory"));
+const AdvancedSettings = lazy(() => import("./AdvancedSettings"));
 
 function EmailTranslatorShell() {
   const [showHistory, setShowHistory] = useState(false);
@@ -604,20 +604,24 @@ async function translateBatch(emails: Email[]): Promise<TranslatedEmail[]> {
 ### Load Test Scenarios
 
 1. **Large text translation**
+
    - Input: 500 KB email body
    - Expected: Chunks processed in <30s total
    - Memory: <100 MB peak usage
 
 2. **Rapid language switching**
+
    - Action: Change target language 10 times in 5s
    - Expected: Only final request completes, others cancelled
    - Network: ≤1 active request at a time
 
 3. **History overflow**
+
    - Action: Add 100 entries to history
    - Expected: LRU eviction keeps only 10, localStorage <500 KB
 
 4. **Concurrent translations**
+
    - Action: Open 3 translator instances, translate simultaneously
    - Expected: All complete in <10s, no memory leaks
 

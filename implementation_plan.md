@@ -30,23 +30,23 @@ We will modify `wrangler.jsonc` to point to a custom server entrypoint `src/serv
     {
       "binding": "STEALTH_KV",
       "id": "<production-kv-id>",
-      "preview_id": "<preview-kv-id>",
-    },
+      "preview_id": "<preview-kv-id>"
+    }
   ],
   "durable_objects": {
     "bindings": [
       {
         "name": "STEALTH_COORDINATOR",
-        "class_name": "StealthCoordinator",
-      },
-    ],
+        "class_name": "StealthCoordinator"
+      }
+    ]
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["StealthCoordinator"],
-    },
-  ],
+      "new_sqlite_classes": ["StealthCoordinator"]
+    }
+  ]
 }
 ```
 
@@ -148,10 +148,7 @@ import type { ApiRepository } from "./repository";
 import type { MailboxPolicy, SenderRule, Postage, Receipt, IdempotencyRecord } from "./domain";
 
 export class HybridApiRepository implements ApiRepository {
-  constructor(
-    private kv: KVNamespace,
-    private coordinator: DurableObjectNamespace,
-  ) {}
+  constructor(private kv: KVNamespace, private coordinator: DurableObjectNamespace) {}
 
   // Prefixing helper to avoid namespace collision
   private key(prefix: string, ...parts: string[]) {

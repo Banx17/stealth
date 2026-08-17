@@ -50,7 +50,9 @@ export interface RenderTemplateRequest extends BaseRequest {
 }
 
 export type EmailTemplateLibraryRequest =
-  ListTemplatesRequest | GetTemplateRequest | RenderTemplateRequest;
+  | ListTemplatesRequest
+  | GetTemplateRequest
+  | RenderTemplateRequest;
 
 export interface ListTemplatesResult {
   operation: "list";
@@ -88,7 +90,8 @@ export interface EmailTemplateLibraryFailure {
 }
 
 export type EmailTemplateLibraryResponse =
-  EmailTemplateLibrarySuccess | EmailTemplateLibraryFailure;
+  | EmailTemplateLibrarySuccess
+  | EmailTemplateLibraryFailure;
 
 export interface EmailTemplateLibraryService {
   execute(request: EmailTemplateLibraryRequest): EmailTemplateLibraryResponse;

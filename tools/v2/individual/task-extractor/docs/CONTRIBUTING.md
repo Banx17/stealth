@@ -194,7 +194,11 @@ it("extracts TODO-prefixed tasks", () => {
 ```typescript
 // In types/taskExtractor.ts
 export type TaskTrigger =
-  "checkbox" | "request-phrase" | "bullet-action" | "imperative-line" | "todo-prefix"; // Add new trigger
+  | "checkbox"
+  | "request-phrase"
+  | "bullet-action"
+  | "imperative-line"
+  | "todo-prefix"; // Add new trigger
 ```
 
 #### Step 3: Implement Logic
@@ -287,20 +291,24 @@ tools/v2/individual/task-extractor/
 ### Layers
 
 1. **Types Layer** (`types/`)
+
    - TypeScript interfaces and type definitions
    - No implementation logic
    - Single source of truth for the contract
 
 2. **Services Layer** (`services/`)
+
    - **taskExtractor.ts**: Pure extraction engine
    - **guards.ts**: Validation, sanitization, error handling
    - **fixtures.ts**: Sample inputs and expected outputs
 
 3. **Public API** (`index.ts`)
+
    - Re-exports types and functions
    - No logic in barrel file
 
 4. **Tests** (`tests/`)
+
    - Unit tests for all public functions
    - Edge case coverage
    - Fixture validation
@@ -471,12 +479,14 @@ Types:
    ```
 
 2. **Update documentation**:
+
    - README.md if API changes
    - contract.md if types change
    - USAGE.md for new features
    - Add inline comments for complex logic
 
 3. **Create pull request** with:
+
    - Clear title describing the change
    - Description of what changed and why
    - Link to related issues
@@ -518,6 +528,7 @@ Closes #XXX
 ```
 
 5. **Address review feedback**:
+
    - Be responsive to reviewer comments
    - Make requested changes promptly
    - Ask questions if feedback is unclear

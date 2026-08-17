@@ -54,7 +54,7 @@ export function ProjectMailBinder({ initialState }: { initialState: BinderState 
   // Derive detail data when a project is selected
   const selectedProject =
     state.status === "success"
-      ? (state.projects.find((p) => p.id === selectedProjectId) ?? undefined)
+      ? state.projects.find((p) => p.id === selectedProjectId) ?? undefined
       : undefined;
 
   const selectedMails =

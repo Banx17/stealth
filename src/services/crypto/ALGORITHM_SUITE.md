@@ -70,21 +70,25 @@ v1:sha256:hex:5b40cf39e4a86e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202
 ### Why AES-256-GCM?
 
 1. **Native Platform Support**
+
    - Available in all modern browsers via the Web Crypto API
    - No external dependencies or polyfills required
    - Consistent behavior across Chrome, Firefox, Safari, Edge
 
 2. **Performance**
+
    - Hardware acceleration via AES-NI instructions on Intel/AMD CPUs
    - ARM CPUs also provide dedicated AES instructions
    - Significantly faster than software-only implementations
 
 3. **Security Properties**
+
    - **AEAD (Authenticated Encryption with Associated Data)**: Provides both confidentiality and integrity
    - **128-bit authentication tag**: Prevents forgery attacks (probability of success: 2^-128)
    - **Nonce uniqueness enforcement**: Each message gets a fresh random nonce
 
 4. **Standardization**
+
    - NIST-approved (FIPS 140-2)
    - ISO/IEC 19772:2009 standard
    - Extensively analyzed by the cryptographic community
@@ -98,17 +102,20 @@ v1:sha256:hex:5b40cf39e4a86e969d27038e8e78e86cf0f4e1f7a0756e0766a5cfbfcae29202
 The initial specification draft mentioned **X25519-XSalsa20-Poly1305**, but this was changed to **AES-256-GCM** for the following reasons:
 
 1. **Architecture Mismatch**
+
    - X25519-XSalsa20-Poly1305 is designed for **public-key encryption** with ephemeral key exchange
    - Stealth uses **symmetric encryption** with out-of-band key agreement via Stellar identity keys
    - Forcing X25519 into a symmetric-only flow would add complexity without security benefits
 
 2. **Web Crypto API Limitations**
+
    - X25519 is not part of the Web Crypto API standard
    - XSalsa20-Poly1305 is not available in Web Crypto
    - Implementing these would require large JavaScript libraries (e.g., libsodium.js, TweetNaCl)
    - Bundle size and maintenance burden would increase significantly
 
 3. **No Security Advantage**
+
    - Both AES-256-GCM and XSalsa20-Poly1305 provide equivalent security levels (256-bit keys)
    - Both provide AEAD properties
    - Stealth's threat model doesn't require the specific properties of X25519 ephemeral keys
@@ -125,31 +132,37 @@ The initial specification draft mentioned **X25519-XSalsa20-Poly1305**, but this
 Independent implementations MUST:
 
 1. **Algorithm Validation**
+
    - Verify the envelope version is `v1`
    - Confirm the only permitted algorithm for v1 is `AES-256-GCM`
    - Reject any attempt to seal with an unsupported algorithm
 
 2. **Key Generation**
+
    - Generate a fresh 256-bit AES key using a cryptographically secure random number generator
    - Keys MUST be generated per-envelope (not reused across messages)
    - Key derivation MAY be used (e.g., HKDF) if deriving from a master secret
 
 3. **Nonce Generation**
+
    - Generate a fresh 12-byte nonce using a cryptographically secure RNG
    - Nonces MUST be unique per encryption operation with the same key
    - Never reuse a nonce with the same key (this breaks GCM security)
 
 4. **AAD Construction**
+
    - Canonicalize attachment descriptors using RFC 8785 (JCS)
    - Pass the canonicalized byte string as AAD to AES-GCM
    - Empty array if no attachments: `[]`
 
 5. **Encryption**
+
    - Encrypt the message body with AES-256-GCM
    - The ciphertext will include the 16-byte authentication tag appended automatically
    - Base64-encode the complete ciphertext (plaintext encrypted bytes + tag)
 
 6. **Metadata Emission**
+
    - Set `encryption_metadata.algorithm` to exactly `"AES-256-GCM"`
    - Set `encryption_metadata.nonce` to the hex-encoded 12-byte nonce (24 hex chars)
    - Set `encryption_metadata.mac` to the hex-encoded 16-byte tag (32 hex chars)
@@ -163,15 +176,18 @@ Independent implementations MUST:
 Independent implementations MUST:
 
 1. **Version Validation**
+
    - Check `payload.version` is `v1`
    - Reject unknown versions with `crypto_version_error`
 
 2. **Algorithm Validation**
+
    - Check `encryption_metadata.algorithm` is exactly `"AES-256-GCM"`
    - Reject unsupported algorithms with `crypto_algorithm_error`
    - Error messages MUST NOT leak algorithm names or key material
 
 3. **Content Commitment Verification**
+
    - Parse the `content_commitment` field (format: `v1:sha256:hex:<hash>`)
    - Decode the base64 ciphertext
    - Compute SHA-256 over the decoded ciphertext bytes
@@ -179,17 +195,20 @@ Independent implementations MUST:
    - Reject on mismatch with `crypto_integrity_error`
 
 4. **AAD Reconstruction**
+
    - Extract attachment descriptors from `payload.attachments`
    - Canonicalize using RFC 8785 (same as sealing)
    - Pass to AES-GCM as AAD
 
 5. **Tag Verification**
+
    - Extract the last 16 bytes of the ciphertext as the GCM tag
    - Compare against `encryption_metadata.mac` (hex-decoded)
    - Use constant-time comparison to prevent timing attacks
    - Reject on mismatch with `crypto_integrity_error`
 
 6. **Decryption**
+
    - Decode nonce from `encryption_metadata.nonce` (hex to 12 bytes)
    - Decrypt with AES-GCM using key, nonce, ciphertext, and AAD
    - Web Crypto API automatically verifies the tag; failure throws
@@ -216,20 +235,24 @@ See `tests/unit/crypto/spec-compatibility.test.ts` for comprehensive test vector
 If a new algorithm needs to be supported (e.g., post-quantum encryption, X25519-based key exchange):
 
 1. **Define the Suite**
+
    - Add entry to `SUITE_REGISTRY.suites` in `suites.ts`
    - Specify `name`, `keyBits`, `nonceBytes`, `webCryptoName`, `status`
 
 2. **Create New Version**
+
    - Add a new version entry (e.g., `v2`) to `SUITE_REGISTRY.versions`
    - Link the new suite name to the version
    - Mark old suites as `deprecated` if needed (allows opening, blocks sealing)
 
 3. **Implement Crypto Logic**
+
    - Add encryption path in `envelope.ts`
    - Add decryption path in `open-envelope.ts`
    - Handle algorithm-specific metadata (e.g., ephemeral keys for X25519)
 
 4. **Update Documentation**
+
    - Update this file with the new normative suite
    - Update `protocol/messages/envelope_spec.md`
    - Add migration guide for old envelopes

@@ -104,10 +104,10 @@ export function AdminDataTable<T>({
                     !col.sortable
                       ? undefined
                       : !isSorted
-                        ? "none"
-                        : sortDirection === "asc"
-                          ? "ascending"
-                          : "descending"
+                      ? "none"
+                      : sortDirection === "asc"
+                      ? "ascending"
+                      : "descending"
                   }
                   className="px-4 py-3 font-medium text-muted-foreground select-none"
                 >
