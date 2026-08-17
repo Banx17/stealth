@@ -124,6 +124,13 @@ export const API_ERROR_REGISTRY = {
     retryable: false,
     description: "The supplied postage quote failed integrity validation.",
   },
+  stale_quote: {
+    status: 422,
+    message: "The postage quote is stale",
+    retryable: false,
+    description:
+      "The recipient policy or network asset changed after the quote was issued, so it can no longer be honored.",
+  },
   request_in_progress: {
     status: 409,
     message: "An equivalent request is already in progress",

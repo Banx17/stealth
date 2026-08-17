@@ -61,7 +61,7 @@ export class ApiHelper {
   async quotePostage(recipient = ACTOR, sender = SENDER) {
     return this.page.request.post("/api/v1/postage/quote", {
       headers: this.headers(sender),
-      data: { recipient, sender },
+      data: { recipient, sender, messageId: MSG_ID },
     });
   }
 
@@ -83,6 +83,9 @@ export class ApiHelper {
         paymentHash,
         recipient,
         sender,
+        asset: quoteData.asset,
+        policyVersion: quoteData.policyVersion,
+        network: quoteData.network,
         issuedAt: quoteData.issuedAt,
         expiresAt: quoteData.expiresAt,
         quoteDigest: quoteData.digest,
