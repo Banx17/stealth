@@ -252,8 +252,7 @@ export class IdentityResolverService {
     options: ResolverOptions,
     signal: AbortSignal,
   ): Promise<ResolvedIdentity> {
-    const repository =
-      options.repository ?? (globalThis as any).__stealthApiRepository;
+    const repository = options.repository ?? (globalThis as any).__stealthApiRepository;
 
     switch (parsed.type) {
       case "stellar_address":
@@ -267,12 +266,7 @@ export class IdentityResolverService {
         return this.resolveEmailAddress(parsed.username, parsed.domain, normalized, repository);
 
       case "federation_address":
-        return this.resolveFederationAddress(
-          parsed.raw,
-          normalized,
-          options,
-          signal,
-        );
+        return this.resolveFederationAddress(parsed.raw, normalized, options, signal);
 
       default:
         return this.createErrorResult(
