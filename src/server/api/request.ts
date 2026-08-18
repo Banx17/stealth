@@ -52,6 +52,11 @@ export const ROUTE_BODY_LIMITS = {
   "POST /identity/keys/rotate": "compact",
   "POST /identity/keys/retire": "compact",
   "POST /identity/keys/revoke": "compact",
+  "POST /contacts": "compact",
+  "PUT /contacts/{contactId}": "compact",
+  "POST /contacts/merge": "compact",
+  "POST /contacts/import/preview": "bulk",
+  "POST /contacts/import/commit": "bulk",
   "POST /requests": "standard",
   "POST /requests/{requestId}/decisions": "compact",
 } as const satisfies Record<string, BodyLimitCategory>;

@@ -666,3 +666,57 @@ export const keyDirectoryRecordSchema = z.object({
 });
 
 export type KeyDirectoryRecord = z.infer<typeof keyDirectoryRecordSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1973 (BETA-066) — Live contacts CRUD, trust state, and safe import
+//
+// A contact is a durable, user-owned address-book entry. `address` holds the
+// raw identifier the user supplied (Stealth/Stellar G-address, local handle,
+// or federation address); `canonicalAddress` is the resolved Stealth identity
+// once identity resolution succeeds (null while unresolved or invalid).
+// `trust` reuses the mailbox sender-rule vocabulary so contacts and policy
+// stay consistent, but a contact row is NEVER an implicit policy mutation.
+// ---------------------------------------------------------------------------
+
+export const contactSourceSchema = z.enum(["manual", "csv", "vcard", "api"]);
+
+export const contactSchema = z.object({
+  contactId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  name: z.string().trim().min(1).max(200),
+  address: z.string().trim().min(1).max(300),
+  canonicalAddress: stellarAddressSchema.nullable().default(null),
+  trust: senderRuleSchema.default("default"),
+  source: contactSourceSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export const contactCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  address: z.string().trim().min(1).max(300),
+  trust: senderRuleSchema.default("default"),
+});
+
+export const contactUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    address: z.string().trim().min(1).max(300).optional(),
+    trust: senderRuleSchema.optional(),
+    expectedVersion: z.number().int().positive().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.name === undefined && data.address === undefined && data.trust === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one of name, address, or trust must be provided",
+        path: [],
+      });
+    }
+  });
+
+export type Contact = z.infer<typeof contactSchema>;
+export type ContactSource = z.infer<typeof contactSourceSchema>;
+export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
+export type ContactUpdateInput = z.infer<typeof contactUpdateSchema>;

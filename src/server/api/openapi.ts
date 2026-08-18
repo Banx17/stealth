@@ -618,6 +618,236 @@ export const openApiDocument = {
           service: { type: "string", description: "Service name." },
         },
       },
+      Contact: {
+        type: "object",
+        required: [
+          "contactId",
+          "owner",
+          "name",
+          "address",
+          "canonicalAddress",
+          "trust",
+          "source",
+          "createdAt",
+          "updatedAt",
+          "version",
+        ],
+        additionalProperties: false,
+        properties: {
+          contactId: { type: "string", description: "Unique contact identifier." },
+          owner: {
+            type: "string",
+            description: "Stellar account that owns this contact.",
+            pattern: "^G[A-Z2-7]{55}$",
+          },
+          name: { type: "string", maxLength: 200, description: "Display name." },
+          address: {
+            type: "string",
+            maxLength: 300,
+            description: "Raw address identifier (G-address, email, or handle).",
+          },
+          canonicalAddress: {
+            anyOf: [{ type: "string", pattern: "^G[A-Z2-7]{55}$" }, { type: "null" }],
+            description: "Resolved canonical G-address, or null until resolved.",
+          },
+          trust: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+            description: "Sender rule. Never applied to policy unless the owner opts in.",
+          },
+          source: {
+            type: "string",
+            enum: ["manual", "csv", "vcard", "api"],
+            description: "Origin of this contact row.",
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          version: {
+            type: "integer",
+            minimum: 1,
+            description: "Optimistic concurrency version.",
+          },
+        },
+      },
+      ContactResolution: {
+        type: "object",
+        required: ["senderRule", "senderRuleConfigured"],
+        additionalProperties: false,
+        properties: {
+          identity: {
+            anyOf: [
+              {
+                type: "object",
+                required: [
+                  "identifier",
+                  "canonicalAddress",
+                  "account",
+                  "resolved",
+                  "status",
+                  "publicKey",
+                  "encryptionKeyVersion",
+                  "policyEndpoint",
+                  "freshness",
+                ],
+                additionalProperties: true,
+                properties: {
+                  identifier: { type: "string" },
+                  canonicalAddress: { type: "string" },
+                  account: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  resolved: { type: "boolean" },
+                  status: { type: "string" },
+                  publicKey: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  encryptionKeyVersion: { anyOf: [{ type: "integer" }, { type: "null" }] },
+                  policyEndpoint: { anyOf: [{ type: "string" }, { type: "null" }] },
+                  freshness: { type: "string", enum: ["fresh", "stale", "unknown"] },
+                  memo: { type: "string" },
+                  memoType: { type: "string", enum: ["text", "id", "hash"] },
+                },
+              },
+              { type: "null" },
+            ],
+            description: "Resolved identity, or null when resolution failed or is pending.",
+          },
+          keyDirectory: {
+            anyOf: [
+              {
+                type: "object",
+                description: "Live key directory entry for the canonical address.",
+                additionalProperties: true,
+              },
+              { type: "null" },
+            ],
+          },
+          senderRule: { type: "string", enum: ["default", "allow", "block"] },
+          senderRuleConfigured: {
+            type: "boolean",
+            description: "True when the owner has an explicit policy rule for this address.",
+          },
+        },
+      },
+      ContactWithResolution: {
+        type: "object",
+        required: ["contact", "resolution"],
+        additionalProperties: false,
+        properties: {
+          contact: { $ref: "#/components/schemas/Contact" },
+          resolution: { $ref: "#/components/schemas/ContactResolution" },
+        },
+      },
+      ContactListResult: {
+        type: "object",
+        required: ["items", "nextContinuationKey"],
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ContactWithResolution" },
+          },
+          nextContinuationKey: {
+            anyOf: [{ type: "string" }, { type: "null" }],
+            description: "Cursor for the next page, or null at the end.",
+          },
+        },
+      },
+      ContactMergeResult: {
+        type: "object",
+        required: ["contact", "resolution"],
+        additionalProperties: false,
+        description: "The surviving contact after merging, re-resolved against live state.",
+        properties: {
+          contact: { $ref: "#/components/schemas/Contact" },
+          resolution: { $ref: "#/components/schemas/ContactResolution" },
+        },
+      },
+      ContactImportPreviewResult: {
+        type: "object",
+        required: [
+          "format",
+          "totalRows",
+          "validRows",
+          "duplicateRows",
+          "errorRows",
+          "truncated",
+          "limit",
+          "rows",
+        ],
+        additionalProperties: false,
+        properties: {
+          format: { type: "string", enum: ["csv", "vcard"] },
+          totalRows: { type: "integer", minimum: 0 },
+          validRows: { type: "integer", minimum: 0 },
+          duplicateRows: { type: "integer", minimum: 0 },
+          errorRows: { type: "integer", minimum: 0 },
+          truncated: {
+            type: "boolean",
+            description: "True when parsing stopped at the row limit.",
+          },
+          limit: {
+            type: "object",
+            required: ["maxRows"],
+            properties: { maxRows: { type: "integer", minimum: 1 } },
+          },
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["rowNumber", "name", "address", "status"],
+              additionalProperties: false,
+              properties: {
+                rowNumber: { type: "integer", minimum: 1 },
+                name: { type: "string" },
+                address: { type: "string" },
+                status: { type: "string", enum: ["valid", "duplicate", "error"] },
+                error: { anyOf: [{ type: "string" }, { type: "null" }] },
+                canonicalAddress: {
+                  anyOf: [{ type: "string", pattern: "^G[A-Z2-7]{55}$" }, { type: "null" }],
+                },
+                identityStatus: { anyOf: [{ type: "string" }, { type: "null" }] },
+                keyFreshness: { anyOf: [{ type: "string" }, { type: "null" }] },
+                existing: {
+                  anyOf: [
+                    {
+                      type: "object",
+                      required: ["contactId", "trust"],
+                      properties: {
+                        contactId: { type: "string" },
+                        trust: { type: "string", enum: ["default", "allow", "block"] },
+                      },
+                    },
+                    { type: "null" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      ContactImportCommitResult: {
+        type: "object",
+        required: [
+          "created",
+          "updated",
+          "unchanged",
+          "rejected",
+          "total",
+          "appliedRules",
+          "contacts",
+        ],
+        additionalProperties: false,
+        properties: {
+          created: { type: "integer", minimum: 0 },
+          updated: { type: "integer", minimum: 0 },
+          unchanged: { type: "integer", minimum: 0 },
+          rejected: { type: "integer", minimum: 0 },
+          total: { type: "integer", minimum: 0 },
+          appliedRules: {
+            type: "integer",
+            minimum: 0,
+            description: "Sender rules applied to policy; only when applyTrust was requested.",
+          },
+          contacts: { type: "array", items: { $ref: "#/components/schemas/Contact" } },
+        },
+      },
     },
   },
   paths: {
@@ -2567,6 +2797,722 @@ export const openApiDocument = {
           },
           "503": {
             description: "The verification message could not be delivered",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts": {
+      get: {
+        operationId: "listContacts",
+        summary: "List contacts for the authenticated account",
+        description:
+          "Returns the owner's contacts with live identity, key-freshness, and trust state. Resolution failures degrade to null rather than failing the page.",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "query",
+            in: "query",
+            schema: { type: "string", maxLength: 200 },
+            description: "Optional substring filter on name or address.",
+          },
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "string" },
+            description: "Pagination continuation key.",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Listed contacts",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactListResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        operationId: "createContact",
+        summary: "Create a contact",
+        description:
+          "Stores a new owner-scoped contact. The trust field is advisory and never mutates mailbox policy.",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "address"],
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string", maxLength: 200 },
+                  address: { type: "string", maxLength: 300 },
+                  trust: { type: "string", enum: ["default", "allow", "block"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Created contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/{contactId}": {
+      get: {
+        operationId: "getContact",
+        summary: "Read a single contact",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        operationId: "updateContact",
+        summary: "Update a contact",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                description: "At least one of name, address, or trust is required.",
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string", maxLength: 200 },
+                  address: { type: "string", maxLength: 300 },
+                  trust: { type: "string", enum: ["default", "allow", "block"] },
+                  expectedVersion: { type: "integer", minimum: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Updated contact with live resolution",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactWithResolution",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — concurrent modification detected",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        operationId: "deleteContact",
+        summary: "Delete a contact",
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "contactId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Contact deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/merge": {
+      post: {
+        operationId: "mergeContacts",
+        summary: "Merge duplicate contacts",
+        description:
+          "Deletes the merge targets and bumps the version of the kept contact so concurrent writers cannot resurrect merged-away rows. All IDs are scoped to the authenticated owner.",
+        "x-max-body-bytes": 8 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["keepContactId", "mergeContactIds"],
+                additionalProperties: false,
+                properties: {
+                  keepContactId: { type: "string" },
+                  mergeContactIds: {
+                    type: "array",
+                    minItems: 1,
+                    items: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Surviving contact re-resolved after merge",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactMergeResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden — cannot merge a contact owned by another actor",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict — kept contact modified concurrently",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/import/preview": {
+      post: {
+        operationId: "previewContactImport",
+        summary: "Parse and preview a CSV or vCard contact import",
+        description:
+          "Parses the uploaded content into rows with per-row validity, duplicate detection, and live identity resolution. Never writes contact rows.",
+        "x-max-body-bytes": 1024 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["format", "content"],
+                additionalProperties: false,
+                properties: {
+                  format: { type: "string", enum: ["csv", "vcard"] },
+                  content: {
+                    type: "string",
+                    description: "Raw import file content, UTF-8.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Parsed import preview",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactImportPreviewResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/contacts/import/commit": {
+      post: {
+        operationId: "commitContactImport",
+        summary: "Commit a contact import",
+        description:
+          "Idempotently upserts the reviewed rows by address. Policy is never mutated unless applyTrust is explicitly true, and even then only allow/block rows touch sender rules.",
+        "x-max-body-bytes": 1024 * 1024,
+        security: [
+          {
+            ActorHeader: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["rows"],
+                additionalProperties: false,
+                properties: {
+                  rows: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 1000,
+                    items: {
+                      type: "object",
+                      required: ["name", "address"],
+                      additionalProperties: false,
+                      properties: {
+                        name: { type: "string", maxLength: 200 },
+                        address: { type: "string", maxLength: 300 },
+                        trust: { type: "string", enum: ["default", "allow", "block"] },
+                        source: { type: "string", enum: ["csv", "vcard"] },
+                      },
+                    },
+                  },
+                  applyTrust: {
+                    type: "boolean",
+                    default: false,
+                    description: "Opt-in application of trust rows to mailbox policy.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "201": {
+            description: "Import committed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ContactImportCommitResult",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity — Request payload validation failure",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
             content: {
               "application/json": {
                 schema: {

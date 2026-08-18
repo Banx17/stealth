@@ -22,6 +22,7 @@ import {
   policyWriteIntentSchema,
   publishedKeySchema,
   keyDirectoryRecordSchema,
+  contactSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -233,6 +234,9 @@ registerRecordSchema("policyWriteIntent", 1, policyWriteIntentSchema);
 // Issue #1934 (BETA-027): Versioned Public Encryption-Key Directory & Rotation
 registerRecordSchema("publishedKey", 1, publishedKeySchema);
 registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
+// Issue #1973 (BETA-066): durable user-owned contacts are versioned and
+// validated at the adapter boundary like every other durable record.
+registerRecordSchema("contact", 1, contactSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

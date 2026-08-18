@@ -1,13 +1,16 @@
 import type {
   ApiRepository,
+  ContactQueryOptions,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  UpdateContactResult,
   UpdateProvisioningResult,
   UpdateUserResult,
   UsernameReservationResult,
   WalletCreationResult,
 } from "./repository";
 import type {
+  Contact,
   Credential,
   ExternalWallet,
   ExternalWalletChallenge,
@@ -532,5 +535,95 @@ export class HybridApiRepository implements ApiRepository {
       JSON.stringify(record),
     );
     return record;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1973 (BETA-066) — Live contacts CRUD
+  //
+  // Each owner stores a JSON array of contacts under a single key (the same
+  // shape as the external-wallet collection) so list/get/update/delete and
+  // search all resolve in one KV read without coordinator round-trips.
+  // ---------------------------------------------------------------------------
+
+  private contactKey(owner: string): string {
+    return this.key("contacts", owner.toUpperCase().trim());
+  }
+
+  private async readContacts(owner: string): Promise<Contact[]> {
+    const stored = await this.kv.get(this.contactKey(owner), "json");
+    return (stored as Contact[]) ?? [];
+  }
+
+  async listContacts(
+    owner: string,
+    options: ContactQueryOptions = {},
+  ): Promise<import("./repository").Page<Contact>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const query = options.query?.trim().toLowerCase();
+
+    const stored = await this.readContacts(normOwner);
+    const filtered: Contact[] = [];
+    for (const contact of stored) {
+      if (contact.owner.toUpperCase().trim() !== normOwner) {
+        continue;
+      }
+      if (query) {
+        const haystack =
+          `${contact.name} ${contact.address} ${contact.canonicalAddress ?? ""}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+      filtered.push(contact);
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listContacts;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const contacts = await this.readContacts(owner);
+    return contacts.find((c) => c.contactId === contactId) ?? null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const normOwner = contact.owner.toUpperCase().trim();
+    const contacts = await this.readContacts(normOwner);
+    if (contacts.some((c) => c.contactId === contact.contactId)) {
+      throw new ApiError(409, "conflict", `A contact already exists for ${contact.contactId}`);
+    }
+    contacts.push(contact);
+    await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+    return contact;
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const normOwner = contact.owner.toUpperCase().trim();
+    const contacts = await this.readContacts(normOwner);
+    const index = contacts.findIndex((c) => c.contactId === contact.contactId);
+    if (index < 0) {
+      return { updated: false, current: null };
+    }
+    const existing = contacts[index];
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: existing };
+    }
+    const updated = { ...contact, version: expectedVersion + 1 };
+    contacts[index] = updated;
+    await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+    return { updated: true, contact: updated };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    const normOwner = owner.toUpperCase().trim();
+    const contacts = await this.readContacts(normOwner);
+    const index = contacts.findIndex((c) => c.contactId === contactId);
+    if (index < 0) {
+      throw new ApiError(404, "not_found", `No contact found for ${contactId}`);
+    }
+    contacts.splice(index, 1);
+    await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
   }
 }
