@@ -430,6 +430,10 @@ export interface ApiRepository {
    * conflict (ApiError 409 "conflict") so imports can never create ambiguous
    * address-book state.
    */
+  createContact(contact: Contact): Promise<Contact>;
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult>;
+  deleteContact(owner: string, contactId: string): Promise<void>;
+
   // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------

@@ -9,6 +9,13 @@ import { Route as JobItemRoute } from "@/routes/api/v1/admin/jobs/$id";
 import { enqueueDurableJob, recordJobFailure } from "@/server/api/job-service";
 import { getApiContext } from "@/server/api/context";
 
+const dlqListHandler = (DlqRoute.options as any).server?.handlers?.GET;
+const dlqItemHandler = (DlqItemRoute.options as any).server?.handlers?.GET;
+const dlqRetryHandler = (DlqRetryRoute.options as any).server?.handlers?.POST;
+const dlqAbandonHandler = (DlqAbandonRoute.options as any).server?.handlers?.POST;
+const jobsListHandler = (JobsRoute.options as any).server?.handlers?.GET;
+const jobsItemHandler = (JobItemRoute.options as any).server?.handlers?.GET;
+
 describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
   let repository: MemoryApiRepository;
 
@@ -37,7 +44,7 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
     const listReq = new Request("http://localhost/api/v1/admin/dlq?jobType=funding", {
       method: "GET",
     });
-    const listRes = await DlqRoute.options.server!.handlers!.GET!({ request: listReq } as any);
+    const listRes = await dlqListHandler({ request: listReq });
     expect(listRes.status).toBe(200);
     const listBody = (await listRes.json()) as any;
     expect(listBody.data.deadLetters).toHaveLength(1);
@@ -47,10 +54,10 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
     const itemReq = new Request(`http://localhost/api/v1/admin/dlq/${deadLetter!.deadLetterId}`, {
       method: "GET",
     });
-    const itemRes = await DlqItemRoute.options.server!.handlers!.GET!({
+    const itemRes = await dlqItemHandler({
       request: itemReq,
       params: { id: deadLetter!.deadLetterId },
-    } as any);
+    });
     expect(itemRes.status).toBe(200);
     const itemBody = (await itemRes.json()) as any;
     expect(itemBody.data.deadLetter.deadLetterId).toBe(deadLetter!.deadLetterId);
@@ -74,10 +81,10 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
         method: "POST",
       },
     );
-    const retryRes = await DlqRetryRoute.options.server!.handlers!.POST!({
+    const retryRes = await dlqRetryHandler({
       request: retryReq,
       params: { id: deadLetter!.deadLetterId },
-    } as any);
+    });
     expect(retryRes.status).toBe(200);
     const retryBody = (await retryRes.json()) as any;
     expect(retryBody.data.deadLetter.status).toBe("retried");
@@ -104,10 +111,10 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
         body: JSON.stringify({ adminNotes: "Abandoned after triage" }),
       },
     );
-    const abandonRes = await DlqAbandonRoute.options.server!.handlers!.POST!({
+    const abandonRes = await dlqAbandonHandler({
       request: abandonReq,
       params: { id: deadLetter2!.deadLetterId },
-    } as any);
+    });
     expect(abandonRes.status).toBe(200);
     const abandonBody = (await abandonRes.json()) as any;
     expect(abandonBody.data.deadLetter.status).toBe("abandoned");
@@ -123,7 +130,7 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
 
     // List
     const listReq = new Request("http://localhost/api/v1/admin/jobs", { method: "GET" });
-    const listRes = await JobsRoute.options.server!.handlers!.GET!({ request: listReq } as any);
+    const listRes = await jobsListHandler({ request: listReq });
     expect(listRes.status).toBe(200);
     const listBody = (await listRes.json()) as any;
     expect(listBody.data.jobs.length).toBeGreaterThanOrEqual(1);
@@ -132,10 +139,10 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
     const itemReq = new Request(`http://localhost/api/v1/admin/jobs/${job.jobId}`, {
       method: "GET",
     });
-    const itemRes = await JobItemRoute.options.server!.handlers!.GET!({
+    const itemRes = await jobsItemHandler({
       request: itemReq,
       params: { id: job.jobId },
-    } as any);
+    });
     expect(itemRes.status).toBe(200);
     const itemBody = (await itemRes.json()) as any;
     expect(itemBody.data.job.jobId).toBe(job.jobId);

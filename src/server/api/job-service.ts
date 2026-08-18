@@ -54,7 +54,7 @@ export function redactErrorMessage(error: unknown): string {
 /** Classifies an error into a structured reason taxonomy code. */
 export function classifyError(error: unknown): { code: JobErrorCode; retryable: boolean } {
   if (error instanceof ApiError) {
-    if (error.code === "rate_limit_exceeded" || error.status === 429) {
+    if (error.code === "too_many_requests" || error.status === 429) {
       return { code: "ERR_RATE_LIMITED", retryable: true };
     }
     if (error.code === "unauthorized" || error.status === 401 || error.status === 403) {
