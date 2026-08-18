@@ -24,7 +24,8 @@ export enum DigestErrorCode {
 
 /** Discriminated outcome returned by every contract operation. */
 export type DigestResult<T> =
-  { ok: true; value: T } | { ok: false; error: DigestErrorCode; message: string };
+  | { ok: true; value: T }
+  | { ok: false; error: DigestErrorCode; message: string };
 
 /** Operations supported by the digest contract. */
 export type DigestOperation = {

@@ -1,7 +1,11 @@
 import type { UiPreferences, UnknownSenderPolicy } from "@/features/preferences";
 
 export type MailboxPolicyTemplateId =
-  "private" | "public-paid-inbox" | "investor-inbox" | "recruiting-inbox" | "allowlist-only";
+  | "private"
+  | "public-paid-inbox"
+  | "investor-inbox"
+  | "recruiting-inbox"
+  | "allowlist-only";
 
 export type MailboxPolicyTemplate = {
   id: MailboxPolicyTemplateId;

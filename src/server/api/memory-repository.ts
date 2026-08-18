@@ -82,6 +82,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly deadLetters = new Map<string, DeadLetter>();
   private readonly receiptCheckpoints = new Map<string, ReceiptCheckpoint>();
   private readonly jobLocks = new Map<string, Promise<void>>();
+  // Issue #1954: send operation state machine store
+  private readonly sendOperations = new Map<string, import("./domain").SendOperationState>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -1265,5 +1267,32 @@ export class MemoryApiRepository implements ApiRepository {
     this.deadLetters.clear();
     this.receiptCheckpoints.clear();
     this.jobLocks.clear();
+    this.sendOperations.clear();
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return structuredClone(this.sendOperations.get(messageId) ?? null);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    const stored = structuredClone(state);
+    this.sendOperations.set(state.messageId, stored);
+    return structuredClone(stored);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.withKeyLock(`send-op:${state.messageId}`, async () => {
+      const existing = this.sendOperations.get(state.messageId);
+      if (existing) {
+        return { created: false, state: structuredClone(existing) };
+      }
+      const stored = structuredClone(state);
+      this.sendOperations.set(state.messageId, stored);
+      return { created: true, state: structuredClone(stored) };
+    });
   }
 }

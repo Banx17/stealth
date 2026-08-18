@@ -16,4 +16,5 @@ export interface DatasetImportIssue {
  * On failure, `issues` lists every problem found (the import is rejected whole).
  */
 export type DatasetImportResult =
-  { ok: true; drafts: Draft[] } | { ok: false; issues: DatasetImportIssue[] };
+  | { ok: true; drafts: Draft[] }
+  | { ok: false; issues: DatasetImportIssue[] };

@@ -103,7 +103,8 @@ export type MarkReceiptReadResult =
   | { outcome: "marked"; receipt: Receipt };
 
 export type UpdateUserResult =
-  { updated: true; user: User } | { updated: false; current: User | null };
+  | { updated: true; user: User }
+  | { updated: false; current: User | null };
 export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
 export type SenderRequestTransitionResult =
   | { outcome: "not_found" }
@@ -119,7 +120,8 @@ export type SenderRequestTransitionResult =
  *   re-read and reconcile instead of blindly overwriting.
  */
 export type UpdateContactResult =
-  { updated: true; contact: Contact } | { updated: false; current: Contact | null };
+  | { updated: true; contact: Contact }
+  | { updated: false; current: Contact | null };
 
 // ---------------------------------------------------------------------------
 // BETA-014: Account-provisioning repository contracts
@@ -159,7 +161,8 @@ export type UsernameReservationResult =
  *   returned unchanged (idempotent retry).
  */
 export type WalletCreationResult =
-  { outcome: "created"; wallet: Wallet } | { outcome: "already-exists"; wallet: Wallet };
+  | { outcome: "created"; wallet: Wallet }
+  | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
   | {
@@ -254,6 +257,15 @@ export interface ApiRepository {
 
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
+
+  // Issue #1954 (BETA-048): Send Operation State persistence
+  getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null>;
+  setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState>;
+  createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }>;
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]>;
   setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet>;
@@ -690,6 +702,35 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
     return this.inner.setIdempotencyRecord(key, versionRecord("idempotencyRecord", record));
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const raw = await this.inner.getSendOperation(messageId);
+    return raw
+      ? validateRecord<import("./domain").SendOperationState>("sendOperationState", raw)
+      : null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    const result = await this.inner.setSendOperation(versionRecord("sendOperationState", state));
+    return validateRecord<import("./domain").SendOperationState>("sendOperationState", result);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    const result = await this.inner.createSendOperationIfAbsent(
+      versionRecord("sendOperationState", state),
+    );
+    if (result.created) {
+      result.state = validateRecord<import("./domain").SendOperationState>(
+        "sendOperationState",
+        result.state,
+      );
+    }
+    return result;
   }
 
   async getUserById(userId: string): Promise<User | null> {
@@ -1223,6 +1264,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateDeadLetter",
   "getReceiptCheckpoint",
   "setReceiptCheckpoint",
+  "getSendOperation",
+  "setSendOperation",
+  "createSendOperationIfAbsent",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1751,6 +1795,24 @@ export class RetryableApiRepository implements ApiRepository {
   setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.withRetry("setReceiptCheckpoint", () =>
       this.inner.setReceiptCheckpoint(checkpoint),
+    );
+  }
+
+  getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.withRetry("getSendOperation", () => this.inner.getSendOperation(messageId));
+  }
+
+  setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.withRetry("setSendOperation", () => this.inner.setSendOperation(state));
+  }
+
+  createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.withRetry("createSendOperationIfAbsent", () =>
+      this.inner.createSendOperationIfAbsent(state),
     );
   }
 

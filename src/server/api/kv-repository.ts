@@ -400,7 +400,8 @@ export class HybridApiRepository implements ApiRepository {
 
   async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
     const wallets = (await this.kv.get(this.key("external-wallet", owner), "json")) as
-      ExternalWallet[] | null;
+      | ExternalWallet[]
+      | null;
     const existing = wallets ?? [];
     const idx = existing.findIndex((w) => w.address === wallet.address);
     if (idx >= 0) {
@@ -416,7 +417,8 @@ export class HybridApiRepository implements ApiRepository {
   async removeExternalWallet(owner: string, address: string): Promise<void> {
     const wallets =
       ((await this.kv.get(this.key("external-wallet", owner), "json")) as
-        ExternalWallet[] | null) ?? [];
+        | ExternalWallet[]
+        | null) ?? [];
     await this.kv.put(
       this.key("external-wallet", owner),
       JSON.stringify(wallets.filter((w) => w.address !== address)),
@@ -703,5 +705,21 @@ export class HybridApiRepository implements ApiRepository {
 
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.getStub().setReceiptCheckpoint(checkpoint);
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.getStub().getSendOperation(messageId);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.getStub().setSendOperation(state);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.getStub().createSendOperationIfAbsent(state);
   }
 }
