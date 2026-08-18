@@ -67,13 +67,19 @@ export async function checkAuthFailureThrottle(
 
   const ipAcctCount = await repository.getCounter(ipAcctKey);
   if (ipAcctCount >= AUTH_FAILURE_LIMITS.ipAndAccount.max) {
-    return { allowed: false, retryAfterSeconds: AUTH_FAILURE_LIMITS.ipAndAccount.windowSeconds };
+    return {
+      allowed: false,
+      retryAfterSeconds: AUTH_FAILURE_LIMITS.ipAndAccount.windowSeconds,
+    };
   }
 
   if (ipVal !== "unknown") {
     const ipWideCount = await repository.getCounter(ipWideKey);
     if (ipWideCount >= AUTH_FAILURE_LIMITS.ipWide.max) {
-      return { allowed: false, retryAfterSeconds: AUTH_FAILURE_LIMITS.ipWide.windowSeconds };
+      return {
+        allowed: false,
+        retryAfterSeconds: AUTH_FAILURE_LIMITS.ipWide.windowSeconds,
+      };
     }
   }
 

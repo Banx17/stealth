@@ -79,7 +79,10 @@ describe("wallet-link client service (Issue #1977 BETA-070)", () => {
   describe("requestChallenge", () => {
     it("returns challenge data on success", async () => {
       globalThis.fetch = mockFetchOnce(200, {
-        data: { challenge: "a".repeat(64), expiresAt: "2026-01-01T00:00:00.000Z" },
+        data: {
+          challenge: "a".repeat(64),
+          expiresAt: "2026-01-01T00:00:00.000Z",
+        },
       }) as typeof fetch;
 
       const result = await requestChallenge(externalAddress, network);
@@ -167,7 +170,9 @@ describe("wallet-link client service (Issue #1977 BETA-070)", () => {
           network,
         },
       ];
-      globalThis.fetch = mockFetchOnce(200, { data: { wallets } }) as typeof fetch;
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { wallets },
+      }) as typeof fetch;
 
       const result = await listLinkedWallets();
       expect(result).toHaveLength(1);
@@ -184,21 +189,14 @@ describe("wallet-link client service (Issue #1977 BETA-070)", () => {
   });
 
   describe("unlinkWallet", () => {
-    it("succeeds on 2xx and returns fallback signer", async () => {
-      const activeSigner = {
-        signerType: "managed" as const,
-        address: owner,
-        capabilities: ["sign", "send", "read"] as WalletCapability[],
-        isFallback: true,
-      };
-
+    it("succeeds on 2xx", async () => {
       globalThis.fetch = mockFetchOnce(200, {
-        data: { unlinked: true, activeSigner },
+        data: { unlinked: true },
       }) as typeof fetch;
 
-      const res = await unlinkWallet(externalAddress);
-      expect(res.unlinked).toBe(true);
-      expect(res.activeSigner.signerType).toBe("managed");
+      await expect(unlinkWallet(externalAddress)).resolves.toEqual({
+        unlinked: true,
+      });
     });
 
     it("passes explicit confirmation parameter when provided", async () => {

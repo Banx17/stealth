@@ -11,6 +11,7 @@ import type {
   JobStatus,
   KeyDirectoryRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
@@ -164,7 +165,11 @@ export type WalletCreationResult =
   | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
-  | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
+  | {
+      outcome: "issued";
+      token: VerificationToken;
+      replacedToken: VerificationToken | null;
+    }
   | { outcome: "conflict"; token: VerificationToken };
 
 export type ConsumeVerificationTokenResult =
@@ -238,6 +243,10 @@ export interface ApiRepository {
   insertPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null>;
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord>;
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
   markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
   acquireIdempotencyRecord(
@@ -245,8 +254,18 @@ export interface ApiRepository {
     requestDigest: string,
     leaseMs: number,
   ): Promise<AcquireIdempotencyResult>;
+
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
+
+  // Issue #1954 (BETA-048): Send Operation State persistence
+  getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null>;
+  setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState>;
+  createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }>;
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]>;
   setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet>;
@@ -621,6 +640,22 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<Receipt>("receipt", result);
   }
 
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const raw = await this.inner.getMessageDeliveryStatus(messageId);
+    return raw
+      ? validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", raw)
+      : null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    const result = await this.inner.setMessageDeliveryStatus(
+      versionRecord("messageDeliveryStatusRecord", record),
+    );
+    return validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", result);
+  }
+
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
     const result = await this.inner.createReceiptIfAbsent(versionRecord("receipt", receipt));
     if (result.created) {
@@ -667,6 +702,35 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void> {
     return this.inner.setIdempotencyRecord(key, versionRecord("idempotencyRecord", record));
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const raw = await this.inner.getSendOperation(messageId);
+    return raw
+      ? validateRecord<import("./domain").SendOperationState>("sendOperationState", raw)
+      : null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    const result = await this.inner.setSendOperation(versionRecord("sendOperationState", state));
+    return validateRecord<import("./domain").SendOperationState>("sendOperationState", result);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    const result = await this.inner.createSendOperationIfAbsent(
+      versionRecord("sendOperationState", state),
+    );
+    if (result.created) {
+      result.state = validateRecord<import("./domain").SendOperationState>(
+        "sendOperationState",
+        result.state,
+      );
+    }
+    return result;
   }
 
   async getUserById(userId: string): Promise<User | null> {
@@ -1200,6 +1264,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateDeadLetter",
   "getReceiptCheckpoint",
   "setReceiptCheckpoint",
+  "getSendOperation",
+  "setSendOperation",
+  "createSendOperationIfAbsent",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1308,6 +1375,20 @@ export class RetryableApiRepository implements ApiRepository {
 
   setReceipt(receipt: Receipt): Promise<Receipt> {
     return this.withRetry("setReceipt", () => this.inner.setReceipt(receipt));
+  }
+
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    return this.withRetry("getMessageDeliveryStatus", () =>
+      this.inner.getMessageDeliveryStatus(messageId),
+    );
+  }
+
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    return this.withRetry("setMessageDeliveryStatus", () =>
+      this.inner.setMessageDeliveryStatus(record),
+    );
   }
 
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -1714,6 +1795,24 @@ export class RetryableApiRepository implements ApiRepository {
   setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.withRetry("setReceiptCheckpoint", () =>
       this.inner.setReceiptCheckpoint(checkpoint),
+    );
+  }
+
+  getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.withRetry("getSendOperation", () => this.inner.getSendOperation(messageId));
+  }
+
+  setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.withRetry("setSendOperation", () => this.inner.setSendOperation(state));
+  }
+
+  createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.withRetry("createSendOperationIfAbsent", () =>
+      this.inner.createSendOperationIfAbsent(state),
     );
   }
 

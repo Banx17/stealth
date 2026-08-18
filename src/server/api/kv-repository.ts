@@ -22,6 +22,7 @@ import type {
   JobStatus,
   KeyDirectoryRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
@@ -138,6 +139,18 @@ export class HybridApiRepository implements ApiRepository {
     await this.getStub().setReceipt(receipt);
     await this.kv.put(this.key("receipt", receipt.messageId), JSON.stringify(receipt));
     return receipt;
+  }
+
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const record = await this.kv.get(this.key("delivery-status", messageId), "json");
+    return (record as MessageDeliveryStatusRecord) ?? null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    await this.kv.put(this.key("delivery-status", record.messageId), JSON.stringify(record));
+    return record;
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -330,6 +343,7 @@ export class HybridApiRepository implements ApiRepository {
   }
 
   // Consistent layer delegated to Durable Object via RPC
+
   private getStub() {
     const id = this.coordinator.idFromName("global-stealth-coordinator");
     return this.coordinator.get(id);
@@ -691,5 +705,21 @@ export class HybridApiRepository implements ApiRepository {
 
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.getStub().setReceiptCheckpoint(checkpoint);
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.getStub().getSendOperation(messageId);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.getStub().setSendOperation(state);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.getStub().createSendOperationIfAbsent(state);
   }
 }
