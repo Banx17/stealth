@@ -706,4 +706,20 @@ export class HybridApiRepository implements ApiRepository {
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.getStub().setReceiptCheckpoint(checkpoint);
   }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.getStub().getSendOperation(messageId);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.getStub().setSendOperation(state);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.getStub().createSendOperationIfAbsent(state);
+  }
 }
