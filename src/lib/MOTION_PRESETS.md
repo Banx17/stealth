@@ -348,8 +348,12 @@ export const entrance = {
   myNewAnimation: (customParam?: number): Variants => {
     const config = getConfig();
     return {
-      initial: {/* ... */},
-      animate: {/* ... */},
+      initial: {
+        /* ... */
+      },
+      animate: {
+        /* ... */
+      },
       transition: {
         type: "spring",
         stiffness: config.springStiffness,
