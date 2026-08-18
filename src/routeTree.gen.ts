@@ -53,6 +53,7 @@ import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/j
 import { Route as ApiV1AdminFundingIndexRouteImport } from './routes/api/v1/admin/funding/index'
 import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
+import { Route as ApiV1WalletStatusRouteImport } from './routes/api/v1/wallet/status'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
 import { Route as ApiV1RequestsRequestIdDecisionsRouteImport } from './routes/api/v1/requests/$requestId/decisions'
@@ -297,6 +298,11 @@ const ApiV1WalletLinkVerifyRoute = ApiV1WalletLinkVerifyRouteImport.update({
   path: '/api/v1/wallet/link/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1WalletStatusRoute = ApiV1WalletStatusRouteImport.update({
+  id: '/api/v1/wallet/status',
+  path: '/api/v1/wallet/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1WalletLinkChallengeRoute =
   ApiV1WalletLinkChallengeRouteImport.update({
     id: '/api/v1/wallet/link/challenge',
@@ -473,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
@@ -540,6 +547,7 @@ export interface FileRoutesByTo {
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/admin/funding': typeof ApiV1AdminFundingIndexRoute
@@ -608,6 +616,7 @@ export interface FileRoutesById {
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
@@ -677,6 +686,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq/'
     | '/api/v1/admin/jobs/'
     | '/api/v1/admin/funding/'
@@ -744,6 +754,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq'
     | '/api/v1/admin/jobs'
     | '/api/v1/admin/funding'
@@ -811,6 +822,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq/'
     | '/api/v1/admin/jobs/'
     | '/api/v1/admin/funding/'
@@ -873,6 +885,7 @@ export interface RootRouteChildren {
   ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
   ApiV1WalletLinkChallengeRoute: typeof ApiV1WalletLinkChallengeRoute
   ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
+  ApiV1WalletStatusRoute: typeof ApiV1WalletStatusRoute
   ApiV1AdminDlqIndexRoute: typeof ApiV1AdminDlqIndexRoute
   ApiV1AdminJobsIndexRoute: typeof ApiV1AdminJobsIndexRoute
   ApiV1AdminFundingIndexRoute: typeof ApiV1AdminFundingIndexRoute
@@ -1190,6 +1203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1WalletLinkVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/wallet/status': {
+      id: '/api/v1/wallet/status'
+      path: '/api/v1/wallet/status'
+      fullPath: '/api/v1/wallet/status'
+      preLoaderRoute: typeof ApiV1WalletStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/wallet/link/challenge': {
       id: '/api/v1/wallet/link/challenge'
       path: '/api/v1/wallet/link/challenge'
@@ -1464,6 +1484,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,
   ApiV1WalletLinkChallengeRoute: ApiV1WalletLinkChallengeRoute,
   ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
+  ApiV1WalletStatusRoute: ApiV1WalletStatusRoute,
   ApiV1AdminDlqIndexRoute: ApiV1AdminDlqIndexRoute,
   ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
   ApiV1AdminFundingIndexRoute: ApiV1AdminFundingIndexRoute,
