@@ -483,6 +483,20 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setReceiptCheckpoint");
     return this.inner.setReceiptCheckpoint(checkpoint);
   }
+  async getSendOperation(messageId: string) {
+    this.maybeFail("getSendOperation");
+    return this.inner.getSendOperation(messageId);
+  }
+  async setSendOperation(state: import("../../../src/server/api/domain").SendOperationState) {
+    this.maybeFail("setSendOperation");
+    return this.inner.setSendOperation(state);
+  }
+  async createSendOperationIfAbsent(
+    state: import("../../../src/server/api/domain").SendOperationState,
+  ) {
+    this.maybeFail("createSendOperationIfAbsent");
+    return this.inner.createSendOperationIfAbsent(state);
+  }
   reset(): void {
     this.inner.reset();
   }
