@@ -1,11 +1,17 @@
 import type {
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   IdempotencyRecord,
+  JobStatus,
   Postage,
   PostageStatus,
   Profile,
   ProvisioningRecord,
   Receipt,
+  ReceiptCheckpoint,
   RetiredSession,
   Session,
   StoredEnvelope,
@@ -843,5 +849,145 @@ export class StealthCoordinator extends DurableObjectBase {
       await this.ctx.storage.put(`envelope:${messageId}`, updated);
       return updated;
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+
+  async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.runExclusive(`job_idemp:${job.idempotencyKey}`, async () => {
+      const existingJobId = (await this.ctx.storage.get(`job_idemp:${job.idempotencyKey}`)) as
+        | string
+        | undefined;
+
+      if (existingJobId) {
+        const existing = (await this.ctx.storage.get(`job:${existingJobId}`)) as
+          | DurableJob
+          | undefined;
+        if (existing) {
+          return { enqueued: false, job: existing };
+        }
+      }
+
+      await this.ctx.storage.put(`job:${job.jobId}`, job);
+      await this.ctx.storage.put(`job_idemp:${job.idempotencyKey}`, job.jobId);
+      return { enqueued: true, job };
+    });
+  }
+
+  async getJob(jobId: string): Promise<DurableJob | null> {
+    const job = (await this.ctx.storage.get(`job:${jobId}`)) as DurableJob | undefined;
+    return job ?? null;
+  }
+
+  async getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    const jobId = (await this.ctx.storage.get(`job_idemp:${key}`)) as string | undefined;
+    if (!jobId) return null;
+    return this.getJob(jobId);
+  }
+
+  async updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.runExclusive(`job:${job.jobId}`, async () => {
+      await this.ctx.storage.put(`job:${job.jobId}`, job);
+      await this.ctx.storage.put(`job_idemp:${job.idempotencyKey}`, job.jobId);
+      return job;
+    });
+  }
+
+  async claimNextPendingJob(
+    types?: DurableJobType[],
+    now = new Date(),
+  ): Promise<DurableJob | null> {
+    return this.runExclusive("claim_job", async () => {
+      const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<string, DurableJob>;
+      const nowTime = now.getTime();
+
+      for (const [k, job] of jobsMap.entries()) {
+        if (k.startsWith("job_idemp:")) continue;
+        if (!job || job.status !== "pending") continue;
+        if (new Date(job.nextRunAt).getTime() > nowTime) continue;
+        if (types && !types.includes(job.type)) continue;
+
+        const claimed: DurableJob = {
+          ...job,
+          status: "running",
+          updatedAt: now.toISOString(),
+        };
+        await this.ctx.storage.put(`job:${job.jobId}`, claimed);
+        return claimed;
+      }
+      return null;
+    });
+  }
+
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    const limit = filter?.limit ?? 50;
+    const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<string, DurableJob>;
+    const matches: DurableJob[] = [];
+
+    for (const [k, job] of jobsMap.entries()) {
+      if (k.startsWith("job_idemp:")) continue;
+      if (!job || typeof job !== "object" || !job.jobId) continue;
+      if (filter?.type && job.type !== filter.type) continue;
+      if (filter?.status && job.status !== filter.status) continue;
+      matches.push(job);
+    }
+
+    matches.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return matches.slice(0, limit);
+  }
+
+  async createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    await this.ctx.storage.put(`dlq:${deadLetter.deadLetterId}`, deadLetter);
+    return deadLetter;
+  }
+
+  async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    const dl = (await this.ctx.storage.get(`dlq:${deadLetterId}`)) as DeadLetter | undefined;
+    return dl ?? null;
+  }
+
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    const limit = filter?.limit ?? 50;
+    const dlqMap = (await this.ctx.storage.list({ prefix: "dlq:" })) as Map<string, DeadLetter>;
+    const matches: DeadLetter[] = [];
+
+    for (const dl of dlqMap.values()) {
+      if (!dl || typeof dl !== "object" || !dl.deadLetterId) continue;
+      if (filter?.jobType && dl.jobType !== filter.jobType) continue;
+      if (filter?.status && dl.status !== filter.status) continue;
+      matches.push(dl);
+    }
+
+    matches.sort(
+      (a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
+    );
+    return matches.slice(0, limit);
+  }
+
+  async updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    await this.ctx.storage.put(`dlq:${deadLetter.deadLetterId}`, deadLetter);
+    return deadLetter;
+  }
+
+  async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    const cp = (await this.ctx.storage.get(`receipt_cp:${streamId}`)) as
+      | ReceiptCheckpoint
+      | undefined;
+    return cp ?? null;
+  }
+
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    await this.ctx.storage.put(`receipt_cp:${checkpoint.streamId}`, checkpoint);
+    return checkpoint;
   }
 }

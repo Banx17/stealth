@@ -434,6 +434,67 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteContact");
     return this.inner.deleteContact(owner, contactId);
   }
+  async enqueueJob(job: import("../../../src/server/api/domain").DurableJob) {
+    this.maybeFail("enqueueJob");
+    return this.inner.enqueueJob(job);
+  }
+  async getJob(jobId: string) {
+    this.maybeFail("getJob");
+    return this.inner.getJob(jobId);
+  }
+  async getJobByIdempotencyKey(key: string) {
+    this.maybeFail("getJobByIdempotencyKey");
+    return this.inner.getJobByIdempotencyKey(key);
+  }
+  async updateJob(job: import("../../../src/server/api/domain").DurableJob) {
+    this.maybeFail("updateJob");
+    return this.inner.updateJob(job);
+  }
+  async claimNextPendingJob(
+    types?: import("../../../src/server/api/domain").DurableJobType[],
+    now?: Date,
+  ) {
+    this.maybeFail("claimNextPendingJob");
+    return this.inner.claimNextPendingJob(types, now);
+  }
+  async listJobs(filter?: {
+    type?: import("../../../src/server/api/domain").DurableJobType;
+    status?: import("../../../src/server/api/domain").JobStatus;
+    limit?: number;
+  }) {
+    this.maybeFail("listJobs");
+    return this.inner.listJobs(filter);
+  }
+  async createDeadLetter(deadLetter: import("../../../src/server/api/domain").DeadLetter) {
+    this.maybeFail("createDeadLetter");
+    return this.inner.createDeadLetter(deadLetter);
+  }
+  async getDeadLetter(deadLetterId: string) {
+    this.maybeFail("getDeadLetter");
+    return this.inner.getDeadLetter(deadLetterId);
+  }
+  async listDeadLetters(filter?: {
+    jobType?: import("../../../src/server/api/domain").DurableJobType;
+    status?: import("../../../src/server/api/domain").DeadLetterStatus;
+    limit?: number;
+  }) {
+    this.maybeFail("listDeadLetters");
+    return this.inner.listDeadLetters(filter);
+  }
+  async updateDeadLetter(deadLetter: import("../../../src/server/api/domain").DeadLetter) {
+    this.maybeFail("updateDeadLetter");
+    return this.inner.updateDeadLetter(deadLetter);
+  }
+  async getReceiptCheckpoint(streamId: string) {
+    this.maybeFail("getReceiptCheckpoint");
+    return this.inner.getReceiptCheckpoint(streamId);
+  }
+  async setReceiptCheckpoint(
+    checkpoint: import("../../../src/server/api/domain").ReceiptCheckpoint,
+  ) {
+    this.maybeFail("setReceiptCheckpoint");
+    return this.inner.setReceiptCheckpoint(checkpoint);
+  }
   reset(): void {
     this.inner.reset();
   }
