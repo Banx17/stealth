@@ -5,7 +5,6 @@ This document outlines the threat assumptions, unsafe input vectors, and perform
 ## Threat Assumptions & Unsafe Inputs
 
 1. **Cross-Site Scripting (XSS)**
-
    - **Assumption**: Input data provided during the `render` operation (`request.values`) is fundamentally untrusted. End-users or automated systems may inject malicious HTML, JavaScript, or other web-based payloads into template variables.
    - **Mitigation**: The execution contract defaults to applying strict HTML escaping to all template variable substitutions. Characters such as `<`, `>`, `&`, `"`, and `'` are safely encoded to prevent template injection vulnerabilities when the rendered body is subsequently displayed in an email client or web UI.
 
@@ -16,7 +15,6 @@ This document outlines the threat assumptions, unsafe input vectors, and perform
 ## Performance Constraints
 
 1. **Memory Exhaustion and Payload Bloat**
-
    - **Assumption**: Processing extremely large templates or massive substitution payloads can lead to OOM (Out-of-Memory) conditions, affecting the host node.
    - **Constraints Enforced**:
      - **Template Body Size**: Strict limit of 100 KB per template body.
@@ -25,7 +23,6 @@ This document outlines the threat assumptions, unsafe input vectors, and perform
      - **Substitution Values**: Each variable value passed to the `render` operation is capped at 10 KB.
 
 2. **Regular Expression Denial of Service (ReDoS)**
-
    - **Assumption**: The substitution engine uses regular expressions to find placeholder tags (e.g. `{{ variable }}`). Maliciously large strings combined with heavy regex lookups could cause the event loop to hang.
    - **Mitigation**: The regex used for extraction `\{\{\s*([\w.-]+)\s*\}\}` is inherently simple and non-backtracking. Furthermore, enforcing the 100 KB max template body limit bounds the total search space tightly, avoiding long-running evaluation times.
 

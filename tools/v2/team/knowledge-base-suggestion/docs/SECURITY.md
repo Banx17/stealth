@@ -5,7 +5,6 @@ This document outlines the threat assumptions, unsafe input vectors, and perform
 ## Threat Assumptions & Unsafe Inputs
 
 1. **Cross-Site Scripting (XSS) via Corpus Data**
-
    - **Assumption**: The tool searches over a `corpus` of documentation articles. Depending on where these articles are authored, the `title` and `summary` might contain untrusted input. If a consumer renders these fields directly into the DOM, XSS injection could occur.
    - **Mitigation**: The execution contract defaults to applying strict HTML escaping to the `title` and `summary` of all returned suggestions. Characters such as `<`, `>`, `&`, `"`, and `'` are safely encoded. Tags are used solely for matching and are not typically rendered, so they remain unescaped to preserve strict matching behavior.
 
@@ -19,7 +18,6 @@ This document outlines the threat assumptions, unsafe input vectors, and perform
 ## Performance Constraints
 
 1. **Synchronous Execution Overhead**
-
    - **Assumption**: `suggestKb` operates synchronously to provide maximum speed for typeahead/autocomplete scenarios.
    - **Recommendation**: With the corpus limit capped at 10,000 articles, execution time remains consistently low. If future architectures require searching across >= 100,000 articles, this component should either offload scoring to an asynchronous worker or chunk the work using `setImmediate` to avoid starving the main event loop.
 

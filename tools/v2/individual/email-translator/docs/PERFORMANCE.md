@@ -604,24 +604,20 @@ async function translateBatch(emails: Email[]): Promise<TranslatedEmail[]> {
 ### Load Test Scenarios
 
 1. **Large text translation**
-
    - Input: 500 KB email body
    - Expected: Chunks processed in <30s total
    - Memory: <100 MB peak usage
 
 2. **Rapid language switching**
-
    - Action: Change target language 10 times in 5s
    - Expected: Only final request completes, others cancelled
    - Network: ≤1 active request at a time
 
 3. **History overflow**
-
    - Action: Add 100 entries to history
    - Expected: LRU eviction keeps only 10, localStorage <500 KB
 
 4. **Concurrent translations**
-
    - Action: Open 3 translator instances, translate simultaneously
    - Expected: All complete in <10s, no memory leaks
 

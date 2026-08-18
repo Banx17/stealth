@@ -27,21 +27,18 @@ Comprehensive security documentation covering:
 #### Unsafe Input Categories
 
 1. **Malformed or Hostile Email Bodies**
-
    - HTML/XML with script tags
    - Encoded attacks
    - Binary data and null bytes
    - Extremely long strings (>1MB prevention)
 
 2. **Language Code Injection**
-
    - SQL injection attempts
    - Path traversal
    - Command injection
    - Strict ISO 639-1 whitelist enforcement
 
 3. **Translation Provider Responses**
-
    - XSS in translated text
    - Tracking pixels
    - Excessively large responses (>2MB prevention)
@@ -125,19 +122,16 @@ Production-ready validation and sanitization module with:
 #### Core Functions
 
 1. **Text Sanitization**
-
    - `sanitizeEmailBody()` - Strips HTML, removes control chars, enforces size limits
    - `sanitizeProviderResponse()` - Sanitizes untrusted provider responses
    - `sanitizeForClipboard()` - Removes ANSI escape sequences and control chars
 
 2. **Language Validation**
-
    - `isValidLanguageCode()` - Type guard for ISO 639-1 codes
    - `sanitizeLanguageCode()` - Normalizes and validates language codes
    - `validateLanguagePair()` - Ensures source ≠ target
 
 3. **Provider Configuration**
-
    - `validateProviderConfig()` - Validates endpoints (allowlist), API keys, timeouts
    - HTTPS enforcement (except localhost)
    - Prototype pollution prevention
@@ -163,18 +157,15 @@ Production-ready performance optimization module with:
 #### Core Functions
 
 1. **Timeout Enforcement**
-
    - `withTimeout()` - Wraps promises with timeout
    - `fetchWithTimeout()` - Fetch with AbortController timeout
 
 2. **Text Chunking**
-
    - `splitIntoChunks()` - Splits at sentence boundaries
    - `processInChunks()` - Processes with rate limiting
    - `sleep()` - Delay utility
 
 3. **Caching and Deduplication**
-
    - `TranslationCache` class:
      - In-flight request deduplication
      - Result caching with TTL (5 minutes default)
@@ -182,7 +173,6 @@ Production-ready performance optimization module with:
      - Cache statistics
 
 4. **Rate Control**
-
    - `debounce()` - Debounces function calls with cancel support
    - `throttle()` - Throttles function calls
    - `RateLimitedQueue` class - Enforces requests/minute limit
@@ -306,13 +296,11 @@ Complete testing guide with:
 Updated `ARCHITECTURE.md` to include:
 
 1. **Services Section**
-
    - Added `validation` module description
    - Added `performance` module description
    - Added security and performance rules
 
 2. **Docs Section**
-
    - Documented security and performance docs
    - Added maintenance requirements
 
@@ -431,25 +419,21 @@ All files are within `tools/v2/individual/email-translator/`:
 ## Acceptance Criteria Status
 
 - ✅ The tool has explicit handling for malformed or hostile input
-
   - Comprehensive validation in `services/validation.ts`
   - Security documentation in `docs/SECURITY.md`
   - Test coverage in `tests/validation.test.ts`
 
 - ✅ The tool avoids unnecessary work on large datasets
-
   - Text chunking in `services/performance.ts`
   - Caching and deduplication
   - Performance documentation in `docs/PERFORMANCE.md`
   - Test coverage in `tests/performance.test.ts`
 
 - ✅ No existing security-sensitive app code is modified
-
   - All changes in `tools/v2/individual/email-translator/`
   - Zero main application files touched
 
 - ✅ Files changed by this issue are limited to `tools/v2/individual/email-translator/`
-
   - All 9 files are within the tool directory
   - Verified via file paths
 

@@ -212,7 +212,9 @@ const file = userSelectedFile;
 const records = await db.mail.findMany();
 
 // ❌ DO NOT write to main app database
-await db.summary.create({/* ... */});
+await db.summary.create({
+  /* ... */
+});
 
 // ❌ DO NOT use main app schema
 import { schema } from "../../../src/server/schema";
@@ -316,7 +318,6 @@ If you need an external library:
 
 1. **Check if it's already in package.json** - Reuse existing dependencies
 2. **If not in package.json** - Can only add if:
-
    - It's a standalone library (doesn't conflict with main app)
    - It doesn't modify global state
    - It's only used locally (not exported)

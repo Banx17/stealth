@@ -47,7 +47,8 @@ The result is a discriminated union:
 
 ```ts
 type ApprovalChainBuilderResult =
-  { ok: true; data: ApprovalChain } | { ok: false; error: ApprovalChainError };
+  | { ok: true; data: ApprovalChain }
+  | { ok: false; error: ApprovalChainError };
 ```
 
 A successful `ApprovalChain` contains a generated chain ID, normalized input

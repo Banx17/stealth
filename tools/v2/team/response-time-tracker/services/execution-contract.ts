@@ -37,7 +37,8 @@ export interface ResponseTimeQueryError {
 }
 
 export type ResponseTimeQueryResult =
-  { ok: true; data: ResponseTimeQueryData } | { ok: false; error: ResponseTimeQueryError };
+  | { ok: true; data: ResponseTimeQueryData }
+  | { ok: false; error: ResponseTimeQueryError };
 
 function isValidRange(range: DateRange): boolean {
   const start = new Date(range.start).getTime();

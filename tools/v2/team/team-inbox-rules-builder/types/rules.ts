@@ -42,7 +42,14 @@ export interface ConditionGroup {
 }
 
 export type RuleActionType =
-  "fileToFolder" | "forwardTo" | "markAs" | "flag" | "notify" | "autoReply" | "addLabel" | "delete";
+  | "fileToFolder"
+  | "forwardTo"
+  | "markAs"
+  | "flag"
+  | "notify"
+  | "autoReply"
+  | "addLabel"
+  | "delete";
 
 export interface RuleAction {
   id: ActionId;

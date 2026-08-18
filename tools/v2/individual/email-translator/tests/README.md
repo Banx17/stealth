@@ -102,25 +102,21 @@ it("should sanitize email body", () => {
 Security tests verify protection against:
 
 1. **XSS (Cross-Site Scripting)**
-
    - HTML tag injection
    - Encoded script attacks
    - Provider response XSS
 
 2. **Injection Attacks**
-
    - SQL injection in language codes
    - Command injection
    - Path traversal
 
 3. **DoS (Denial of Service)**
-
    - ReDoS (Regular Expression DoS)
    - Memory exhaustion via oversized inputs
    - Parser exhaustion via deeply nested structures
 
 4. **Data Exfiltration**
-
    - Endpoint validation (allowlist enforcement)
    - API key exposure prevention
 
@@ -133,23 +129,19 @@ Security tests verify protection against:
 Performance tests verify:
 
 1. **Timeout Handling**
-
    - Promise timeout enforcement
    - Fetch request cancellation
 
 2. **Large Input Handling**
-
    - Text chunking at sentence boundaries
    - Memory-efficient chunk processing
 
 3. **Caching and Deduplication**
-
    - Translation result caching with TTL
    - In-flight request deduplication
    - LRU cache eviction
 
 4. **Rate Limiting**
-
    - Request queue management
    - Inter-request delays
 
@@ -266,16 +258,13 @@ When adding new features:
 For security-sensitive code:
 
 1. **Test the attack, not just the feature**
-
    - Example: Don't just test valid language codes, test injection attempts
 
 2. **Use real-world attack vectors**
-
    - Reference OWASP Top 10
    - Include examples from CVE databases
 
 3. **Test edge cases**
-
    - Empty strings, null, undefined
    - Extremely large inputs
    - Malformed data
@@ -289,15 +278,12 @@ For security-sensitive code:
 For performance-critical code:
 
 1. **Set measurable targets**
-
    - Example: "Translation should complete in <2s"
 
 2. **Test with realistic data sizes**
-
    - Small (1KB), medium (100KB), large (1MB) inputs
 
 3. **Verify resource cleanup**
-
    - No memory leaks
    - Timers are cleared
    - Abort controllers are cleaned up

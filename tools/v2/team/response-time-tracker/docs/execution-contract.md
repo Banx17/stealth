@@ -38,7 +38,8 @@ fixtures, not production callers.
 
 ```typescript
 type ResponseTimeQueryResult =
-  { ok: true; data: ResponseTimeQueryData } | { ok: false; error: ResponseTimeQueryError };
+  | { ok: true; data: ResponseTimeQueryData }
+  | { ok: false; error: ResponseTimeQueryError };
 
 interface ResponseTimeQueryData {
   entries: ResponseTimeEntry[];

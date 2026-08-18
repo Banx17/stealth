@@ -73,7 +73,6 @@ The normative algorithm suite for v1 envelopes is **AES-256-GCM**.
 ### Algorithm Parameters
 
 - **Encryption**: AES-256-GCM (Galois/Counter Mode)
-
   - 256-bit symmetric key (randomly generated per envelope or derived via key agreement)
   - 96-bit (12-byte) nonce, randomly generated per encryption operation
   - 128-bit (16-byte) authentication tag, automatically appended by AES-GCM
