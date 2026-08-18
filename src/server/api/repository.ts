@@ -16,6 +16,8 @@ import type {
   SenderRule,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
   UsernameReservation,
   VerificationPurpose,
@@ -95,6 +97,11 @@ export type MarkReceiptReadResult =
 export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
+export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
+export type SenderRequestTransitionResult =
+  | { outcome: "not_found" }
+  | { outcome: "conflict"; request: UnknownSenderRequest }
+  | { outcome: "applied"; request: UnknownSenderRequest };
 
 // ---------------------------------------------------------------------------
 // BETA-014: Account-provisioning repository contracts
@@ -347,6 +354,15 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+  getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null>;
+  listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]>;
+  createSenderRequestIfAbsent(request: UnknownSenderRequest): Promise<CreateSenderRequestResult>;
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult>;
 
   // ---------------------------------------------------------------------------
   // Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Repository
@@ -846,6 +862,23 @@ export class ValidatedApiRepository implements ApiRepository {
     }
     return result;
   }
+  getSenderRequest(requestId: string) {
+    return this.inner.getSenderRequest(requestId);
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.inner.listSenderRequests(recipient, status);
+  }
+  createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
+  }
 
   async listRecipientEnvelopes(
     recipient: string,
@@ -1328,6 +1361,25 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+  getSenderRequest(requestId: string) {
+    return this.withRetry("getSenderRequest", () => this.inner.getSenderRequest(requestId));
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.withRetry("listSenderRequests", () =>
+      this.inner.listSenderRequests(recipient, status),
+    );
+  }
+  createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
   }
 
   listRecipientEnvelopes(

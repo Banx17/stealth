@@ -52,6 +52,8 @@ export const ROUTE_BODY_LIMITS = {
   "POST /identity/keys/rotate": "compact",
   "POST /identity/keys/retire": "compact",
   "POST /identity/keys/revoke": "compact",
+  "POST /requests": "standard",
+  "POST /requests/{requestId}/decisions": "compact",
 } as const satisfies Record<string, BodyLimitCategory>;
 
 export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;

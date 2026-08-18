@@ -16,6 +16,8 @@ import type {
   SenderRule,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
   UsernameReservation,
   VerificationPurpose,
@@ -58,6 +60,8 @@ export class MemoryApiRepository implements ApiRepository {
   // Issue #1936: envelope store and per-key insert locks.
   private readonly envelopes = new Map<string, StoredEnvelope>();
   private readonly envelopeLocks = new Map<string, Promise<void>>();
+  private readonly senderRequests = new Map<string, UnknownSenderRequest>();
+  private readonly senderRequestLocks = new Map<string, Promise<void>>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -164,6 +168,24 @@ export class MemoryApiRepository implements ApiRepository {
       if (this.envelopeLocks.get(messageId) === queued) {
         this.envelopeLocks.delete(messageId);
       }
+    }
+  }
+
+  private async withSenderRequestLock<T>(requestId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.senderRequestLocks.get(requestId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.senderRequestLocks.set(requestId, queued);
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.senderRequestLocks.get(requestId) === queued)
+        this.senderRequestLocks.delete(requestId);
     }
   }
 
@@ -838,6 +860,58 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return structuredClone(this.senderRequests.get(requestId) ?? null);
+  }
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return [...this.senderRequests.values()]
+      .filter((r) => r.recipient === recipient && (!status || r.status === status))
+      .map((r) => structuredClone(r));
+  }
+  async createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.withEnvelopeLock(`request:${request.requestId}`, async () => {
+      const existing = this.senderRequests.get(request.requestId);
+      if (existing) return { created: false, request: structuredClone(existing) };
+      this.senderRequests.set(request.requestId, structuredClone(request));
+      return { created: true, request: structuredClone(request) };
+    });
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now = new Date(),
+  ) {
+    return this.withEnvelopeLock(`request:${requestId}`, async () => {
+      const current = this.senderRequests.get(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" as const };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      )
+        return { outcome: "conflict" as const, request: structuredClone(current) };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as UnknownSenderRequest;
+      if (decision === "always_allow")
+        this.senderRules.set(key(recipient, current.sender), "allow");
+      if (decision === "block") this.senderRules.set(key(recipient, current.sender), "block");
+      this.senderRequests.set(requestId, request);
+      return { outcome: "applied" as const, request: structuredClone(request) };
+    });
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
@@ -943,6 +1017,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.receiptLocks.clear();
     this.envelopes.clear();
     this.envelopeLocks.clear();
+    this.senderRequests.clear();
+    this.senderRequestLocks.clear();
     this.usersById.clear();
     this.usersByEmail.clear();
     this.usersByUsername.clear();

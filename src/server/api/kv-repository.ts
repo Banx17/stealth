@@ -464,6 +464,23 @@ export class HybridApiRepository implements ApiRepository {
     }
     return result;
   }
+  getSenderRequest(requestId: string) {
+    return this.getStub().getSenderRequest(requestId);
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.getStub().listSenderRequests(recipient, status);
+  }
+  createSenderRequestIfAbsent(request: import("./domain").UnknownSenderRequest) {
+    return this.getStub().createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: import("./domain").UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.getStub().transitionSenderRequest(requestId, recipient, decision, now);
+  }
 
   async listRecipientEnvelopes(
     recipient: string,

@@ -583,6 +583,39 @@ export const tombstoneRequestSchema = z.object({
 
 export type TombstoneRequest = z.infer<typeof tombstoneRequestSchema>;
 
+export const unknownSenderRequestStatusSchema = z.enum([
+  "pending",
+  "approved",
+  "rejected",
+  "blocked",
+  "expired",
+]);
+export const unknownSenderDecisionSchema = z.enum([
+  "approve_once",
+  "always_allow",
+  "reject",
+  "block",
+  "expire",
+]);
+export const encryptedMessageReferenceSchema = z.object({
+  messageId: hash32Schema,
+  envelopeId: z.string().min(1).max(256).optional(),
+  ciphertextHash: hash32Schema,
+});
+export const unknownSenderRequestSchema = z.object({
+  requestId: z.string().uuid(),
+  recipient: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  message: encryptedMessageReferenceSchema,
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  status: unknownSenderRequestStatusSchema,
+  decidedAt: z.string().datetime().optional(),
+  decision: unknownSenderDecisionSchema.optional(),
+});
+export type UnknownSenderRequest = z.infer<typeof unknownSenderRequestSchema>;
+export type UnknownSenderDecision = z.infer<typeof unknownSenderDecisionSchema>;
+
 // ---------------------------------------------------------------------------
 // BETA-027 (Issue #1934) — Versioned Public Encryption-Key Directory & Rotation
 // ---------------------------------------------------------------------------
