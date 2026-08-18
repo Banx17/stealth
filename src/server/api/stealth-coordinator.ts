@@ -351,8 +351,7 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
     const record = (await this.ctx.storage.get(`provisioning:${userId}`)) as
-      | ProvisioningRecord
-      | undefined;
+      ProvisioningRecord | undefined;
     return record ?? null;
   }
 
@@ -361,8 +360,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<{ created: boolean; record: ProvisioningRecord }> {
     return this.runExclusive(`provisioning:${record.userId}`, async () => {
       const existing = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
-        | ProvisioningRecord
-        | undefined;
+        ProvisioningRecord | undefined;
       if (existing) {
         return { created: false, record: existing };
       }
@@ -377,8 +375,7 @@ export class StealthCoordinator extends DurableObjectBase {
   ): Promise<UpdateProvisioningResult> {
     return this.runExclusive(`provisioning:${record.userId}`, async () => {
       const current = (await this.ctx.storage.get(`provisioning:${record.userId}`)) as
-        | ProvisioningRecord
-        | undefined;
+        ProvisioningRecord | undefined;
       if (!current) {
         return { updated: false, current: null };
       }
@@ -398,8 +395,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
     const norm = username.toLowerCase().trim();
     const reservation = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
-      | UsernameReservation
-      | undefined;
+      UsernameReservation | undefined;
     return reservation ?? null;
   }
 
@@ -417,8 +413,7 @@ export class StealthCoordinator extends DurableObjectBase {
       }
 
       const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
-        | UsernameReservation
-        | undefined;
+        UsernameReservation | undefined;
       const now = Date.now();
 
       if (existing) {
@@ -445,8 +440,7 @@ export class StealthCoordinator extends DurableObjectBase {
     const norm = username.toLowerCase().trim();
     return this.runExclusive(`username-reservation:${norm}`, async () => {
       const existing = (await this.ctx.storage.get(`username-reservation:${norm}`)) as
-        | UsernameReservation
-        | undefined;
+        UsernameReservation | undefined;
       if (!existing) return false;
       if (existing.userId !== userId) return false;
       await this.ctx.storage.delete(`username-reservation:${norm}`);
@@ -462,8 +456,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
     return this.runExclusive(`wallet:${wallet.userId}`, async () => {
       const existing = (await this.ctx.storage.get(`wallet:${wallet.userId}`)) as
-        | Wallet
-        | undefined;
+        Wallet | undefined;
       if (existing) {
         return { outcome: "already-exists" as const, wallet: existing };
       }
@@ -479,8 +472,7 @@ export class StealthCoordinator extends DurableObjectBase {
     const normOwner = owner.toUpperCase().trim();
     return this.runExclusive(`policy-init:${normOwner}`, async () => {
       const existing = (await this.ctx.storage.get(`policy-init:${normOwner}`)) as
-        | import("./domain").MailboxPolicy
-        | undefined;
+        import("./domain").MailboxPolicy | undefined;
       if (existing) {
         return { created: false, policy: existing };
       }
@@ -725,8 +717,7 @@ export class StealthCoordinator extends DurableObjectBase {
   async getSenderRequest(requestId: string) {
     return (
       ((await this.ctx.storage.get(`sender-request:${requestId}`)) as
-        | import("./domain").UnknownSenderRequest
-        | undefined) ?? null
+        import("./domain").UnknownSenderRequest | undefined) ?? null
     );
   }
   async listSenderRequests(recipient: string, status?: "pending") {
