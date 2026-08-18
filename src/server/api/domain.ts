@@ -822,4 +822,3 @@ export const receiptCheckpointSchema = z.object({
   gapCount: z.number().int().nonnegative().default(0),
 });
 export type ReceiptCheckpoint = z.infer<typeof receiptCheckpointSchema>;
-

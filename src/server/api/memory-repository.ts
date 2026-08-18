@@ -1127,7 +1127,10 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(stored);
   }
 
-  async claimNextPendingJob(types?: DurableJobType[], now = new Date()): Promise<DurableJob | null> {
+  async claimNextPendingJob(
+    types?: DurableJobType[],
+    now = new Date(),
+  ): Promise<DurableJob | null> {
     const nowTime = now.getTime();
     for (const job of this.jobs.values()) {
       if (job.status === "pending" && new Date(job.nextRunAt).getTime() <= nowTime) {
@@ -1145,7 +1148,11 @@ export class MemoryApiRepository implements ApiRepository {
     return null;
   }
 
-  async listJobs(filter?: { type?: DurableJobType; status?: JobStatus; limit?: number }): Promise<DurableJob[]> {
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
     const limit = filter?.limit ?? 50;
     const matches: DurableJob[] = [];
     for (const job of this.jobs.values()) {
@@ -1168,7 +1175,11 @@ export class MemoryApiRepository implements ApiRepository {
     return dl ? structuredClone(dl) : null;
   }
 
-  async listDeadLetters(filter?: { jobType?: DurableJobType; status?: DeadLetterStatus; limit?: number }): Promise<DeadLetter[]> {
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
     const limit = filter?.limit ?? 50;
     const matches: DeadLetter[] = [];
     for (const dl of this.deadLetters.values()) {
@@ -1176,7 +1187,9 @@ export class MemoryApiRepository implements ApiRepository {
       if (filter?.status && dl.status !== filter.status) continue;
       matches.push(structuredClone(dl));
     }
-    matches.sort((a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime());
+    matches.sort(
+      (a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
+    );
     return matches.slice(0, limit);
   }
 

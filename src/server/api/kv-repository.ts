@@ -657,7 +657,11 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().claimNextPendingJob(types, now);
   }
 
-  async listJobs(filter?: { type?: DurableJobType; status?: JobStatus; limit?: number }): Promise<DurableJob[]> {
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
     return this.getStub().listJobs(filter);
   }
 
@@ -669,7 +673,11 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().getDeadLetter(deadLetterId);
   }
 
-  async listDeadLetters(filter?: { jobType?: DurableJobType; status?: DeadLetterStatus; limit?: number }): Promise<DeadLetter[]> {
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
     return this.getStub().listDeadLetters(filter);
   }
 

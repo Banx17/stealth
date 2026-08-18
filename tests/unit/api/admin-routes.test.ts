@@ -26,7 +26,11 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
       maxAttempts: 1,
     });
 
-    const { deadLetter } = await recordJobFailure(repository, job, new Error("Unrecoverable error"));
+    const { deadLetter } = await recordJobFailure(
+      repository,
+      job,
+      new Error("Unrecoverable error"),
+    );
     expect(deadLetter).toBeDefined();
 
     // GET /api/v1/admin/dlq
@@ -64,9 +68,12 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
     expect(deadLetter).toBeDefined();
 
     // Retry
-    const retryReq = new Request(`http://localhost/api/v1/admin/dlq/${deadLetter!.deadLetterId}/retry`, {
-      method: "POST",
-    });
+    const retryReq = new Request(
+      `http://localhost/api/v1/admin/dlq/${deadLetter!.deadLetterId}/retry`,
+      {
+        method: "POST",
+      },
+    );
     const retryRes = await DlqRetryRoute.options.server!.handlers!.POST!({
       request: retryReq,
       params: { id: deadLetter!.deadLetterId },
@@ -83,13 +90,20 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
       payload: { root: "r1" },
       maxAttempts: 1,
     });
-    const { deadLetter: deadLetter2 } = await recordJobFailure(repository, job2, new Error("Fatal"));
+    const { deadLetter: deadLetter2 } = await recordJobFailure(
+      repository,
+      job2,
+      new Error("Fatal"),
+    );
 
-    const abandonReq = new Request(`http://localhost/api/v1/admin/dlq/${deadLetter2!.deadLetterId}/abandon`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ adminNotes: "Abandoned after triage" }),
-    });
+    const abandonReq = new Request(
+      `http://localhost/api/v1/admin/dlq/${deadLetter2!.deadLetterId}/abandon`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ adminNotes: "Abandoned after triage" }),
+      },
+    );
     const abandonRes = await DlqAbandonRoute.options.server!.handlers!.POST!({
       request: abandonReq,
       params: { id: deadLetter2!.deadLetterId },
@@ -115,7 +129,9 @@ describe("Admin DLQ & Jobs Routes (Issue #1952 BETA-045)", () => {
     expect(listBody.data.jobs.length).toBeGreaterThanOrEqual(1);
 
     // Get item
-    const itemReq = new Request(`http://localhost/api/v1/admin/jobs/${job.jobId}`, { method: "GET" });
+    const itemReq = new Request(`http://localhost/api/v1/admin/jobs/${job.jobId}`, {
+      method: "GET",
+    });
     const itemRes = await JobItemRoute.options.server!.handlers!.GET!({
       request: itemReq,
       params: { id: job.jobId },

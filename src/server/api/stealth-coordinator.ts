@@ -880,14 +880,14 @@ export class StealthCoordinator extends DurableObjectBase {
 
   async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
     return this.runExclusive(`job_idemp:${job.idempotencyKey}`, async () => {
-      const existingJobId = (await this.ctx.storage.get(
-        `job_idemp:${job.idempotencyKey}`,
-      )) as string | undefined;
+      const existingJobId = (await this.ctx.storage.get(`job_idemp:${job.idempotencyKey}`)) as
+        | string
+        | undefined;
 
       if (existingJobId) {
-        const existing = (await this.ctx.storage.get(
-          `job:${existingJobId}`,
-        )) as DurableJob | undefined;
+        const existing = (await this.ctx.storage.get(`job:${existingJobId}`)) as
+          | DurableJob
+          | undefined;
         if (existing) {
           return { enqueued: false, job: existing };
         }
@@ -923,10 +923,7 @@ export class StealthCoordinator extends DurableObjectBase {
     now = new Date(),
   ): Promise<DurableJob | null> {
     return this.runExclusive("claim_job", async () => {
-      const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<
-        string,
-        DurableJob
-      >;
+      const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<string, DurableJob>;
       const nowTime = now.getTime();
 
       for (const [k, job] of jobsMap.entries()) {
@@ -953,10 +950,7 @@ export class StealthCoordinator extends DurableObjectBase {
     limit?: number;
   }): Promise<DurableJob[]> {
     const limit = filter?.limit ?? 50;
-    const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<
-      string,
-      DurableJob
-    >;
+    const jobsMap = (await this.ctx.storage.list({ prefix: "job:" })) as Map<string, DurableJob>;
     const matches: DurableJob[] = [];
 
     for (const [k, job] of jobsMap.entries()) {
@@ -967,9 +961,7 @@ export class StealthCoordinator extends DurableObjectBase {
       matches.push(job);
     }
 
-    matches.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    matches.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return matches.slice(0, limit);
   }
 
@@ -979,9 +971,7 @@ export class StealthCoordinator extends DurableObjectBase {
   }
 
   async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
-    const dl = (await this.ctx.storage.get(`dlq:${deadLetterId}`)) as
-      | DeadLetter
-      | undefined;
+    const dl = (await this.ctx.storage.get(`dlq:${deadLetterId}`)) as DeadLetter | undefined;
     return dl ?? null;
   }
 
@@ -991,10 +981,7 @@ export class StealthCoordinator extends DurableObjectBase {
     limit?: number;
   }): Promise<DeadLetter[]> {
     const limit = filter?.limit ?? 50;
-    const dlqMap = (await this.ctx.storage.list({ prefix: "dlq:" })) as Map<
-      string,
-      DeadLetter
-    >;
+    const dlqMap = (await this.ctx.storage.list({ prefix: "dlq:" })) as Map<string, DeadLetter>;
     const matches: DeadLetter[] = [];
 
     for (const dl of dlqMap.values()) {
@@ -1005,8 +992,7 @@ export class StealthCoordinator extends DurableObjectBase {
     }
 
     matches.sort(
-      (a, b) =>
-        new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
+      (a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
     );
     return matches.slice(0, limit);
   }
@@ -1023,9 +1009,7 @@ export class StealthCoordinator extends DurableObjectBase {
     return cp ?? null;
   }
 
-  async setReceiptCheckpoint(
-    checkpoint: ReceiptCheckpoint,
-  ): Promise<ReceiptCheckpoint> {
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     await this.ctx.storage.put(`receipt_cp:${checkpoint.streamId}`, checkpoint);
     return checkpoint;
   }

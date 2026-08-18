@@ -82,7 +82,9 @@ describe("Durable Jobs, Retries, DLQ, and Receipt Indexing (Issue #1952 BETA-045
       const redacted = redactErrorMessage(sensitiveError);
       expect(redacted).not.toContain(`S${"A".repeat(55)}`);
       expect(redacted).not.toContain("secret-token-xyz");
-      expect(redacted).not.toContain("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+      expect(redacted).not.toContain(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      );
       expect(redacted).toContain("[REDACTED_SEED]");
       expect(redacted).toContain("[REDACTED_TOKEN]");
       expect(redacted).toContain("[REDACTED_KEY]");
@@ -156,13 +158,21 @@ describe("Durable Jobs, Retries, DLQ, and Receipt Indexing (Issue #1952 BETA-045
       expect(res1.deadLetter).toBeUndefined();
 
       // Attempt 2: Transient failure -> pending (attempt 2)
-      const res2 = await recordJobFailure(repository, res1.job, new Error("Temporary network timeout"));
+      const res2 = await recordJobFailure(
+        repository,
+        res1.job,
+        new Error("Temporary network timeout"),
+      );
       expect(res2.job.status).toBe("pending");
       expect(res2.job.attempts).toBe(2);
       expect(res2.deadLetter).toBeUndefined();
 
       // Attempt 3: Transient failure -> exhausted -> dead_letter
-      const res3 = await recordJobFailure(repository, res2.job, new Error("Temporary network timeout"));
+      const res3 = await recordJobFailure(
+        repository,
+        res2.job,
+        new Error("Temporary network timeout"),
+      );
       expect(res3.job.status).toBe("dead_letter");
       expect(res3.job.attempts).toBe(3);
       expect(res3.deadLetter).toBeDefined();
