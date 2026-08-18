@@ -262,6 +262,17 @@ export class RelayService {
     };
   }
 
+  /**
+   * Retrieve queued messages for a specific recipient address.
+   */
+  async getRecipientQueue(recipient: string) {
+    const parsed = stellarAddressSchema.safeParse(recipient);
+    if (!parsed.success) {
+      throw new Error("Expected a valid Stellar G-address for recipient queue query");
+    }
+    return this.persistence.listRecipientQueue(parsed.data);
+  }
+
   private defaultNetworkCheck(): boolean {
     const { horizonUrl, sorobanRpcUrl, networkPassphrase } = this.config.network;
     return Boolean(

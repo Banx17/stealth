@@ -373,6 +373,81 @@ export type CredentialAuthMethod = z.infer<typeof credentialAuthMethodSchema>;
 export type PublicUser = z.infer<typeof publicUserSchema>;
 export type PublicProfile = z.infer<typeof publicProfileSchema>;
 
+// ---------------------------------------------------------------------------
+// BETA-014: Transactional account-provisioning state machine
+//
+// A provisioning record is the durable, idempotent ledger for the account
+// convergence flow: username reservation -> profile defaults -> wallet
+// creation -> mailbox policy init. The user record only becomes "active"
+// after every step completes, so a mid-flow failure can never leave a live
+// half-account behind (the account stays pending_verification and the
+// username reservation is released as compensation).
+// ---------------------------------------------------------------------------
+
+export const provisioningStatusSchema = z.enum(["pending", "retryable", "active", "failed"]);
+
+export const provisioningStepSchema = z.enum([
+  "username_reservation",
+  "profile_defaults",
+  "wallet_creation",
+  "mailbox_policy_init",
+]);
+
+export const provisioningFailureSchema = z.object({
+  step: provisioningStepSchema,
+  code: z.string(),
+  message: z.string(),
+  failedAt: z.string().datetime(),
+});
+
+export const provisioningRecordSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  status: provisioningStatusSchema,
+  requestedUsername: usernameSchema,
+  displayName: z.string().trim().min(1, "Display name cannot be empty").nullable(),
+  completedSteps: z.array(provisioningStepSchema),
+  /** The step currently being attempted, or the step that failed last. */
+  currentStep: provisioningStepSchema,
+  attempts: z.number().int().nonnegative(),
+  failure: provisioningFailureSchema.nullable(),
+  startedAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+/**
+ * A wallet bound to exactly one account. The initial on-chain address is the
+ * account's own Stellar address until an external wallet provider exists
+ * (dependency BETA-013); the record exists so wallet creation is a durable,
+ * insert-once provisioning step instead of an implicit side effect.
+ */
+export const walletSchema = z.object({
+  walletId: z.string().min(1, "Wallet ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+/**
+ * A leased claim on a username. Held for the duration of provisioning and
+ * released as compensation when a later step fails, so a retry can re-claim
+ * it and a failed account never leaks a permanently squatted username.
+ */
+export const usernameReservationSchema = z.object({
+  username: usernameSchema,
+  userId: z.string().min(1, "User ID cannot be empty"),
+  reservedAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+});
+
+export type ProvisioningStatus = z.infer<typeof provisioningStatusSchema>;
+export type ProvisioningStep = z.infer<typeof provisioningStepSchema>;
+export type ProvisioningFailure = z.infer<typeof provisioningFailureSchema>;
+export type ProvisioningRecord = z.infer<typeof provisioningRecordSchema>;
+export type Wallet = z.infer<typeof walletSchema>;
+export type UsernameReservation = z.infer<typeof usernameReservationSchema>;
+
 export function toPublicUser(user: User): PublicUser {
   return {
     userId: user.userId,
@@ -470,6 +545,9 @@ export const storedEnvelopeProtectedHeadersSchema = z
   })
   .catchall(z.unknown());
 
+export const mailboxItemStatusSchema = z.enum(["pending", "delivered"]);
+export type MailboxItemStatus = z.infer<typeof mailboxItemStatusSchema>;
+
 export const storedEnvelopeSchema = z.object({
   envelopeId: z.string().optional(),
   messageId: hash32Schema,
@@ -483,11 +561,90 @@ export const storedEnvelopeSchema = z.object({
   protectedHeaders: storedEnvelopeProtectedHeadersSchema,
   contentCommitment: hash32Schema.optional(),
   createdAt: z.string().datetime(),
+  status: mailboxItemStatusSchema.default("pending"),
+  deletedAt: z.string().datetime().nullable().optional(),
+  objectRef: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 
 export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;
 export type StoredEnvelope = z.infer<typeof storedEnvelopeSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Domain
+// ---------------------------------------------------------------------------
+
+export const mailboxQueueQuerySchema = z.object({
+  recipient: stellarAddressSchema.optional(),
+  status: z.enum(["pending", "delivered", "all"]).default("all"),
+  includeTombstones: z.coerce.boolean().default(false),
+  cursor: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export type MailboxQueueQuery = z.infer<typeof mailboxQueueQuerySchema>;
+
+export const mailboxDescriptorSchema = z.object({
+  messageId: hash32Schema,
+  senderId: stellarAddressSchema,
+  recipientId: stellarAddressSchema,
+  status: mailboxItemStatusSchema,
+  createdAt: z.string().datetime(),
+  protectedHeaders: storedEnvelopeProtectedHeadersSchema,
+  contentCommitment: hash32Schema.optional(),
+  objectRef: z.string().optional(),
+  isTombstone: z.boolean(),
+  deletedAt: z.string().datetime().nullable().optional(),
+});
+
+export type MailboxDescriptor = z.infer<typeof mailboxDescriptorSchema>;
+
+export const mailboxQueueResponseSchema = z.object({
+  items: z.array(mailboxDescriptorSchema),
+  nextCursor: z.string().nullable(),
+  hasMore: z.boolean(),
+});
+
+export type MailboxQueueResponse = z.infer<typeof mailboxQueueResponseSchema>;
+
+export const tombstoneRequestSchema = z.object({
+  messageId: hash32Schema,
+});
+
+export type TombstoneRequest = z.infer<typeof tombstoneRequestSchema>;
+
+export const unknownSenderRequestStatusSchema = z.enum([
+  "pending",
+  "approved",
+  "rejected",
+  "blocked",
+  "expired",
+]);
+export const unknownSenderDecisionSchema = z.enum([
+  "approve_once",
+  "always_allow",
+  "reject",
+  "block",
+  "expire",
+]);
+export const encryptedMessageReferenceSchema = z.object({
+  messageId: hash32Schema,
+  envelopeId: z.string().min(1).max(256).optional(),
+  ciphertextHash: hash32Schema,
+});
+export const unknownSenderRequestSchema = z.object({
+  requestId: z.string().uuid(),
+  recipient: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  message: encryptedMessageReferenceSchema,
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  status: unknownSenderRequestStatusSchema,
+  decidedAt: z.string().datetime().optional(),
+  decision: unknownSenderDecisionSchema.optional(),
+});
+export type UnknownSenderRequest = z.infer<typeof unknownSenderRequestSchema>;
+export type UnknownSenderDecision = z.infer<typeof unknownSenderDecisionSchema>;
 
 // ---------------------------------------------------------------------------
 // BETA-027 (Issue #1934) — Versioned Public Encryption-Key Directory & Rotation
@@ -539,3 +696,57 @@ export const keyDirectoryRecordSchema = z.object({
 });
 
 export type KeyDirectoryRecord = z.infer<typeof keyDirectoryRecordSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1973 (BETA-066) — Live contacts CRUD, trust state, and safe import
+//
+// A contact is a durable, user-owned address-book entry. `address` holds the
+// raw identifier the user supplied (Stealth/Stellar G-address, local handle,
+// or federation address); `canonicalAddress` is the resolved Stealth identity
+// once identity resolution succeeds (null while unresolved or invalid).
+// `trust` reuses the mailbox sender-rule vocabulary so contacts and policy
+// stay consistent, but a contact row is NEVER an implicit policy mutation.
+// ---------------------------------------------------------------------------
+
+export const contactSourceSchema = z.enum(["manual", "csv", "vcard", "api"]);
+
+export const contactSchema = z.object({
+  contactId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  name: z.string().trim().min(1).max(200),
+  address: z.string().trim().min(1).max(300),
+  canonicalAddress: stellarAddressSchema.nullable().default(null),
+  trust: senderRuleSchema.default("default"),
+  source: contactSourceSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export const contactCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  address: z.string().trim().min(1).max(300),
+  trust: senderRuleSchema.default("default"),
+});
+
+export const contactUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    address: z.string().trim().min(1).max(300).optional(),
+    trust: senderRuleSchema.optional(),
+    expectedVersion: z.number().int().positive().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.name === undefined && data.address === undefined && data.trust === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one of name, address, or trust must be provided",
+        path: [],
+      });
+    }
+  });
+
+export type Contact = z.infer<typeof contactSchema>;
+export type ContactSource = z.infer<typeof contactSourceSchema>;
+export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
+export type ContactUpdateInput = z.infer<typeof contactUpdateSchema>;

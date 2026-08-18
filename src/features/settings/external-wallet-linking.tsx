@@ -9,11 +9,15 @@ import {
   unlinkWallet,
   WalletLinkError,
 } from "@/services/stellar/wallet-link";
-import {
-  isConnected as freighterIsConnected,
-  requestAccess as freighterRequestAccess,
-  signMessage as freighterSignMessage,
-} from "@stellar/freighter-api";
+
+let _freighterMod: typeof import("@stellar/freighter-api") | null = null;
+async function freighterApi() {
+  if (!_freighterMod) {
+    const mod = await import("@stellar/freighter-api");
+    _freighterMod = (mod.default ?? mod) as typeof import("@stellar/freighter-api");
+  }
+  return _freighterMod;
+}
 
 type LinkingState =
   | { status: "idle" }
@@ -63,7 +67,9 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
     setLinkingState({ status: "connecting" });
 
     try {
-      const connected = await freighterIsConnected();
+      const freighter = await freighterApi();
+
+      const connected = await freighter.isConnected();
       if (!connected.isConnected) {
         setLinkingState({
           status: "error",
@@ -72,7 +78,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
         return;
       }
 
-      const access = await freighterRequestAccess();
+      const access = await freighter.requestAccess();
       if (access.error) {
         setLinkingState({
           status: "error",
@@ -92,7 +98,7 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
 
       setLinkingState({ status: "signing" });
 
-      const signed = await freighterSignMessage(challengeResult.challenge);
+      const signed = await freighter.signMessage(challengeResult.challenge);
       if (signed.error) {
         setLinkingState({
           status: "error",
