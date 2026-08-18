@@ -720,3 +720,105 @@ export type Contact = z.infer<typeof contactSchema>;
 export type ContactSource = z.infer<typeof contactSourceSchema>;
 export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
 export type ContactUpdateInput = z.infer<typeof contactUpdateSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+// ---------------------------------------------------------------------------
+
+export const durableJobTypeSchema = z.enum([
+  "funding",
+  "anchoring",
+  "postage",
+  "delivery",
+  "receipts",
+  "cleanup",
+  "reconciliation",
+]);
+export type DurableJobType = z.infer<typeof durableJobTypeSchema>;
+
+export const jobStatusSchema = z.enum([
+  "pending",
+  "running",
+  "completed",
+  "failed",
+  "dead_letter",
+  "abandoned",
+]);
+export type JobStatus = z.infer<typeof jobStatusSchema>;
+
+export const jobErrorCodeSchema = z.enum([
+  "ERR_NETWORK_TRANSIENT",
+  "ERR_RPC_TIMEOUT",
+  "ERR_RATE_LIMITED",
+  "ERR_INSUFFICIENT_FUNDS",
+  "ERR_CONTRACT_REVERT",
+  "ERR_DOMAIN_NOT_FOUND",
+  "ERR_UNAUTHORIZED",
+  "ERR_PAYLOAD_REJECTED",
+  "ERR_DELIVERY_EXPIRED",
+  "ERR_POISON_PAYLOAD",
+  "ERR_CHECKPOINT_GAP",
+  "ERR_UNKNOWN_PERMANENT",
+]);
+export type JobErrorCode = z.infer<typeof jobErrorCodeSchema>;
+
+export const durableJobSchema = z.object({
+  jobId: z.string().trim().min(1),
+  type: durableJobTypeSchema,
+  idempotencyKey: z.string().trim().min(1),
+  payload: z.record(z.unknown()),
+  status: jobStatusSchema.default("pending"),
+  attempts: z.number().int().nonnegative().default(0),
+  maxAttempts: z.number().int().positive().default(5),
+  backoffMs: z.number().int().positive().default(1000),
+  nextRunAt: z.string().datetime(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  completedAt: z.string().datetime().optional(),
+  failedAt: z.string().datetime().optional(),
+  lastError: z.string().max(500).optional(),
+  errorCode: z.string().optional(),
+  checkpoint: z.string().optional(),
+});
+export type DurableJob = z.infer<typeof durableJobSchema>;
+
+export const deadLetterStatusSchema = z.enum(["dead", "retried", "abandoned"]);
+export type DeadLetterStatus = z.infer<typeof deadLetterStatusSchema>;
+
+export const deadLetterSchema = z.object({
+  deadLetterId: z.string().trim().min(1),
+  jobId: z.string().trim().min(1),
+  jobType: durableJobTypeSchema,
+  idempotencyKey: z.string().trim().min(1),
+  payload: z.record(z.unknown()),
+  attempts: z.number().int().nonnegative(),
+  errorCode: z.string(),
+  errorMessage: z.string(),
+  deadLetteredAt: z.string().datetime(),
+  status: deadLetterStatusSchema.default("dead"),
+  retriedAt: z.string().datetime().optional(),
+  abandonedAt: z.string().datetime().optional(),
+  adminNotes: z.string().max(500).optional(),
+});
+export type DeadLetter = z.infer<typeof deadLetterSchema>;
+
+export const receiptEventSchema = z.object({
+  eventId: z.string().trim().min(1),
+  streamId: z.string().trim().min(1),
+  sequence: z.number().int().nonnegative(),
+  messageId: hash32Schema,
+  recipient: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  deliveredAt: z.string().datetime(),
+  readAt: z.string().datetime().nullable().optional(),
+});
+export type ReceiptEvent = z.infer<typeof receiptEventSchema>;
+
+export const receiptCheckpointSchema = z.object({
+  streamId: z.string().trim().min(1),
+  lastSequence: z.number().int().nonnegative(),
+  processedCount: z.number().int().nonnegative(),
+  lastIndexedAt: z.string().datetime(),
+  gapCount: z.number().int().nonnegative().default(0),
+});
+export type ReceiptCheckpoint = z.infer<typeof receiptCheckpointSchema>;

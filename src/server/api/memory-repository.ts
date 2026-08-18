@@ -1,9 +1,14 @@
 import type {
   Contact,
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   ExternalWallet,
   ExternalWalletChallenge,
   IdempotencyRecord,
+  JobStatus,
   KeyDirectoryRecord,
   MailboxPolicy,
   PolicyWriteIntent,
@@ -13,6 +18,7 @@ import type {
   ProvisioningRecord,
   PublishedKey,
   Receipt,
+  ReceiptCheckpoint,
   RetiredSession,
   SenderRule,
   Session,
@@ -67,6 +73,12 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRequestLocks = new Map<string, Promise<void>>();
   // Issue #1973: owner-scoped contact store keyed by `${owner}:${contactId}`.
   private readonly contacts = new Map<string, Contact>();
+  // Issue #1952: durable jobs, DLQ, and receipt checkpoints
+  private readonly jobs = new Map<string, DurableJob>();
+  private readonly jobsByIdempotencyKey = new Map<string, string>();
+  private readonly deadLetters = new Map<string, DeadLetter>();
+  private readonly receiptCheckpoints = new Map<string, ReceiptCheckpoint>();
+  private readonly jobLocks = new Map<string, Promise<void>>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -1078,6 +1090,126 @@ export class MemoryApiRepository implements ApiRepository {
     return `${owner.toUpperCase().trim()}:${contactId}`;
   }
 
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+
+  async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    const existingId = this.jobsByIdempotencyKey.get(job.idempotencyKey);
+    if (existingId) {
+      const existing = this.jobs.get(existingId);
+      if (existing) {
+        return { enqueued: false, job: structuredClone(existing) };
+      }
+    }
+
+    const stored = structuredClone(job);
+    this.jobs.set(stored.jobId, stored);
+    this.jobsByIdempotencyKey.set(stored.idempotencyKey, stored.jobId);
+    return { enqueued: true, job: structuredClone(stored) };
+  }
+
+  async getJob(jobId: string): Promise<DurableJob | null> {
+    const job = this.jobs.get(jobId);
+    return job ? structuredClone(job) : null;
+  }
+
+  async getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    const jobId = this.jobsByIdempotencyKey.get(key);
+    if (!jobId) return null;
+    return this.getJob(jobId);
+  }
+
+  async updateJob(job: DurableJob): Promise<DurableJob> {
+    const stored = structuredClone(job);
+    this.jobs.set(stored.jobId, stored);
+    this.jobsByIdempotencyKey.set(stored.idempotencyKey, stored.jobId);
+    return structuredClone(stored);
+  }
+
+  async claimNextPendingJob(
+    types?: DurableJobType[],
+    now = new Date(),
+  ): Promise<DurableJob | null> {
+    const nowTime = now.getTime();
+    for (const job of this.jobs.values()) {
+      if (job.status === "pending" && new Date(job.nextRunAt).getTime() <= nowTime) {
+        if (!types || types.includes(job.type)) {
+          const claimed: DurableJob = {
+            ...job,
+            status: "running",
+            updatedAt: now.toISOString(),
+          };
+          this.jobs.set(claimed.jobId, claimed);
+          return structuredClone(claimed);
+        }
+      }
+    }
+    return null;
+  }
+
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    const limit = filter?.limit ?? 50;
+    const matches: DurableJob[] = [];
+    for (const job of this.jobs.values()) {
+      if (filter?.type && job.type !== filter.type) continue;
+      if (filter?.status && job.status !== filter.status) continue;
+      matches.push(structuredClone(job));
+    }
+    matches.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return matches.slice(0, limit);
+  }
+
+  async createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    const stored = structuredClone(deadLetter);
+    this.deadLetters.set(stored.deadLetterId, stored);
+    return structuredClone(stored);
+  }
+
+  async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    const dl = this.deadLetters.get(deadLetterId);
+    return dl ? structuredClone(dl) : null;
+  }
+
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    const limit = filter?.limit ?? 50;
+    const matches: DeadLetter[] = [];
+    for (const dl of this.deadLetters.values()) {
+      if (filter?.jobType && dl.jobType !== filter.jobType) continue;
+      if (filter?.status && dl.status !== filter.status) continue;
+      matches.push(structuredClone(dl));
+    }
+    matches.sort(
+      (a, b) => new Date(b.deadLetteredAt).getTime() - new Date(a.deadLetteredAt).getTime(),
+    );
+    return matches.slice(0, limit);
+  }
+
+  async updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    const stored = structuredClone(deadLetter);
+    this.deadLetters.set(stored.deadLetterId, stored);
+    return structuredClone(stored);
+  }
+
+  async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    const cp = this.receiptCheckpoints.get(streamId);
+    return cp ? structuredClone(cp) : null;
+  }
+
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    const stored = structuredClone(checkpoint);
+    this.receiptCheckpoints.set(checkpoint.streamId, stored);
+    return structuredClone(stored);
+  }
+
   reset() {
     this.policies.clear();
     this.policyWriteIntents.clear();
@@ -1112,5 +1244,10 @@ export class MemoryApiRepository implements ApiRepository {
     this.publishedKeys.clear();
     this.keyDirectoryLocks.clear();
     this.contacts.clear();
+    this.jobs.clear();
+    this.jobsByIdempotencyKey.clear();
+    this.deadLetters.clear();
+    this.receiptCheckpoints.clear();
+    this.jobLocks.clear();
   }
 }
