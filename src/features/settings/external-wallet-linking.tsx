@@ -44,27 +44,38 @@ type LinkingState =
   | { status: "linked"; address: string }
   | { status: "error"; message: string; code?: string };
 
-const CAPABILITY_LABELS: Record<WalletCapability, { label: string; description: string }> = {
+const CAPABILITY_DEFINITIONS: Record<
+  WalletCapability,
+  { label: string; description: string; badge: string }
+> = {
   sign: {
     label: "Sign messages",
-    description: "Prove ownership of the external address",
+    description: "Authorize outgoing messages and prove address ownership",
+    badge: "Signer",
   },
   send: {
     label: "Send transactions",
-    description: "Submit transactions from the linked wallet",
+    description: "Submit transactions directly from the linked wallet",
+    badge: "Transactor",
   },
   read: {
     label: "Read access",
-    description: "View balance and transaction history",
+    description: "View balance, transaction history, and public status",
+    badge: "Reader",
   },
 };
 
 const NETWORKS = [
   {
+    passphrase: "Test SDF Network ; September 2015",
+    label: "Testnet",
+    description: "Public Stellar Testnet for testing",
+  },
+  {
     passphrase: "Public Global Stellar Network ; September 2015",
     label: "Mainnet",
+    description: "Production Stellar Network",
   },
-  { passphrase: "Test SDF Network ; September 2015", label: "Testnet" },
 ] as const;
 
 export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string }) {
@@ -75,11 +86,14 @@ export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string
   const [managedError, setManagedError] = useState<string | null>(null);
 
   const [wallets, setWallets] = useState<ExternalWallet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [linkingState, setLinkingState] = useState<LinkingState>({
-    status: "idle",
-  });
-  const [selectedCapabilities, setSelectedCapabilities] = useState<WalletCapability[]>(["sign"]);
+  const [loadingWallets, setLoadingWallets] = useState(true);
+  const [activeSigner, setActiveSigner] = useState<ActiveSigner | null>(null);
+
+  const [linkingState, setLinkingState] = useState<LinkingState>({ status: "idle" });
+  const [selectedCapabilities, setSelectedCapabilities] = useState<WalletCapability[]>([
+    "sign",
+    "read",
+  ]);
   const [selectedNetwork, setSelectedNetwork] = useState<string>(NETWORKS[0].passphrase);
 
   const [editingWallet, setEditingWallet] = useState<{
