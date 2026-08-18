@@ -29,20 +29,34 @@ type LinkingState =
   | { status: "error"; message: string };
 
 const CAPABILITY_LABELS: Record<WalletCapability, { label: string; description: string }> = {
-  sign: { label: "Sign messages", description: "Prove ownership of the external address" },
-  send: { label: "Send transactions", description: "Submit transactions from the linked wallet" },
-  read: { label: "Read access", description: "View balance and transaction history" },
+  sign: {
+    label: "Sign messages",
+    description: "Prove ownership of the external address",
+  },
+  send: {
+    label: "Send transactions",
+    description: "Submit transactions from the linked wallet",
+  },
+  read: {
+    label: "Read access",
+    description: "View balance and transaction history",
+  },
 };
 
 const NETWORKS = [
-  { passphrase: "Public Global Stellar Network ; September 2015", label: "Mainnet" },
+  {
+    passphrase: "Public Global Stellar Network ; September 2015",
+    label: "Mainnet",
+  },
   { passphrase: "Test SDF Network ; September 2015", label: "Testnet" },
 ] as const;
 
 export function ExternalWalletSettings({ ownerAddress }: { ownerAddress?: string }) {
   const [wallets, setWallets] = useState<ExternalWallet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [linkingState, setLinkingState] = useState<LinkingState>({ status: "idle" });
+  const [linkingState, setLinkingState] = useState<LinkingState>({
+    status: "idle",
+  });
   const [selectedCapabilities, setSelectedCapabilities] = useState<WalletCapability[]>(["sign"]);
   const [selectedNetwork, setSelectedNetwork] = useState<string>(NETWORKS[0].passphrase);
   const [confirmUnlink, setConfirmUnlink] = useState<string | null>(null);

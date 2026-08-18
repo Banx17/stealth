@@ -221,7 +221,10 @@ export function buildFollowUpReminder(
     ...lowConfidenceSignals,
   ];
   if (hasThreadHint) {
-    signals.push({ type: "sender_hint", detail: normalizeWhitespace(input.threadHint as string) });
+    signals.push({
+      type: "sender_hint",
+      detail: normalizeWhitespace(input.threadHint as string),
+    });
   }
 
   const warnings: string[] = [];

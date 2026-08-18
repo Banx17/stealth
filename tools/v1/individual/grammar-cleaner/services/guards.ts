@@ -147,7 +147,11 @@ export function safeCleanGrammar(input: unknown): SafeGrammarResult {
   if (hasDatasetFields(candidate)) {
     const datasetIssue = checkDatasetLimits(candidate);
     if (datasetIssue) {
-      return { status: "error", code: datasetIssue.code, message: datasetIssue.message };
+      return {
+        status: "error",
+        code: datasetIssue.code,
+        message: datasetIssue.message,
+      };
     }
   }
 

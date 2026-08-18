@@ -76,7 +76,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Stealth" },
-      { name: "description", content: "Stealth is a cryptographic mail client built on Stellar." },
+      {
+        name: "description",
+        content: "Stealth is a cryptographic mail client built on Stellar.",
+      },
       { property: "og:title", content: "Stealth" },
       {
         property: "og:description",
@@ -427,7 +430,9 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
       return;
     }
     if (action === "translate") {
-      updateEmail(email.id, { labels: [...(email.labels ?? []), "Translated"] });
+      updateEmail(email.id, {
+        labels: [...(email.labels ?? []), "Translated"],
+      });
       showToast("Translation view enabled");
       return;
     }

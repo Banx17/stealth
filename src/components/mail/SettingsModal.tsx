@@ -1090,7 +1090,11 @@ function ReceiptSettings({
       label: "Automatic",
       description: "Send read receipt as soon as you open the message.",
     },
-    { value: "manual", label: "Manual", description: "Ask before sending a read receipt." },
+    {
+      value: "manual",
+      label: "Manual",
+      description: "Ask before sending a read receipt.",
+    },
     {
       value: "never",
       label: "Never",
@@ -1238,8 +1242,20 @@ function SecuritySettings() {
   ];
 
   const devices = [
-    { id: "1", name: "MacBook Air", type: "Desktop", lastActive: "Just now", trusted: true },
-    { id: "2", name: "iPhone 15 Pro", type: "Mobile", lastActive: "2 hours ago", trusted: true },
+    {
+      id: "1",
+      name: "MacBook Air",
+      type: "Desktop",
+      lastActive: "Just now",
+      trusted: true,
+    },
+    {
+      id: "2",
+      name: "iPhone 15 Pro",
+      type: "Mobile",
+      lastActive: "2 hours ago",
+      trusted: true,
+    },
   ];
 
   const handleCopyKey = () => {
@@ -1317,7 +1333,9 @@ function SecuritySettings() {
                       description: "This will sign out this device from your account.",
                       onConfirm: async () => {
                         try {
-                          await fetch("/api/v1/auth/logout", { method: "POST" });
+                          await fetch("/api/v1/auth/logout", {
+                            method: "POST",
+                          });
                         } catch {
                           // Fallthrough safely
                         }

@@ -356,7 +356,10 @@ describe("RetryableApiRepository", () => {
 
   beforeEach(() => {
     failing = new FailingRepository();
-    repo = new RetryableApiRepository(failing, { maxAttempts: 3, baseDelayMs: 1 });
+    repo = new RetryableApiRepository(failing, {
+      maxAttempts: 3,
+      baseDelayMs: 1,
+    });
   });
 
   it("retries a safe read operation on transient failure", async () => {
@@ -549,7 +552,10 @@ describe("RetryableApiRepository", () => {
 
   it("delegates reset to the inner repository", async () => {
     const memory = new MemoryApiRepository();
-    const retryRepo = new RetryableApiRepository(memory, { maxAttempts: 2, baseDelayMs: 1 });
+    const retryRepo = new RetryableApiRepository(memory, {
+      maxAttempts: 2,
+      baseDelayMs: 1,
+    });
 
     await memory.setPolicy(owner, {
       allowUnknown: false,

@@ -40,7 +40,9 @@ const DEBOUNCE_MS = 400;
  * @param sender    Sender's Stellar G-address
  */
 export function usePostageQuote(recipient: string, sender: string): PostageQuoteState {
-  const [quoteState, setQuoteState] = useState<PostageQuoteState>({ status: "idle" });
+  const [quoteState, setQuoteState] = useState<PostageQuoteState>({
+    status: "idle",
+  });
   // Track the most-recent AbortController so we can cancel inflight requests
   const abortRef = useRef<AbortController | null>(null);
 
@@ -64,7 +66,10 @@ export function usePostageQuote(recipient: string, sender: string): PostageQuote
       setQuoteState({ status: "loading" });
 
       try {
-        const params = new URLSearchParams({ recipient: trimmedRecipient, sender: trimmedSender });
+        const params = new URLSearchParams({
+          recipient: trimmedRecipient,
+          sender: trimmedSender,
+        });
         const response = await fetch(`/api/postage/quote?${params.toString()}`, {
           signal: controller.signal,
         });
@@ -73,7 +78,10 @@ export function usePostageQuote(recipient: string, sender: string): PostageQuote
 
         if (!response.ok) {
           const text = await response.text().catch(() => "Unknown error");
-          setQuoteState({ status: "error", message: text || `HTTP ${response.status}` });
+          setQuoteState({
+            status: "error",
+            message: text || `HTTP ${response.status}`,
+          });
           return;
         }
 

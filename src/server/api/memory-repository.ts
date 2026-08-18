@@ -490,7 +490,10 @@ export class MemoryApiRepository implements ApiRepository {
         return { outcome: "replaced", token: structuredClone(current) };
       }
       if (current.attemptCount >= current.maxAttempts) {
-        return { outcome: "brute-force-blocked", token: structuredClone(current) };
+        return {
+          outcome: "brute-force-blocked",
+          token: structuredClone(current),
+        };
       }
       if (Date.parse(current.expiresAt) <= now.getTime()) {
         return { outcome: "expired", token: structuredClone(current) };

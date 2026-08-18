@@ -78,7 +78,10 @@ export class FederationDeliveryService {
   // In-memory duplicate tracking (in a real system, this is backed by Redis/DB)
   private seenMessageIds: Set<string> = new Set();
   // Simulated dead-letter queue
-  public deadLetterQueue: Array<{ message: FederationMessage; code: ActionableErrorCode }> = [];
+  public deadLetterQueue: Array<{
+    message: FederationMessage;
+    code: ActionableErrorCode;
+  }> = [];
 
   constructor(
     private resolveRelay: (domain: string) => Promise<RelayNode | null>,
@@ -103,7 +106,11 @@ export class FederationDeliveryService {
     while (state !== "ACKNOWLEDGED" && state !== "DEAD_LETTER" && state !== "DEDUPLICATED") {
       if (Date.now() > message.expiryTimestamp) {
         this.moveToDeadLetter(message, "ERR_DELIVERY_EXPIRED");
-        return { state: "DEAD_LETTER", attempts, errorCode: "ERR_DELIVERY_EXPIRED" };
+        return {
+          state: "DEAD_LETTER",
+          attempts,
+          errorCode: "ERR_DELIVERY_EXPIRED",
+        };
       }
 
       try {

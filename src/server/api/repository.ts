@@ -94,7 +94,11 @@ export type UpdateUserResult =
   { updated: true; user: User } | { updated: false; current: User | null };
 
 export type IssueVerificationTokenResult =
-  | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
+  | {
+      outcome: "issued";
+      token: VerificationToken;
+      replacedToken: VerificationToken | null;
+    }
   | { outcome: "conflict"; token: VerificationToken };
 
 export type ConsumeVerificationTokenResult =

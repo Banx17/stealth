@@ -334,7 +334,10 @@ function applyRuleAndTrack(
   return { text: result, issues };
 }
 
-function fixSentenceCapitalization(text: string): { text: string; issues: GrammarIssue[] } {
+function fixSentenceCapitalization(text: string): {
+  text: string;
+  issues: GrammarIssue[];
+} {
   const issues: GrammarIssue[] = [];
   let result = text;
 

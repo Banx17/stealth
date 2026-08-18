@@ -160,7 +160,10 @@ export function validateCommittedConfig(text: string): GuardResult {
   try {
     config = parseJsonc<Record<string, any>>(text);
   } catch (error) {
-    return { ok: false, errors: [`wrangler.jsonc is not valid JSONC: ${String(error)}`] };
+    return {
+      ok: false,
+      errors: [`wrangler.jsonc is not valid JSONC: ${String(error)}`],
+    };
   }
 
   // 1. No real resource IDs anywhere in the committed config.

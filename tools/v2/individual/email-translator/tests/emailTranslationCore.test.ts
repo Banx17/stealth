@@ -128,7 +128,9 @@ describe("createEmailTranslationCore", () => {
   it("propagates a detected language reported by the provider", async () => {
     const core = createEmailTranslationCore(new FakeTranslationProvider("de"));
 
-    const result = await core.translateBody("Guten Tag", { targetLanguage: "en" });
+    const result = await core.translateBody("Guten Tag", {
+      targetLanguage: "en",
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

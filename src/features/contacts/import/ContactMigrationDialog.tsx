@@ -50,7 +50,11 @@ const VISIBLE_STEPS: MigrationStep[] = ["source", "identity-review", "migrate", 
 
 const variants = {
   enter: (d: number) => ({ x: d * 28, opacity: 0 }),
-  center: { x: 0, opacity: 1, transition: { duration: 0.2, ease: "easeOut" as const } },
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  },
   exit: (d: number) => ({
     x: d * -28,
     opacity: 0,
@@ -188,7 +192,10 @@ export function ContactMigrationDialog({
 
   function handleFinish() {
     if (bulkProgress) {
-      onComplete({ rows: rows.filter((r) => !r.error), writes: bulkProgress.succeeded });
+      onComplete({
+        rows: rows.filter((r) => !r.error),
+        writes: bulkProgress.succeeded,
+      });
     }
     setStep("source");
     setRows([]);
@@ -376,7 +383,11 @@ function TrustDefaultsStep({
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const options: { value: "allow" | "block" | "default"; label: string; desc: string }[] = [
+  const options: {
+    value: "allow" | "block" | "default";
+    label: string;
+    desc: string;
+  }[] = [
     {
       value: "default",
       label: "Skip (leave as unset)",
