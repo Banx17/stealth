@@ -1,12 +1,18 @@
 import type { RegistrationRequest, RegistrationResponse } from "@/features/identity/registration";
 import { maskEmail } from "@/features/identity/registration";
+import {
+  checkDeviceLimit,
+  checkEmailDomainLimit,
+  checkInviteCode,
+  checkIpLimit,
+  checkUsernameReservationLimit,
+} from "../abuse-service";
 import type { ApiContext } from "../context";
 import type { Credential, Profile, User } from "../domain";
 import { ApiError } from "../errors";
 import { hashPassword } from "./password";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
-const MAX_SIGNUPS_PER_IP = 10;
 const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 function generatedAccountAddress(): string {
@@ -18,12 +24,61 @@ export async function registerWithPassword(
   apiContext: ApiContext,
   input: RegistrationRequest,
   ip = "unknown",
+  deviceFingerprint = "unknown",
 ): Promise<RegistrationResponse> {
-  const rateLimitKey = `signup:${ip}`;
-  if ((await apiContext.repository.getCounter(rateLimitKey)) >= MAX_SIGNUPS_PER_IP) {
-    throw new ApiError("too_many_requests", {
-      retryAfterSeconds: SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+  const ipCheck = await checkIpLimit(
+    apiContext.repository,
+    ip,
+    "registration",
+    5,
+    SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+  );
+  if (!ipCheck.allowed) {
+    throw new ApiError(429, "too_many_requests", "Registration rate limit exceeded for IP", {
+      retryAfterSeconds: ipCheck.retryAfterSeconds ?? SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
     });
+  }
+
+  if (deviceFingerprint !== "unknown") {
+    const deviceCheck = await checkDeviceLimit(apiContext.repository, deviceFingerprint, {
+      route: "registration",
+      windowMs: 3600_000,
+      max: 3,
+    });
+    if (!deviceCheck.allowed) {
+      throw new ApiError(429, "too_many_requests", "Registration limit exceeded for device", {
+        retryAfterSeconds: deviceCheck.retryAfterSeconds ?? SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+      });
+    }
+  }
+
+  const domainCheck = await checkEmailDomainLimit(apiContext.repository, input.email);
+  if (!domainCheck.allowed) {
+    throw new ApiError(
+      400,
+      "bad_request",
+      domainCheck.reason === "disposable_email_blocked"
+        ? "Disposable email addresses are not accepted"
+        : "Email domain registration limit reached",
+    );
+  }
+
+  const usernameCheck = await checkUsernameReservationLimit(apiContext.repository, ip);
+  if (!usernameCheck.allowed) {
+    throw new ApiError(429, "too_many_requests", "Username reservation rate limit reached", {
+      retryAfterSeconds: usernameCheck.retryAfterSeconds ?? SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+    });
+  }
+
+  const inviteCheck = await checkInviteCode(apiContext.repository, input.inviteCode);
+  if (!inviteCheck.allowed) {
+    throw new ApiError(
+      403,
+      "forbidden",
+      inviteCheck.reason === "invite_code_required"
+        ? "An invite code is required during beta signup"
+        : "Invalid invite code",
+    );
   }
 
   const now = new Date().toISOString();
@@ -31,7 +86,6 @@ export async function registerWithPassword(
   const { hash, salt } = await hashPassword(input.password);
   const user: User = {
     userId,
-    // This is an internal unique placeholder, not an external wallet connection.
     address: generatedAccountAddress(),
     email: input.email,
     username: input.username,
@@ -61,13 +115,11 @@ export async function registerWithPassword(
     await apiContext.repository.createUser(user, credential, profile);
   } catch (error) {
     if (error instanceof ApiError && error.code === "conflict") {
-      // Keep email and username ownership private.
-      throw new ApiError("conflict");
+      throw new ApiError(409, "conflict", "Registration details conflict with an existing account");
     }
     throw error;
   }
 
-  await apiContext.repository.incrementCounter(rateLimitKey, SIGNUP_RATE_LIMIT_WINDOW_SECONDS, 1);
   return {
     accountStatus: "pending_verification",
     email: user.email,

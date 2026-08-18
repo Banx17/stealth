@@ -20,6 +20,8 @@ export const registrationRequestSchema = z
     passwordConfirmation: z.string(),
     termsVersion: z.literal(CURRENT_TERMS_VERSION),
     privacyPolicyVersion: z.literal(CURRENT_PRIVACY_POLICY_VERSION),
+    inviteCode: z.string().trim().optional(),
+    challengeNonce: z.string().trim().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
