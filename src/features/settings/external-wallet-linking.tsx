@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useId } from "react";
 import {
   AlertTriangle,
   Check,
-  ChevronDown,
   Copy,
   ExternalLink,
   Info,
