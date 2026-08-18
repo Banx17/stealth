@@ -138,7 +138,10 @@ describe("openEnvelope decryption (#1685)", () => {
       ...env,
       payload: {
         ...env.payload,
-        encryption_metadata: { ...env.payload.encryption_metadata, algorithm: "AES-128-GCM" },
+        encryption_metadata: {
+          ...env.payload.encryption_metadata,
+          algorithm: "AES-128-GCM",
+        },
       },
     };
     const err = await openEnvelope(bad, keyProviderFor(key)).catch((e) => e);
@@ -156,7 +159,10 @@ describe("openEnvelope decryption (#1685)", () => {
       ...env,
       payload: {
         ...env.payload,
-        encryption_metadata: { ...env.payload.encryption_metadata, algorithm: "ROT13" },
+        encryption_metadata: {
+          ...env.payload.encryption_metadata,
+          algorithm: "ROT13",
+        },
       },
     };
     const err = await openEnvelope(bad, keyProviderFor(key)).catch((e) => e);

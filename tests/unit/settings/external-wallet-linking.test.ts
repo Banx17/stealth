@@ -34,7 +34,10 @@ describe("wallet-link client service", () => {
   describe("requestChallenge", () => {
     it("returns challenge data on success", async () => {
       globalThis.fetch = mockFetchOnce(200, {
-        data: { challenge: "a".repeat(64), expiresAt: "2026-01-01T00:00:00.000Z" },
+        data: {
+          challenge: "a".repeat(64),
+          expiresAt: "2026-01-01T00:00:00.000Z",
+        },
       }) as typeof fetch;
 
       const result = await requestChallenge(externalAddress, network);
@@ -87,7 +90,9 @@ describe("wallet-link client service", () => {
           network,
         },
       ];
-      globalThis.fetch = mockFetchOnce(200, { data: { wallets } }) as typeof fetch;
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { wallets },
+      }) as typeof fetch;
 
       const result = await listLinkedWallets();
       expect(result).toHaveLength(1);
@@ -105,9 +110,13 @@ describe("wallet-link client service", () => {
 
   describe("unlinkWallet", () => {
     it("succeeds on 2xx", async () => {
-      globalThis.fetch = mockFetchOnce(200, { data: { unlinked: true } }) as typeof fetch;
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { unlinked: true },
+      }) as typeof fetch;
 
-      await expect(unlinkWallet(externalAddress)).resolves.toEqual({ unlinked: true });
+      await expect(unlinkWallet(externalAddress)).resolves.toEqual({
+        unlinked: true,
+      });
     });
 
     it("passes explicit confirmation parameter when provided", async () => {

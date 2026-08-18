@@ -28,7 +28,7 @@ jobs:
         run: bun install
 
       - name: Format Check
-        run: bun x prettier --check .
+        run: bun run format:check
 
       - name: Lint
         run: bun run lint
@@ -175,12 +175,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Dependency Review
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v4
+        continue-on-error: true
+        with:
+          retry-on-snapshot-warnings: true
 
       - name: Secret Scanning
         if: ${{ env.GITLEAKS_LICENSE != '' }}

@@ -23,6 +23,7 @@ import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
+import { Route as ApiV1SendCoordinateRouteImport } from './routes/api/v1/send/coordinate'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
 import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
@@ -35,6 +36,7 @@ import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
 import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
 import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
@@ -141,6 +143,11 @@ const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
   path: '/api/v1/accounts/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1SendCoordinateRoute = ApiV1SendCoordinateRouteImport.update({
+  id: '/api/v1/send/coordinate',
+  path: '/api/v1/send/coordinate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
   id: '/api/v1/relay/version',
   path: '/api/v1/relay/version',
@@ -199,6 +206,11 @@ const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   id: '/api/v1/identity/resolve',
   path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
+  id: '/api/v1/delivery/$messageId',
+  path: '/api/v1/delivery/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ContactsMergeRoute = ApiV1ContactsMergeRouteImport.update({
@@ -410,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -422,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
@@ -473,6 +487,7 @@ export interface FileRoutesByTo {
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -485,6 +500,7 @@ export interface FileRoutesByTo {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
@@ -537,6 +553,7 @@ export interface FileRoutesById {
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -549,6 +566,7 @@ export interface FileRoutesById {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
@@ -602,6 +620,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/verify'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -614,6 +633,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/send/coordinate'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
@@ -665,6 +685,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/verify'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -677,6 +698,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/send/coordinate'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
     | '/api/v1/postage'
@@ -728,6 +750,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/verify'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -740,6 +763,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/send/coordinate'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
@@ -792,6 +816,7 @@ export interface RootRouteChildren {
   ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
   ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
+  ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
@@ -804,6 +829,7 @@ export interface RootRouteChildren {
   ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
   ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
+  ApiV1SendCoordinateRoute: typeof ApiV1SendCoordinateRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
@@ -927,6 +953,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/send/coordinate': {
+      id: '/api/v1/send/coordinate'
+      path: '/api/v1/send/coordinate'
+      fullPath: '/api/v1/send/coordinate'
+      preLoaderRoute: typeof ApiV1SendCoordinateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/relay/version': {
       id: '/api/v1/relay/version'
       path: '/api/v1/relay/version'
@@ -1009,6 +1042,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/identity/resolve'
       fullPath: '/api/v1/identity/resolve'
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/delivery/$messageId': {
+      id: '/api/v1/delivery/$messageId'
+      path: '/api/v1/delivery/$messageId'
+      fullPath: '/api/v1/delivery/$messageId'
+      preLoaderRoute: typeof ApiV1DeliveryMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/contacts/merge': {
@@ -1351,6 +1391,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
   ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
+  ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
@@ -1363,6 +1404,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
   ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
+  ApiV1SendCoordinateRoute: ApiV1SendCoordinateRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,

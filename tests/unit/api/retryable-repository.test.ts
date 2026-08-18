@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   IdempotencyRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   Postage,
   PostageStatus,
   Receipt,
@@ -104,6 +105,17 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setReceipt");
     return this.inner.setReceipt(receipt);
   }
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    this.maybeFail("getMessageDeliveryStatus");
+    return this.inner.getMessageDeliveryStatus(messageId);
+  }
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    this.maybeFail("setMessageDeliveryStatus");
+    return this.inner.setMessageDeliveryStatus(record);
+  }
+
   async acquireIdempotencyRecord(
     key: string,
     requestDigest: string,
@@ -483,6 +495,20 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setReceiptCheckpoint");
     return this.inner.setReceiptCheckpoint(checkpoint);
   }
+  async getSendOperation(messageId: string) {
+    this.maybeFail("getSendOperation");
+    return this.inner.getSendOperation(messageId);
+  }
+  async setSendOperation(state: import("../../../src/server/api/domain").SendOperationState) {
+    this.maybeFail("setSendOperation");
+    return this.inner.setSendOperation(state);
+  }
+  async createSendOperationIfAbsent(
+    state: import("../../../src/server/api/domain").SendOperationState,
+  ) {
+    this.maybeFail("createSendOperationIfAbsent");
+    return this.inner.createSendOperationIfAbsent(state);
+  }
   reset(): void {
     this.inner.reset();
   }
@@ -494,7 +520,10 @@ describe("RetryableApiRepository", () => {
 
   beforeEach(() => {
     failing = new FailingRepository();
-    repo = new RetryableApiRepository(failing, { maxAttempts: 3, baseDelayMs: 1 });
+    repo = new RetryableApiRepository(failing, {
+      maxAttempts: 3,
+      baseDelayMs: 1,
+    });
   });
 
   it("retries a safe read operation on transient failure", async () => {
@@ -687,7 +716,10 @@ describe("RetryableApiRepository", () => {
 
   it("delegates reset to the inner repository", async () => {
     const memory = new MemoryApiRepository();
-    const retryRepo = new RetryableApiRepository(memory, { maxAttempts: 2, baseDelayMs: 1 });
+    const retryRepo = new RetryableApiRepository(memory, {
+      maxAttempts: 2,
+      baseDelayMs: 1,
+    });
 
     await memory.setPolicy(owner, {
       allowUnknown: false,
