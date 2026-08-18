@@ -13,9 +13,9 @@
  *   <motion.div {...motionPresets.entrance.slideUp()} />
  */
 
-// Check if user prefers reduced motion
 const prefersReducedMotion =
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" &&
+  Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 
 // Base animation configuration
 const baseConfig = {
