@@ -105,9 +105,10 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
           };
           const session = toPublicSession(sessionRecord);
 
-          let branch:
-            "active" | "onboarding" | "suspended" | "unauthorized" | "outage" | "maintenance" =
-            "active";
+          type BootstrapBranch =
+            "active" | "onboarding" | "suspended" | "unauthorized" | "outage" | "maintenance";
+
+          let branch: BootstrapBranch = "active";
 
           if (!readiness.ready) {
             branch = "outage";
