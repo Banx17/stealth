@@ -18,6 +18,7 @@ import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
@@ -118,6 +119,11 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
+  id: '/api/v1/bootstrap',
+  path: '/api/v1/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
   id: '/api/v1/requests/',
   path: '/api/v1/requests/',
@@ -178,9 +184,9 @@ const ApiV1PostageQuoteRoute = ApiV1PostageQuoteRouteImport.update({
   path: '/api/v1/postage/quote',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1MailboxQueueRoute = ApiV1MailboxQueueRouteImport.update({
-  id: '/api/v1/mailbox/queue',
-  path: '/api/v1/mailbox/queue',
+const ApiV1PostageMessageIdRoute = ApiV1PostageMessageIdRouteImport.update({
+  id: '/api/v1/postage/$messageId',
+  path: '/api/v1/postage/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
@@ -911,11 +917,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ProtocolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/sign-in': {
-      id: '/auth/sign-in'
-      path: '/auth/sign-in'
-      fullPath: '/auth/sign-in'
-      preLoaderRoute: typeof AuthSignInRouteImport
+    '/api/v1/openapi.json': {
+      id: '/api/v1/openapi.json'
+      path: '/api/v1/openapi.json'
+      fullPath: '/api/v1/openapi.json'
+      preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/health': {
@@ -923,6 +929,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/health'
       fullPath: '/api/v1/health'
       preLoaderRoute: typeof ApiV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bootstrap': {
+      id: '/api/v1/bootstrap'
+      path: '/api/v1/bootstrap'
+      fullPath: '/api/v1/bootstrap'
+      preLoaderRoute: typeof ApiV1BootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/requests/': {
@@ -1044,11 +1057,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1MailboxMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/relay/messages': {
-      id: '/api/v1/relay/messages'
-      path: '/api/v1/relay/messages'
-      fullPath: '/api/v1/relay/messages'
-      preLoaderRoute: typeof ApiV1RelayMessagesRouteImport
+    '/api/v1/identity/resolve': {
+      id: '/api/v1/identity/resolve'
+      path: '/api/v1/identity/resolve'
+      fullPath: '/api/v1/identity/resolve'
+      preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/delivery/$messageId': {
@@ -1142,11 +1155,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IdentityKeysIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/auth/logout': {
-      id: '/api/v1/auth/logout'
-      path: '/api/v1/auth/logout'
-      fullPath: '/api/v1/auth/logout'
-      preLoaderRoute: typeof ApiV1AuthLogoutRouteImport
+    '/api/v1/admin/jobs/': {
+      id: '/api/v1/admin/jobs/'
+      path: '/api/v1/admin/jobs'
+      fullPath: '/api/v1/admin/jobs/'
+      preLoaderRoute: typeof ApiV1AdminJobsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/admin/dlq/': {
@@ -1205,12 +1218,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
-    '/api/v1/requests/$requestId/decisions': {
-      id: '/api/v1/requests/$requestId/decisions'
-      path: '/api/v1/requests/$requestId/decisions'
-      fullPath: '/api/v1/requests/$requestId/decisions'
-      preLoaderRoute: typeof ApiV1RequestsRequestIdDecisionsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/api/v1/policies/$owner/reconciliation': {
+      id: '/api/v1/policies/$owner/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/api/v1/policies/$owner/reconciliation'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerReconciliationRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
     }
     '/api/v1/policies/$owner/provision': {
       id: '/api/v1/policies/$owner/provision'

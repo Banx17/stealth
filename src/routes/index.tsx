@@ -96,7 +96,16 @@ function IndexPage() {
   // import of the mock fixtures) is removed by the bundler. The production app
   // shell has no route to `initialEmails` or the demo adapter.
   const isDemo = import.meta.env.DEV;
-  return <MailApp isDemoMode={isDemo} />;
+  const isTest = typeof window !== "undefined" && Boolean(window.navigator.webdriver);
+  const bootstrap = useBootstrap();
+
+  if (!isDemo || isTest) {
+    if (bootstrap.branch !== "active") {
+      return <BootstrapStateView />;
+    }
+  }
+
+  return <MailApp isDemoMode={isDemo && !isTest} />;
 }
 
 function delay(ms: number) {

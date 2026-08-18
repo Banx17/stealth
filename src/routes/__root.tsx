@@ -77,7 +77,9 @@ const queryClient = new QueryClient();
 function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <BootstrapProvider>
+        <Outlet />
+      </BootstrapProvider>
     </QueryClientProvider>
   );
 }
