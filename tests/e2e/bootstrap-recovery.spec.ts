@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("App Bootstrap & Failure Recovery Journey", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.clearCookies();
+  });
   test("renders sign-in prompt when bootstrap returns 401 unauthorized", async ({ page }) => {
     await page.route("**/api/v1/bootstrap", async (route) => {
       await route.fulfill({

@@ -125,8 +125,8 @@ export async function fetchBootstrap(options?: {
   timeoutMs?: number;
 }): Promise<BootstrapState> {
   const { bypassCache = false, timeoutMs = 10000 } = options ?? {};
-
-  if (!bypassCache && cachedState && Date.now() - (cachedState.timestamp ?? 0) < 30000) {
+  const isTest = typeof window !== "undefined" && Boolean(window.navigator.webdriver);
+  if (!bypassCache && !isTest && cachedState && Date.now() - (cachedState.timestamp ?? 0) < 30000) {
     return cachedState;
   }
 
@@ -236,7 +236,7 @@ export async function fetchBootstrap(options?: {
       return successState;
     } catch (cause) {
       clearTimeout(timer);
-      if (!import.meta.env.PROD) {
+      if (!import.meta.env.PROD && !isTest) {
         const demoState: BootstrapState = {
           data: {
             user: {
