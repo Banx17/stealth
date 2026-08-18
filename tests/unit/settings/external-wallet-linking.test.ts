@@ -1,6 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-import type { ExternalWallet, WalletCapability, ManagedWalletStatus } from "../../../src/server/api/domain";
+import type {
+  ExternalWallet,
+  WalletCapability,
+  ManagedWalletStatus,
+} from "../../../src/server/api/domain";
 import {
   getManagedWalletStatus,
   requestChallenge,
@@ -133,7 +137,9 @@ describe("wallet-link client service (Issue #1977 BETA-070)", () => {
         isFallback: false,
       };
 
-      globalThis.fetch = mockFetchOnce(200, { data: { wallet: updated, activeSigner } }) as typeof fetch;
+      globalThis.fetch = mockFetchOnce(200, {
+        data: { wallet: updated, activeSigner },
+      }) as typeof fetch;
 
       const res = await updateWalletCapabilities(externalAddress, ["sign", "send"]);
       expect(res.wallet.capabilities).toEqual(["sign", "send"]);
