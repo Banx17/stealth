@@ -1,9 +1,14 @@
 import type {
   Contact,
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   ExternalWallet,
   ExternalWalletChallenge,
   IdempotencyRecord,
+  JobStatus,
   KeyDirectoryRecord,
   LifecycleAnchor,
   MailboxPolicy,
@@ -14,6 +19,7 @@ import type {
   ProvisioningRecord,
   PublishedKey,
   Receipt,
+  ReceiptCheckpoint,
   RetiredSession,
   SenderRule,
   Session,
@@ -433,6 +439,32 @@ export interface ApiRepository {
   createContact(contact: Contact): Promise<Contact>;
   updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult>;
   deleteContact(owner: string, contactId: string): Promise<void>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+  enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }>;
+  getJob(jobId: string): Promise<DurableJob | null>;
+  getJobByIdempotencyKey(key: string): Promise<DurableJob | null>;
+  updateJob(job: DurableJob): Promise<DurableJob>;
+  claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null>;
+  listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]>;
+
+  createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter>;
+  getDeadLetter(deadLetterId: string): Promise<DeadLetter | null>;
+  listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]>;
+  updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter>;
+
+  getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null>;
+  setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint>;
 
   reset?(): void;
 }
@@ -1051,6 +1083,65 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.deleteContact(owner, contactId);
   }
 
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+  enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.inner.enqueueJob(job);
+  }
+
+  getJob(jobId: string): Promise<DurableJob | null> {
+    return this.inner.getJob(jobId);
+  }
+
+  getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    return this.inner.getJobByIdempotencyKey(key);
+  }
+
+  updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.inner.updateJob(job);
+  }
+
+  claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null> {
+    return this.inner.claimNextPendingJob(types, now);
+  }
+
+  listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    return this.inner.listJobs(filter);
+  }
+
+  createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.inner.createDeadLetter(deadLetter);
+  }
+
+  getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    return this.inner.getDeadLetter(deadLetterId);
+  }
+
+  listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    return this.inner.listDeadLetters(filter);
+  }
+
+  updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.inner.updateDeadLetter(deadLetter);
+  }
+
+  getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    return this.inner.getReceiptCheckpoint(streamId);
+  }
+
+  setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    return this.inner.setReceiptCheckpoint(checkpoint);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -1119,6 +1210,14 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getWalletChallenge",
   "listContacts",
   "getContact",
+  "getJob",
+  "getJobByIdempotencyKey",
+  "listJobs",
+  "getDeadLetter",
+  "listDeadLetters",
+  "updateDeadLetter",
+  "getReceiptCheckpoint",
+  "setReceiptCheckpoint",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1581,6 +1680,67 @@ export class RetryableApiRepository implements ApiRepository {
 
   deleteContact(owner: string, contactId: string): Promise<void> {
     return this.withRetry("deleteContact", () => this.inner.deleteContact(owner, contactId));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+  enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.inner.enqueueJob(job);
+  }
+
+  getJob(jobId: string): Promise<DurableJob | null> {
+    return this.withRetry("getJob", () => this.inner.getJob(jobId));
+  }
+
+  getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    return this.withRetry("getJobByIdempotencyKey", () => this.inner.getJobByIdempotencyKey(key));
+  }
+
+  updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.inner.updateJob(job);
+  }
+
+  claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null> {
+    return this.inner.claimNextPendingJob(types, now);
+  }
+
+  listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    return this.withRetry("listJobs", () => this.inner.listJobs(filter));
+  }
+
+  createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.inner.createDeadLetter(deadLetter);
+  }
+
+  getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    return this.withRetry("getDeadLetter", () => this.inner.getDeadLetter(deadLetterId));
+  }
+
+  listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    return this.withRetry("listDeadLetters", () => this.inner.listDeadLetters(filter));
+  }
+
+  updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.withRetry("updateDeadLetter", () => this.inner.updateDeadLetter(deadLetter));
+  }
+
+  getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    return this.withRetry("getReceiptCheckpoint", () => this.inner.getReceiptCheckpoint(streamId));
+  }
+
+  setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    return this.withRetry("setReceiptCheckpoint", () =>
+      this.inner.setReceiptCheckpoint(checkpoint),
+    );
   }
 
   reset(): void {

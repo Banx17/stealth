@@ -12,9 +12,14 @@ import type {
 import type {
   Contact,
   Credential,
+  DeadLetter,
+  DeadLetterStatus,
+  DurableJob,
+  DurableJobType,
   ExternalWallet,
   ExternalWalletChallenge,
   IdempotencyRecord,
+  JobStatus,
   KeyDirectoryRecord,
   LifecycleAnchor,
   MailboxPolicy,
@@ -25,6 +30,7 @@ import type {
   ProvisioningRecord,
   PublishedKey,
   Receipt,
+  ReceiptCheckpoint,
   RetiredSession,
   SenderRule,
   Session,
@@ -636,5 +642,65 @@ export class HybridApiRepository implements ApiRepository {
     }
     contacts.splice(index, 1);
     await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
+  // ---------------------------------------------------------------------------
+
+  async enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
+    return this.getStub().enqueueJob(job);
+  }
+
+  async getJob(jobId: string): Promise<DurableJob | null> {
+    return this.getStub().getJob(jobId);
+  }
+
+  async getJobByIdempotencyKey(key: string): Promise<DurableJob | null> {
+    return this.getStub().getJobByIdempotencyKey(key);
+  }
+
+  async updateJob(job: DurableJob): Promise<DurableJob> {
+    return this.getStub().updateJob(job);
+  }
+
+  async claimNextPendingJob(types?: DurableJobType[], now?: Date): Promise<DurableJob | null> {
+    return this.getStub().claimNextPendingJob(types, now);
+  }
+
+  async listJobs(filter?: {
+    type?: DurableJobType;
+    status?: JobStatus;
+    limit?: number;
+  }): Promise<DurableJob[]> {
+    return this.getStub().listJobs(filter);
+  }
+
+  async createDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.getStub().createDeadLetter(deadLetter);
+  }
+
+  async getDeadLetter(deadLetterId: string): Promise<DeadLetter | null> {
+    return this.getStub().getDeadLetter(deadLetterId);
+  }
+
+  async listDeadLetters(filter?: {
+    jobType?: DurableJobType;
+    status?: DeadLetterStatus;
+    limit?: number;
+  }): Promise<DeadLetter[]> {
+    return this.getStub().listDeadLetters(filter);
+  }
+
+  async updateDeadLetter(deadLetter: DeadLetter): Promise<DeadLetter> {
+    return this.getStub().updateDeadLetter(deadLetter);
+  }
+
+  async getReceiptCheckpoint(streamId: string): Promise<ReceiptCheckpoint | null> {
+    return this.getStub().getReceiptCheckpoint(streamId);
+  }
+
+  async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
+    return this.getStub().setReceiptCheckpoint(checkpoint);
   }
 }
