@@ -106,7 +106,10 @@ export function signQuote(fields: QuoteSignFields): string {
 }
 
 export type QuoteReason =
-  "trusted_sender" | "mailbox_minimum" | "sender_blocked" | "insufficient_balance";
+  | "trusted_sender"
+  | "mailbox_minimum"
+  | "sender_blocked"
+  | "insufficient_balance";
 
 export interface PostageQuoteResult {
   amount: string;

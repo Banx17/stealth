@@ -9,7 +9,10 @@ export type EscalationPriority = "low" | "medium" | "high" | "urgent";
 export type EscalationStatus = "open" | "in_review" | "resolved" | "dismissed";
 
 export type EscalationErrorCode =
-  "INVALID_INPUT" | "INVALID_PRIORITY" | "PERSISTENCE_FAILED" | "INTERNAL_ERROR";
+  | "INVALID_INPUT"
+  | "INVALID_PRIORITY"
+  | "PERSISTENCE_FAILED"
+  | "INTERNAL_ERROR";
 
 export interface EscalationInput {
   /** ID of the conversation being escalated. */
@@ -50,6 +53,7 @@ export interface EscalationError {
 }
 
 export type EscalationToolResult =
-  { ok: true; data: EscalationRecord } | { ok: false; error: EscalationError };
+  | { ok: true; data: EscalationRecord }
+  | { ok: false; error: EscalationError };
 
 export type ExecuteEscalationTool = (input: EscalationInput) => Promise<EscalationToolResult>;

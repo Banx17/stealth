@@ -46,7 +46,8 @@ export interface SecurityFlaggingError {
 }
 
 export type SecurityFlaggingOutput =
-  { ok: true; data: SecurityFlaggingRecord } | { ok: false; error: SecurityFlaggingError };
+  | { ok: true; data: SecurityFlaggingRecord }
+  | { ok: false; error: SecurityFlaggingError };
 
 /** Lifecycle updates emitted by executeSecurityFlaggingWithState. */
 export type SecurityFlaggingExecutionState =
