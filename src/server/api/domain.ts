@@ -323,3 +323,45 @@ export const storedEnvelopeSchema = z.object({
 
 export type StoredEnvelopeProtectedHeaders = z.infer<typeof storedEnvelopeProtectedHeadersSchema>;
 export type StoredEnvelope = z.infer<typeof storedEnvelopeSchema>;
+
+// ---------------------------------------------------------------------------
+// Unknown sender requests (Issue #1945 / BETA-038)
+// ---------------------------------------------------------------------------
+// Only encrypted-message identifiers and commitments are retained here. The
+// request queue must never become an alternate plaintext mailbox store.
+
+export const unknownSenderRequestStatusSchema = z.enum([
+  "pending",
+  "approved",
+  "rejected",
+  "blocked",
+  "expired",
+]);
+export const unknownSenderDecisionSchema = z.enum([
+  "approve_once",
+  "always_allow",
+  "reject",
+  "block",
+  "expire",
+]);
+
+export const encryptedMessageReferenceSchema = z.object({
+  messageId: hash32Schema,
+  envelopeId: z.string().min(1).max(256).optional(),
+  ciphertextHash: hash32Schema,
+});
+
+export const unknownSenderRequestSchema = z.object({
+  requestId: z.string().uuid(),
+  recipient: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  message: encryptedMessageReferenceSchema,
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  status: unknownSenderRequestStatusSchema,
+  decidedAt: z.string().datetime().optional(),
+  decision: unknownSenderDecisionSchema.optional(),
+});
+
+export type UnknownSenderRequest = z.infer<typeof unknownSenderRequestSchema>;
+export type UnknownSenderDecision = z.infer<typeof unknownSenderDecisionSchema>;

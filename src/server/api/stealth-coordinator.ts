@@ -7,6 +7,8 @@ import type {
   Receipt,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
 } from "./domain";
 import type {
@@ -14,6 +16,8 @@ import type {
   InsertEnvelopeResult,
   PostageTransitionResult,
   UpdateUserResult,
+  CreateSenderRequestResult,
+  SenderRequestTransitionResult,
 } from "./repository";
 import { ApiError } from "./errors";
 
@@ -425,6 +429,78 @@ export class StealthCoordinator extends DurableObjectBase {
 
       await this.ctx.storage.put(`envelope:${envelope.messageId}`, envelope);
       return { outcome: "inserted" as const, envelope };
+    });
+  }
+
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return (
+      ((await this.ctx.storage.get(`sender-request:${requestId}`)) as
+        | UnknownSenderRequest
+        | undefined) ?? null
+    );
+  }
+
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    const listed = (await this.ctx.storage.list({ prefix: "sender-request:" })) as Map<
+      string,
+      UnknownSenderRequest
+    >;
+    return [...listed.values()]
+      .filter(
+        (request) => request.recipient === recipient && (!status || request.status === status),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async createSenderRequestIfAbsent(
+    request: UnknownSenderRequest,
+  ): Promise<CreateSenderRequestResult> {
+    return this.runExclusive(`sender-request:${request.requestId}`, async () => {
+      const key = `sender-request:${request.requestId}`;
+      const existing = (await this.ctx.storage.get(key)) as UnknownSenderRequest | undefined;
+      if (existing) return { created: false, request: existing };
+      await this.ctx.storage.put(key, request);
+      return { created: true, request };
+    });
+  }
+
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now = new Date(),
+  ): Promise<SenderRequestTransitionResult> {
+    return this.runExclusive(`sender-request:${requestId}`, async () => {
+      const key = `sender-request:${requestId}`;
+      const current = (await this.ctx.storage.get(key)) as UnknownSenderRequest | undefined;
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      ) {
+        return { outcome: "conflict", request: current };
+      }
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as UnknownSenderRequest;
+      if (decision === "always_allow") {
+        await this.ctx.storage.put(`sender-rule:${recipient}:${current.sender}`, "allow");
+      } else if (decision === "block") {
+        await this.ctx.storage.put(`sender-rule:${recipient}:${current.sender}`, "block");
+      }
+      await this.ctx.storage.put(key, request);
+      return { outcome: "applied", request };
     });
   }
 }

@@ -14,6 +14,7 @@ import {
   credentialSchema,
   sessionSchema,
   storedEnvelopeSchema,
+  unknownSenderRequestSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -210,6 +211,7 @@ registerRecordSchema("idempotencyRecord", 2, idempotencyRecordSchema, {
 // ValidatedApiRepository can detect tampered or structurally invalid
 // envelope records at the adapter boundary before they reach any caller.
 registerRecordSchema("storedEnvelope", 1, storedEnvelopeSchema);
+registerRecordSchema("unknownSenderRequest", 1, unknownSenderRequestSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

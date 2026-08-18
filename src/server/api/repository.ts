@@ -10,6 +10,8 @@ import type {
   SenderRule,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
 } from "./domain";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -84,6 +86,12 @@ export type MarkReceiptReadResult =
 export type UpdateUserResult =
   | { updated: true; user: User }
   | { updated: false; current: User | null };
+
+export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
+export type SenderRequestTransitionResult =
+  | { outcome: "not_found" }
+  | { outcome: "conflict"; request: UnknownSenderRequest }
+  | { outcome: "applied"; request: UnknownSenderRequest };
 
 export interface ApiRepository {
   getPolicy(owner: string): Promise<MailboxPolicy | null>;
@@ -181,6 +189,16 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+
+  getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null>;
+  listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]>;
+  createSenderRequestIfAbsent(request: UnknownSenderRequest): Promise<CreateSenderRequestResult>;
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult>;
 
   reset?(): void;
 }
@@ -507,6 +525,42 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    const raw = await this.inner.getSenderRequest(requestId);
+    return raw ? validateRecord<UnknownSenderRequest>("unknownSenderRequest", raw) : null;
+  }
+
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return (await this.inner.listSenderRequests(recipient, status)).map((request) =>
+      validateRecord<UnknownSenderRequest>("unknownSenderRequest", request),
+    );
+  }
+
+  async createSenderRequestIfAbsent(
+    request: UnknownSenderRequest,
+  ): Promise<CreateSenderRequestResult> {
+    const result = await this.inner.createSenderRequestIfAbsent(
+      versionRecord("unknownSenderRequest", request),
+    );
+    return {
+      ...result,
+      request: validateRecord<UnknownSenderRequest>("unknownSenderRequest", result.request),
+    };
+  }
+
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult> {
+    const result = await this.inner.transitionSenderRequest(requestId, recipient, decision, now);
+    if (result.outcome !== "not_found") {
+      result.request = validateRecord<UnknownSenderRequest>("unknownSenderRequest", result.request);
+    }
+    return result;
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -557,6 +611,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getSession",
   "updateSession",
   "getEnvelope",
+  "getSenderRequest",
+  "listSenderRequests",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -792,6 +848,29 @@ export class RetryableApiRepository implements ApiRepository {
     // and the outcome would be "duplicate" (byte-equal) or "conflict" (different
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
+  }
+
+  getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return this.withRetry("getSenderRequest", () => this.inner.getSenderRequest(requestId));
+  }
+
+  listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return this.withRetry("listSenderRequests", () =>
+      this.inner.listSenderRequests(recipient, status),
+    );
+  }
+
+  createSenderRequestIfAbsent(request: UnknownSenderRequest): Promise<CreateSenderRequestResult> {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult> {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
   }
 
   reset(): void {

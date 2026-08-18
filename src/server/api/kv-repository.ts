@@ -3,6 +3,8 @@ import type {
   InsertEnvelopeResult,
   PostageTransitionResult,
   UpdateUserResult,
+  CreateSenderRequestResult,
+  SenderRequestTransitionResult,
 } from "./repository";
 import type {
   Credential,
@@ -16,6 +18,8 @@ import type {
   Session,
   StoredEnvelope,
   User,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -282,6 +286,40 @@ export class HybridApiRepository implements ApiRepository {
     if (result.outcome === "inserted" || result.outcome === "duplicate") {
       // Mirror to KV so getEnvelope hits the fast path on subsequent reads.
       await this.kv.put(this.key("envelope", envelope.messageId), JSON.stringify(result.envelope));
+    }
+    return result;
+  }
+
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    const request = await this.getStub().getSenderRequest(requestId);
+    return request ?? null;
+  }
+
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return this.getStub().listSenderRequests(recipient, status);
+  }
+
+  async createSenderRequestIfAbsent(
+    request: UnknownSenderRequest,
+  ): Promise<CreateSenderRequestResult> {
+    return this.getStub().createSenderRequestIfAbsent(request);
+  }
+
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult> {
+    const result = await this.getStub().transitionSenderRequest(
+      requestId,
+      recipient,
+      decision,
+      now,
+    );
+    if (result.outcome === "applied") {
+      const rule = decision === "always_allow" ? "allow" : decision === "block" ? "block" : null;
+      if (rule) await this.setSenderRule(recipient, result.request.sender, rule);
     }
     return result;
   }

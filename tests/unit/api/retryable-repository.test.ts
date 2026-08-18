@@ -220,6 +220,29 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("insertEnvelope");
     return this.inner.insertEnvelope(envelope);
   }
+  async getSenderRequest(requestId: string) {
+    this.maybeFail("getSenderRequest");
+    return this.inner.getSenderRequest(requestId);
+  }
+  async listSenderRequests(recipient: string, status?: "pending") {
+    this.maybeFail("listSenderRequests");
+    return this.inner.listSenderRequests(recipient, status);
+  }
+  async createSenderRequestIfAbsent(
+    request: import("../../../src/server/api/domain").UnknownSenderRequest,
+  ) {
+    this.maybeFail("createSenderRequestIfAbsent");
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: import("../../../src/server/api/domain").UnknownSenderDecision,
+    now?: Date,
+  ) {
+    this.maybeFail("transitionSenderRequest");
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
+  }
   reset(): void {
     this.inner.reset();
   }

@@ -9,12 +9,16 @@ import type {
   SenderRule,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
 } from "./domain";
 import type {
   ApiRepository,
   InsertEnvelopeResult,
   PostageTransitionResult,
+  CreateSenderRequestResult,
+  SenderRequestTransitionResult,
   UpdateUserResult,
 } from "./repository";
 import { ApiError } from "./errors";
@@ -34,6 +38,8 @@ export class MemoryApiRepository implements ApiRepository {
   // Issue #1936: envelope store and per-key insert locks.
   private readonly envelopes = new Map<string, StoredEnvelope>();
   private readonly envelopeLocks = new Map<string, Promise<void>>();
+  private readonly senderRequests = new Map<string, UnknownSenderRequest>();
+  private readonly senderRequestLocks = new Map<string, Promise<void>>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -83,6 +89,24 @@ export class MemoryApiRepository implements ApiRepository {
       if (this.envelopeLocks.get(messageId) === queued) {
         this.envelopeLocks.delete(messageId);
       }
+    }
+  }
+
+  private async withSenderRequestLock<T>(requestId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.senderRequestLocks.get(requestId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.senderRequestLocks.set(requestId, queued);
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.senderRequestLocks.get(requestId) === queued)
+        this.senderRequestLocks.delete(requestId);
     }
   }
 
@@ -452,6 +476,68 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return structuredClone(this.senderRequests.get(requestId) ?? null);
+  }
+
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return [...this.senderRequests.values()]
+      .filter(
+        (request) => request.recipient === recipient && (!status || request.status === status),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((request) => structuredClone(request));
+  }
+
+  async createSenderRequestIfAbsent(
+    request: UnknownSenderRequest,
+  ): Promise<CreateSenderRequestResult> {
+    return this.withSenderRequestLock(request.requestId, async () => {
+      const existing = this.senderRequests.get(request.requestId);
+      if (existing) return { created: false, request: structuredClone(existing) };
+      this.senderRequests.set(request.requestId, structuredClone(request));
+      return { created: true, request: structuredClone(request) };
+    });
+  }
+
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now = new Date(),
+  ): Promise<SenderRequestTransitionResult> {
+    return this.withSenderRequestLock(requestId, async () => {
+      const current = this.senderRequests.get(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" };
+      if (current.status !== "pending")
+        return { outcome: "conflict", request: structuredClone(current) };
+      const expired = new Date(current.expiresAt).getTime() <= now.getTime();
+      if (expired && decision !== "expire")
+        return { outcome: "conflict", request: structuredClone(current) };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const updated: UnknownSenderRequest = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      };
+      if (decision === "always_allow") {
+        this.senderRules.set(key(recipient, current.sender), "allow");
+      } else if (decision === "block") {
+        this.senderRules.set(key(recipient, current.sender), "block");
+      }
+      this.senderRequests.set(requestId, updated);
+      return { outcome: "applied", request: structuredClone(updated) };
+    });
+  }
+
   reset() {
     this.policies.clear();
     this.postage.clear();
@@ -462,6 +548,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.receiptLocks.clear();
     this.envelopes.clear();
     this.envelopeLocks.clear();
+    this.senderRequests.clear();
+    this.senderRequestLocks.clear();
     this.usersById.clear();
     this.usersByEmail.clear();
     this.usersByUsername.clear();
