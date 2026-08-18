@@ -396,6 +396,32 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("updateEnvelopeStatus");
     return this.inner.updateEnvelopeStatus(messageId, status);
   }
+  async listContacts(
+    owner: string,
+    options?: import("../../../src/server/api/repository").ContactQueryOptions,
+  ) {
+    this.maybeFail("listContacts");
+    return this.inner.listContacts(owner, options);
+  }
+  async getContact(owner: string, contactId: string) {
+    this.maybeFail("getContact");
+    return this.inner.getContact(owner, contactId);
+  }
+  async createContact(contact: import("../../../src/server/api/domain").Contact) {
+    this.maybeFail("createContact");
+    return this.inner.createContact(contact);
+  }
+  async updateContact(
+    contact: import("../../../src/server/api/domain").Contact,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("updateContact");
+    return this.inner.updateContact(contact, expectedVersion);
+  }
+  async deleteContact(owner: string, contactId: string) {
+    this.maybeFail("deleteContact");
+    return this.inner.deleteContact(owner, contactId);
+  }
   reset(): void {
     this.inner.reset();
   }

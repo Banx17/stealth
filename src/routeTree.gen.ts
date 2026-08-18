@@ -21,6 +21,7 @@ import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
@@ -34,6 +35,8 @@ import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
+import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
 import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
 import { Route as ApiV1AuthResendVerificationRouteImport } from './routes/api/v1/auth/resend-verification'
@@ -57,6 +60,8 @@ import { Route as ApiV1IdentityKeysRotateRouteImport } from './routes/api/v1/ide
 import { Route as ApiV1IdentityKeysRevokeRouteImport } from './routes/api/v1/identity/keys/revoke'
 import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/identity/keys/retire'
 import { Route as ApiV1IdentityKeysKeyIdRouteImport } from './routes/api/v1/identity/keys/$keyId'
+import { Route as ApiV1ContactsImportPreviewRouteImport } from './routes/api/v1/contacts/import/preview'
+import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/contacts/import/commit'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
@@ -118,6 +123,11 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
+  id: '/api/v1/contacts/',
+  path: '/api/v1/contacts/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
@@ -183,6 +193,16 @@ const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   id: '/api/v1/identity/resolve',
   path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsMergeRoute = ApiV1ContactsMergeRouteImport.update({
+  id: '/api/v1/contacts/merge',
+  path: '/api/v1/contacts/merge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsContactIdRoute = ApiV1ContactsContactIdRouteImport.update({
+  id: '/api/v1/contacts/$contactId',
+  path: '/api/v1/contacts/$contactId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AuthVerifyRoute = ApiV1AuthVerifyRouteImport.update({
@@ -309,6 +329,18 @@ const ApiV1IdentityKeysKeyIdRoute = ApiV1IdentityKeysKeyIdRouteImport.update({
   path: '/api/v1/identity/keys/$keyId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ContactsImportPreviewRoute =
+  ApiV1ContactsImportPreviewRouteImport.update({
+    id: '/api/v1/contacts/import/preview',
+    path: '/api/v1/contacts/import/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1ContactsImportCommitRoute =
+  ApiV1ContactsImportCommitRouteImport.update({
+    id: '/api/v1/contacts/import/commit',
+    path: '/api/v1/contacts/import/commit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AccountsProvisioningRetryRoute =
   ApiV1AccountsProvisioningRetryRouteImport.update({
     id: '/retry',
@@ -340,6 +372,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
+  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
+  '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -353,10 +387,13 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
+  '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
+  '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
@@ -392,6 +429,8 @@ export interface FileRoutesByTo {
   '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
+  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
+  '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -405,10 +444,13 @@ export interface FileRoutesByTo {
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
+  '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
+  '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
@@ -445,6 +487,8 @@ export interface FileRoutesById {
   '/api/v1/auth/resend-verification': typeof ApiV1AuthResendVerificationRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
+  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
+  '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -458,10 +502,13 @@ export interface FileRoutesById {
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
+  '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
+  '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
@@ -499,6 +546,8 @@ export interface FileRouteTypes {
     | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
+    | '/api/v1/contacts/$contactId'
+    | '/api/v1/contacts/merge'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -512,10 +561,13 @@ export interface FileRouteTypes {
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
     | '/api/v1/accounts/'
+    | '/api/v1/contacts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/contacts/import/commit'
+    | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
@@ -551,6 +603,8 @@ export interface FileRouteTypes {
     | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
+    | '/api/v1/contacts/$contactId'
+    | '/api/v1/contacts/merge'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -564,10 +618,13 @@ export interface FileRouteTypes {
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
     | '/api/v1/accounts'
+    | '/api/v1/contacts'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/contacts/import/commit'
+    | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
@@ -603,6 +660,8 @@ export interface FileRouteTypes {
     | '/api/v1/auth/resend-verification'
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
+    | '/api/v1/contacts/$contactId'
+    | '/api/v1/contacts/merge'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -616,10 +675,13 @@ export interface FileRouteTypes {
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
     | '/api/v1/accounts/'
+    | '/api/v1/contacts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/contacts/import/commit'
+    | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
@@ -656,6 +718,8 @@ export interface RootRouteChildren {
   ApiV1AuthResendVerificationRoute: typeof ApiV1AuthResendVerificationRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
+  ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
+  ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
@@ -669,9 +733,12 @@ export interface RootRouteChildren {
   ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
+  ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
+  ApiV1ContactsImportCommitRoute: typeof ApiV1ContactsImportCommitRoute
+  ApiV1ContactsImportPreviewRoute: typeof ApiV1ContactsImportPreviewRoute
   ApiV1IdentityKeysKeyIdRoute: typeof ApiV1IdentityKeysKeyIdRoute
   ApiV1IdentityKeysRetireRoute: typeof ApiV1IdentityKeysRetireRoute
   ApiV1IdentityKeysRevokeRoute: typeof ApiV1IdentityKeysRevokeRoute
@@ -770,6 +837,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/contacts/': {
+      id: '/api/v1/contacts/'
+      path: '/api/v1/contacts'
+      fullPath: '/api/v1/contacts/'
+      preLoaderRoute: typeof ApiV1ContactsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/accounts/': {
       id: '/api/v1/accounts/'
       path: '/api/v1/accounts'
@@ -859,6 +933,20 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/identity/resolve'
       fullPath: '/api/v1/identity/resolve'
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/contacts/merge': {
+      id: '/api/v1/contacts/merge'
+      path: '/api/v1/contacts/merge'
+      fullPath: '/api/v1/contacts/merge'
+      preLoaderRoute: typeof ApiV1ContactsMergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/contacts/$contactId': {
+      id: '/api/v1/contacts/$contactId'
+      path: '/api/v1/contacts/$contactId'
+      fullPath: '/api/v1/contacts/$contactId'
+      preLoaderRoute: typeof ApiV1ContactsContactIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/auth/verify': {
@@ -1022,6 +1110,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IdentityKeysKeyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/contacts/import/preview': {
+      id: '/api/v1/contacts/import/preview'
+      path: '/api/v1/contacts/import/preview'
+      fullPath: '/api/v1/contacts/import/preview'
+      preLoaderRoute: typeof ApiV1ContactsImportPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/contacts/import/commit': {
+      id: '/api/v1/contacts/import/commit'
+      path: '/api/v1/contacts/import/commit'
+      fullPath: '/api/v1/contacts/import/commit'
+      preLoaderRoute: typeof ApiV1ContactsImportCommitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/accounts/provisioning/retry': {
       id: '/api/v1/accounts/provisioning/retry'
       path: '/retry'
@@ -1115,6 +1217,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthResendVerificationRoute: ApiV1AuthResendVerificationRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
+  ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
+  ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
@@ -1128,9 +1232,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
+  ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,
+  ApiV1ContactsImportCommitRoute: ApiV1ContactsImportCommitRoute,
+  ApiV1ContactsImportPreviewRoute: ApiV1ContactsImportPreviewRoute,
   ApiV1IdentityKeysKeyIdRoute: ApiV1IdentityKeysKeyIdRoute,
   ApiV1IdentityKeysRetireRoute: ApiV1IdentityKeysRetireRoute,
   ApiV1IdentityKeysRevokeRoute: ApiV1IdentityKeysRevokeRoute,

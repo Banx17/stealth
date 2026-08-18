@@ -1,4 +1,5 @@
 import type {
+  Contact,
   Credential,
   ExternalWallet,
   ExternalWalletChallenge,
@@ -103,6 +104,18 @@ export type SenderRequestTransitionResult =
   | { outcome: "conflict"; request: UnknownSenderRequest }
   | { outcome: "applied"; request: UnknownSenderRequest };
 
+/**
+ * Outcome of a compare-and-swap contact write (Issue #1973 BETA-066).
+ *
+ * - `updated: true`  : the contact was persisted at `expectedVersion + 1`.
+ * - `updated: false` : the contact moved underneath this writer (or does not
+ *   exist); `current` reflects the authoritative state so the caller can
+ *   re-read and reconcile instead of blindly overwriting.
+ */
+export type UpdateContactResult =
+  | { updated: true; contact: Contact }
+  | { updated: false; current: Contact | null };
+
 // ---------------------------------------------------------------------------
 // BETA-014: Account-provisioning repository contracts
 // ---------------------------------------------------------------------------
@@ -163,6 +176,21 @@ export type RecordVerificationAttemptResult =
 export interface MailboxQueryOptions {
   status?: "pending" | "delivered" | "all";
   includeTombstones?: boolean;
+  limit?: number;
+  after?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Issue #1973 (BETA-066) — Live contacts repository
+// ---------------------------------------------------------------------------
+
+/**
+ * Options for listing a user's contacts. `query` filters case-insensitively
+ * against the contact name and raw address; `limit`/`after` walk the declared
+ * total order ({@link PAGINATED_QUERY_ORDERINGS}.listContacts).
+ */
+export interface ContactQueryOptions {
+  query?: string;
   limit?: number;
   after?: string;
 }
@@ -384,6 +412,21 @@ export interface ApiRepository {
   getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
   savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1973 (BETA-066) — Live contacts CRUD
+  // ---------------------------------------------------------------------------
+  listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>>;
+  getContact(owner: string, contactId: string): Promise<Contact | null>;
+  /**
+   * Insert-once contact creation keyed by contactId (scoped to `owner`).
+   * A duplicate contactId for the same owner must reject with a deterministic
+   * conflict (ApiError 409 "conflict") so imports can never create ambiguous
+   * address-book state.
+   */
+  createContact(contact: Contact): Promise<Contact>;
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult>;
+  deleteContact(owner: string, contactId: string): Promise<void>;
 
   reset?(): void;
 }
@@ -956,6 +999,42 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
   }
 
+  async listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
+    const page = await this.inner.listContacts(owner, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<Contact>("contact", item)),
+    };
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const raw = await this.inner.getContact(owner, contactId);
+    return raw ? validateRecord<Contact>("contact", raw) : null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const result = await this.inner.createContact(versionRecord("contact", contact));
+    return validateRecord<Contact>("contact", result);
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const result = await this.inner.updateContact(
+      versionRecord("contact", contact),
+      expectedVersion,
+    );
+    if (result.updated) {
+      return { updated: true, contact: validateRecord<Contact>("contact", result.contact) };
+    }
+    return {
+      updated: false,
+      current: result.current ? validateRecord<Contact>("contact", result.current) : null,
+    };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    return this.inner.deleteContact(owner, contactId);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -1020,6 +1099,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "findExternalWalletOwner",
   "getVerificationToken",
   "getWalletChallenge",
+  "listContacts",
+  "getContact",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1454,6 +1535,28 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
   }
 
+  listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
+    return this.withRetry("listContacts", () => this.inner.listContacts(owner, options));
+  }
+
+  getContact(owner: string, contactId: string): Promise<Contact | null> {
+    return this.withRetry("getContact", () => this.inner.getContact(owner, contactId));
+  }
+
+  createContact(contact: Contact): Promise<Contact> {
+    return this.inner.createContact(contact);
+  }
+
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    return this.withRetry("updateContact", () =>
+      this.inner.updateContact(contact, expectedVersion),
+    );
+  }
+
+  deleteContact(owner: string, contactId: string): Promise<void> {
+    return this.withRetry("deleteContact", () => this.inner.deleteContact(owner, contactId));
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -1691,6 +1794,13 @@ export const PAGINATED_QUERY_ORDERINGS = {
     [{ field: "createdAt", direction: "desc" }],
     "messageId",
   ),
+  /**
+   * Issue #1973 (BETA-066): Owner-scoped contact listing.
+   * Ordered by creation time descending (newest first); contactId is the
+   * unique tie-breaker so the walk is stable. Callers filter by owner and the
+   * optional search query before passing the collection to `paginate`.
+   */
+  listContacts: declareOrdering<Contact>([{ field: "createdAt", direction: "desc" }], "contactId"),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

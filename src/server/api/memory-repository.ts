@@ -1,4 +1,5 @@
 import type {
+  Contact,
   Credential,
   ExternalWallet,
   ExternalWalletChallenge,
@@ -26,11 +27,13 @@ import type {
 } from "./domain";
 import type {
   ApiRepository,
+  ContactQueryOptions,
   ConsumeVerificationTokenResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  UpdateContactResult,
   UpdateProvisioningResult,
   UpdateUserResult,
   UsernameReservationResult,
@@ -62,6 +65,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly envelopeLocks = new Map<string, Promise<void>>();
   private readonly senderRequests = new Map<string, UnknownSenderRequest>();
   private readonly senderRequestLocks = new Map<string, Promise<void>>();
+  // Issue #1973: owner-scoped contact store keyed by `${owner}:${contactId}`.
+  private readonly contacts = new Map<string, Contact>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -1004,6 +1009,75 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(stored);
   }
 
+  async listContacts(
+    owner: string,
+    options: ContactQueryOptions = {},
+  ): Promise<import("./repository").Page<Contact>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const query = options.query?.trim().toLowerCase();
+
+    const filtered: Contact[] = [];
+    for (const contact of this.contacts.values()) {
+      if (contact.owner.toUpperCase().trim() !== normOwner) {
+        continue;
+      }
+      if (query) {
+        const haystack =
+          `${contact.name} ${contact.address} ${contact.canonicalAddress ?? ""}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+      filtered.push(structuredClone(contact));
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listContacts;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const contact = this.contacts.get(this.contactKey(owner, contactId));
+    return contact ? structuredClone(contact) : null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const key = this.contactKey(contact.owner, contact.contactId);
+    if (this.contacts.has(key)) {
+      throw new ApiError(409, "conflict", `A contact already exists for ${contact.contactId}`);
+    }
+    const stored = structuredClone(contact);
+    this.contacts.set(key, stored);
+    return structuredClone(stored);
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const key = this.contactKey(contact.owner, contact.contactId);
+    const existing = this.contacts.get(key);
+    if (!existing) {
+      return { updated: false, current: null };
+    }
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(existing) };
+    }
+    const updated = { ...contact, version: expectedVersion + 1 };
+    this.contacts.set(key, updated);
+    return { updated: true, contact: structuredClone(updated) };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    const key = this.contactKey(owner, contactId);
+    if (!this.contacts.has(key)) {
+      throw new ApiError(404, "not_found", `No contact found for ${contactId}`);
+    }
+    this.contacts.delete(key);
+  }
+
+  private contactKey(owner: string, contactId: string): string {
+    return `${owner.toUpperCase().trim()}:${contactId}`;
+  }
+
   reset() {
     this.policies.clear();
     this.policyWriteIntents.clear();
@@ -1037,5 +1111,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.keyDirectories.clear();
     this.publishedKeys.clear();
     this.keyDirectoryLocks.clear();
+    this.contacts.clear();
   }
 }
