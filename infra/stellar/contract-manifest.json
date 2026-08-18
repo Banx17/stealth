@@ -1,0 +1,27 @@
+{
+  "network": "testnet",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "protocolVersion": "v1",
+  "deployedAt": "2026-08-18T18:23:04.982Z",
+  "contracts": {
+    "policies": {
+      "contractId": "CCN634YPF442IY3KQIPSMMOMWC5CIQYNO3KBLI3JEE3NHMZ7IHV3MFPR",
+      "wasmHash": "501acd872b5d382f6bc0d413f43642bb3dd9c62410f7a06c39cac19946947c5c"
+    },
+    "postage": {
+      "contractId": "CCA5GDIYMBJVANBV4G6K5ORZB2BS5ZAPH4TKIHT4EA7ZRB4AESK7HBP7",
+      "wasmHash": "34dce0a943334070654df7026a2f72e32a1bdb826ef1d13e657c1df0e05b255b"
+    },
+    "receipts": {
+      "contractId": "CC7TWMES735PN7U4MYLB7R7ZPRC7NLNWVZM4EU4KPX26XLWUYD6FUXA7",
+      "wasmHash": "cfae6bad3c3b3477f086eae12a4282fcbd141d923dbac51c194917dba936a3e2"
+    },
+    "lifecycle": {
+      "contractId": "CCJKOB23JM57EFP6F7HHVAOX3JS6AZF7XCJVFN2DC4XBIYU4SKHMII5G",
+      "wasmHash": "796b6bd1ab6e1f06220ee062b3c23f1c0cebaea82325b08d4b5ec6025f0628a6"
+    }
+  },
+  "rollbackNotes": "To rollback, deploy the previous WASM hashes or use `stellar contract restore` if applicable. Or update the registry to point to older contract IDs.",
+  "signature": "dHgYq8a3pkZxKYwRHSQiGC80QkO5XLEH9rKHMGQpfXOuzqYdKzm8rIkk9f1MwA0WhsJEQiEiGmuw4ACCMWFcCQ==",
+  "deployerPubkey": "GACFA7OJDHZRTHWWM3RHZQBFFEAZV2FBTML7LU4PTY6DGIZCULGFUJRM"
+}

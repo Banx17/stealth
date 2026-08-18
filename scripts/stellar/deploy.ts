@@ -114,11 +114,11 @@ async function main() {
     console.log(`\n[2/5] Optimizing & Deploying ${contract}...`);
     const targetPath = join(
       contractsDir,
-      `target/wasm32-unknown-unknown/release/stealth_${contract}.wasm`,
+      `target/wasm32v1-none/release/stealth_${contract}.wasm`,
     );
     const optimizedPath = join(
       contractsDir,
-      `target/wasm32-unknown-unknown/release/stealth_${contract}.optimized.wasm`,
+      `target/wasm32v1-none/release/stealth_${contract}.optimized.wasm`,
     );
 
     await runCmd(`stellar contract optimize --wasm ${targetPath}`, contractsDir);
