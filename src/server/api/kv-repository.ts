@@ -10,6 +10,7 @@ import type {
   ExternalWalletChallenge,
   IdempotencyRecord,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
   PolicyWriteIntent,
   Postage,
@@ -55,6 +56,16 @@ export class HybridApiRepository implements ApiRepository {
   async setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     await this.kv.put(this.key("policy-write", intent.owner), JSON.stringify(intent));
     return intent;
+  }
+
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const anchor = await this.kv.get(this.key("lifecycle-anchor", messageId), "json");
+    return (anchor as LifecycleAnchor) ?? null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    await this.kv.put(this.key("lifecycle-anchor", anchor.messageId), JSON.stringify(anchor));
+    return anchor;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {

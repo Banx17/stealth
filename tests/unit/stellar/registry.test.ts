@@ -23,6 +23,7 @@ describe("Runtime Registry Drift Validation", () => {
     contract: {
       postageContractId: "CBBBB1",
       registryContractId: "CAAAA1",
+      lifecycleContractId: "CAAAA1",
     },
   };
 

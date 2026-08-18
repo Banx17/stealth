@@ -39,6 +39,7 @@ const DEFAULT_MAX_BODY_BYTES = BODY_LIMIT_CATEGORIES[DEFAULT_BODY_LIMIT_CATEGORY
 export const ROUTE_BODY_LIMITS = {
   "POST /postage": "compact",
   "POST /postage/quote": "compact",
+  "POST /lifecycle/{messageId}/anchor": "compact",
   "POST /receipts": "compact",
   "PUT /policies/{owner}": "standard",
   "PUT /policies/{owner}/senders/{sender}": "standard",

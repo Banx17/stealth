@@ -740,6 +740,70 @@
             "description": "Service name."
           }
         }
+      },
+      "LifecycleAnchor": {
+        "type": "object",
+        "required": [
+          "messageId",
+          "sender",
+          "recipient",
+          "amount",
+          "verified",
+          "receiptRequired",
+          "status",
+          "scheduledAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "Durable record of a message commitment anchored to the on-chain Lifecycle contract. Only the commitment and non-secret envelope metadata appear; plaintext or private payload metadata are never stored or submitted.",
+        "properties": {
+          "messageId": {
+            "$ref": "#/components/schemas/Hash32",
+            "description": "Message commitment (hash32)."
+          },
+          "sender": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/StellarAddress"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/StroopAmount",
+            "description": "On-chain postage amount in stroops carried into the bind call."
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "receiptRequired": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "submitted", "confirmed", "failed"]
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "failureCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true,
+            "description": "Redacted failure reason; never contains secrets."
+          },
+          "txHash": {
+            "type": "string",
+            "nullable": true,
+            "description": "On-chain transaction hash reference."
+          }
+        }
       }
     }
   },
@@ -2471,6 +2535,335 @@
           },
           "503": {
             "description": "The verification message could not be delivered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/lifecycle/{messageId}": {
+      "get": {
+        "operationId": "getLifecycleStatus",
+        "summary": "Read lifecycle status for a message commitment",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "beta",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Hash32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lifecycle status (participant only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "updatedAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["pending", "submitted", "confirmed", "failed"]
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "failureCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "lastError": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Redacted failure reason; never contains secrets."
+                    },
+                    "txHash": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Actor is not a participant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No lifecycle anchor for this message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/lifecycle/{messageId}/anchor": {
+      "post": {
+        "operationId": "anchorLifecycle",
+        "summary": "Anchor a message commitment to the on-chain Lifecycle contract",
+        "description": "Idempotently schedules and submits a bind for the given message commitment. Only the commitment and non-secret envelope metadata (sender, recipient, amount, verified, receipt_required) are submitted; plaintext and private payload metadata never leave the relay.",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "beta",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Hash32"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sender", "recipient"],
+                "additionalProperties": false,
+                "properties": {
+                  "sender": {
+                    "$ref": "#/components/schemas/StellarAddress"
+                  },
+                  "recipient": {
+                    "$ref": "#/components/schemas/StellarAddress"
+                  },
+                  "verified": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "receiptRequired": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Anchor scheduled and submission attempted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["messageId", "status"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "messageId": {
+                      "$ref": "#/components/schemas/Hash32"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["pending", "submitted", "confirmed"]
+                    },
+                    "txHash": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "attempts": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Actor is not a participant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No postage record for this message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Existing anchor conflicts with the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/lifecycle/{messageId}/reconcile": {
+      "post": {
+        "operationId": "reconcileLifecycle",
+        "summary": "Reconcile a lifecycle anchor against the on-chain contract state",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "x-stability": "beta",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Hash32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reconciliation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["messageId", "status"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "messageId": {
+                      "$ref": "#/components/schemas/Hash32"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["pending", "submitted", "confirmed", "failed"]
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Actor is not a participant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No lifecycle anchor for this message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
             "content": {
               "application/json": {
                 "schema": {

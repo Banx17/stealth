@@ -4,6 +4,7 @@ import type {
   ExternalWalletChallenge,
   IdempotencyRecord,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
   PolicyWriteIntent,
   Postage,
@@ -152,6 +153,11 @@ export interface ApiRepository {
   // version) for an already-scheduled policy.
   getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null>;
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent>;
+  // BETA-043 (Issue #1950): durable anchor record for the on-chain Lifecycle
+  // contract. Read back during sync/reconciliation so a retry never re-anchors
+  // an already-confirmed commitment; writes are idempotent per messageId.
+  getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null>;
+  setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;
@@ -395,6 +401,16 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     return this.inner.setPolicyWriteIntent(versionRecord("policyWriteIntent", intent));
+  }
+
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const raw = await this.inner.getLifecycleAnchor(messageId);
+    return raw ? validateRecord<LifecycleAnchor>("lifecycleAnchor", raw) : null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    const result = await this.inner.setLifecycleAnchor(versionRecord("lifecycleAnchor", anchor));
+    return validateRecord<LifecycleAnchor>("lifecycleAnchor", result);
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -757,6 +773,7 @@ export const DEFAULT_RETRY_POLICY: RetryPolicy = {
 const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicy",
   "getPolicyWriteIntent",
+  "getLifecycleAnchor",
   "getSenderRule",
   "getPostage",
   "getReceipt",
@@ -769,6 +786,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getCounter",
   "setPolicy",
   "setPolicyWriteIntent",
+  "setLifecycleAnchor",
   "setSenderRule",
   "setPostage",
   "setReceipt",
@@ -863,6 +881,14 @@ export class RetryableApiRepository implements ApiRepository {
 
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     return this.withRetry("setPolicyWriteIntent", () => this.inner.setPolicyWriteIntent(intent));
+  }
+
+  getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    return this.withRetry("getLifecycleAnchor", () => this.inner.getLifecycleAnchor(messageId));
+  }
+
+  setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    return this.withRetry("setLifecycleAnchor", () => this.inner.setLifecycleAnchor(anchor));
   }
 
   getSenderRule(owner: string, sender: string): Promise<SenderRule> {

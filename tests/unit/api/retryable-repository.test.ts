@@ -104,6 +104,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setReceipt");
     return this.inner.setReceipt(receipt);
   }
+  async getLifecycleAnchor(messageId: string) {
+    this.maybeFail("getLifecycleAnchor");
+    return this.inner.getLifecycleAnchor(messageId);
+  }
+  async setLifecycleAnchor(anchor: import("../../../src/server/api/domain").LifecycleAnchor) {
+    this.maybeFail("setLifecycleAnchor");
+    return this.inner.setLifecycleAnchor(anchor);
+  }
   async acquireIdempotencyRecord(
     key: string,
     requestDigest: string,

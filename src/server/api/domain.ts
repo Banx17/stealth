@@ -93,6 +93,34 @@ export const policyWriteIntentSchema = z.object({
   txHash: z.string().nullable().default(null),
 });
 
+// ---------------------------------------------------------------------------
+// BETA-043 (Issue #1950) — message lifecycle anchoring
+//
+// Durable record of a message commitment anchored to the on-chain Lifecycle
+// contract on testnet. `messageId` is the message commitment (hash32); no
+// plaintext or private metadata ever appears here. Anchoring is idempotent per
+// message commitment: duplicate submissions collapse onto the stored anchor
+// and map to the contract's DuplicateLifecycle as a success. `amount` is the
+// on-chain postage amount in stroops carried verbatim into the bind call.
+// ---------------------------------------------------------------------------
+
+export const lifecycleAnchorStatusSchema = z.enum(["pending", "submitted", "confirmed", "failed"]);
+
+export const lifecycleAnchorSchema = z.object({
+  messageId: hash32Schema,
+  sender: stellarAddressSchema,
+  recipient: stellarAddressSchema,
+  amount: stroopAmountSchema,
+  verified: z.boolean(),
+  receiptRequired: z.boolean(),
+  status: lifecycleAnchorStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+});
+
 export const postageSchema = z.object({
   amount: stroopAmountSchema,
   createdAt: z.string().datetime(),
@@ -168,6 +196,8 @@ export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
+export type LifecycleAnchor = z.infer<typeof lifecycleAnchorSchema>;
+export type LifecycleAnchorStatus = z.infer<typeof lifecycleAnchorStatusSchema>;
 
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({

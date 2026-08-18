@@ -40,6 +40,9 @@ import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/walle
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
+import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
+import { Route as ApiV1LifecycleMessageIdAnchorRouteImport } from './routes/api/v1/lifecycle/$messageId/anchor'
+import { Route as ApiV1LifecycleMessageIdReconcileRouteImport } from './routes/api/v1/lifecycle/$messageId/reconcile'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
 import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
@@ -202,6 +205,23 @@ const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
   path: '/api/v1/wallet/link/$address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
+  id: '/api/v1/lifecycle/$messageId',
+  path: '/api/v1/lifecycle/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1LifecycleMessageIdAnchorRoute =
+  ApiV1LifecycleMessageIdAnchorRouteImport.update({
+    id: '/anchor',
+    path: '/anchor',
+    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
+  } as any)
+const ApiV1LifecycleMessageIdReconcileRoute =
+  ApiV1LifecycleMessageIdReconcileRouteImport.update({
+    id: '/reconcile',
+    path: '/reconcile',
+    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
+  } as any)
 const ApiV1ReceiptsMessageIdReadRoute =
   ApiV1ReceiptsMessageIdReadRouteImport.update({
     id: '/read',
@@ -274,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -293,6 +314,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
@@ -316,6 +339,7 @@ export interface FileRoutesByTo {
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -335,6 +359,8 @@ export interface FileRoutesByTo {
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
@@ -359,6 +385,7 @@ export interface FileRoutesById {
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -378,6 +405,8 @@ export interface FileRoutesById {
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
@@ -403,6 +432,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
+    | '/api/v1/lifecycle/$messageId'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -422,6 +452,8 @@ export interface FileRouteTypes {
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/receipts/$messageId/read'
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
@@ -445,6 +477,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
+    | '/api/v1/lifecycle/$messageId'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -464,6 +497,8 @@ export interface FileRouteTypes {
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/receipts/$messageId/read'
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
@@ -487,6 +522,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/session'
     | '/api/v1/auth/verify'
     | '/api/v1/identity/resolve'
+    | '/api/v1/lifecycle/$messageId'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -506,6 +542,8 @@ export interface FileRouteTypes {
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/receipts/$messageId/read'
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
@@ -530,6 +568,7 @@ export interface RootRouteChildren {
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
+  ApiV1LifecycleMessageIdRoute: typeof ApiV1LifecycleMessageIdRouteWithChildren
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -680,6 +719,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/lifecycle/$messageId': {
+      id: '/api/v1/lifecycle/$messageId'
+      path: '/api/v1/lifecycle/$messageId'
+      fullPath: '/api/v1/lifecycle/$messageId'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/auth/verify': {
       id: '/api/v1/auth/verify'
       path: '/api/v1/auth/verify'
@@ -777,6 +823,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/postage/$messageId/settle'
       preLoaderRoute: typeof ApiV1PostageMessageIdSettleRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
+    }
+    '/api/v1/lifecycle/$messageId/anchor': {
+      id: '/anchor'
+      path: '/anchor'
+      fullPath: '/api/v1/lifecycle/$messageId/anchor'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdAnchorRouteImport
+      parentRoute: typeof ApiV1LifecycleMessageIdRoute
+    }
+    '/api/v1/lifecycle/$messageId/reconcile': {
+      id: '/reconcile'
+      path: '/reconcile'
+      fullPath: '/api/v1/lifecycle/$messageId/reconcile'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdReconcileRouteImport
+      parentRoute: typeof ApiV1LifecycleMessageIdRoute
     }
     '/api/v1/postage/$messageId/refund': {
       id: '/api/v1/postage/$messageId/refund'
@@ -881,6 +941,21 @@ const ApiV1ReceiptsMessageIdRouteWithChildren =
     ApiV1ReceiptsMessageIdRouteChildren,
   )
 
+interface ApiV1LifecycleMessageIdRouteChildren {
+  ApiV1LifecycleMessageIdAnchorRoute: typeof ApiV1LifecycleMessageIdAnchorRoute
+  ApiV1LifecycleMessageIdReconcileRoute: typeof ApiV1LifecycleMessageIdReconcileRoute
+}
+
+const ApiV1LifecycleMessageIdRouteChildren: ApiV1LifecycleMessageIdRouteChildren = {
+  ApiV1LifecycleMessageIdAnchorRoute: ApiV1LifecycleMessageIdAnchorRoute,
+  ApiV1LifecycleMessageIdReconcileRoute: ApiV1LifecycleMessageIdReconcileRoute,
+}
+
+const ApiV1LifecycleMessageIdRouteWithChildren =
+  ApiV1LifecycleMessageIdRoute._addFileChildren(
+    ApiV1LifecycleMessageIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PolicyEditorRouteRoute: PolicyEditorRouteRoute,
@@ -896,6 +971,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
+  ApiV1LifecycleMessageIdRoute: ApiV1LifecycleMessageIdRouteWithChildren,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
