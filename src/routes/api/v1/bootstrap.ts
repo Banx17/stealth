@@ -29,6 +29,8 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
                 email: "demo@stealth.mail",
                 username: "demo_user",
                 status: "active",
+                accountStatus: "active",
+                displayName: "Demo User",
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               },
@@ -96,7 +98,11 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
             })),
           ]);
 
-          const user = toPublicUser(userRecord);
+          const user = {
+            ...toPublicUser(userRecord),
+            accountStatus: userRecord.status,
+            displayName: userRecord.username,
+          };
           const session = toPublicSession(sessionRecord);
 
           let branch:
