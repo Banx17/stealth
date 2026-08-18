@@ -31,6 +31,7 @@ import type {
   VerificationPurpose,
   VerificationToken,
   ManagedWalletRecord,
+  FundingOperation,
   Wallet,
 } from "./domain";
 import type { ZodSchema } from "zod";
@@ -453,6 +454,17 @@ export interface ApiRepository {
   getManagedWallet(userId: string): Promise<ManagedWalletRecord | null>;
   setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord>;
   createManagedWalletIfAbsent(wallet: ManagedWalletRecord): Promise<CreateManagedWalletResult>;
+
+  // BETA-018 (Issue #1925): durable testnet funding operations.
+  getFundingOperation(operationId: string): Promise<FundingOperation | null>;
+  setFundingOperation(operation: FundingOperation): Promise<FundingOperation>;
+  createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }>;
+  listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]>;
 
   // ---------------------------------------------------------------------------
   // Issue #1973 (BETA-066) — Live contacts CRUD
@@ -1131,6 +1143,36 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    const raw = await this.inner.getFundingOperation(operationId);
+    return raw ? validateRecord<FundingOperation>("fundingOperation", raw) : null;
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    const result = await this.inner.setFundingOperation(
+      versionRecord("fundingOperation", operation),
+    );
+    return validateRecord<FundingOperation>("fundingOperation", result);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    const result = await this.inner.createFundingOperationIfAbsent(
+      versionRecord("fundingOperation", operation),
+    );
+    result.operation = validateRecord<FundingOperation>("fundingOperation", result.operation);
+    return result;
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const operations = await this.inner.listFundingOperations(filter);
+    return operations.map((item) => validateRecord<FundingOperation>("fundingOperation", item));
+  }
+
   async listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
     const page = await this.inner.listContacts(owner, options);
     return {
@@ -1292,6 +1334,9 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getWalletChallenge",
   "getManagedWallet",
   "setManagedWallet",
+  "getFundingOperation",
+  "setFundingOperation",
+  "listFundingOperations",
   "listContacts",
   "getContact",
   "getJob",
@@ -1763,6 +1808,27 @@ export class RetryableApiRepository implements ApiRepository {
 
   createManagedWalletIfAbsent(wallet: ManagedWalletRecord): Promise<CreateManagedWalletResult> {
     return this.inner.createManagedWalletIfAbsent(wallet);
+  }
+
+  getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return this.withRetry("getFundingOperation", () => this.inner.getFundingOperation(operationId));
+  }
+
+  setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.withRetry("setFundingOperation", () => this.inner.setFundingOperation(operation));
+  }
+
+  createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.inner.createFundingOperationIfAbsent(operation);
+  }
+
+  listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    return this.withRetry("listFundingOperations", () => this.inner.listFundingOperations(filter));
   }
 
   listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {

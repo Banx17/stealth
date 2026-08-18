@@ -7,6 +7,7 @@ import type {
   IdempotencyRecord,
   JobStatus,
   ManagedWalletRecord,
+  FundingOperation,
   Postage,
   PostageStatus,
   Profile,
@@ -826,6 +827,52 @@ export class StealthCoordinator extends DurableObjectBase {
       await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
       return { outcome: "created", wallet };
     });
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    const operation = (await this.ctx.storage.get(`funding-op:${operationId}`)) as
+      | FundingOperation
+      | undefined;
+    return operation ?? null;
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return operation;
+    });
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      const existing = await this.getFundingOperation(operation.operationId);
+      if (existing) {
+        return { created: false, operation: existing };
+      }
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return { created: true, operation };
+    });
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const stored = (await this.ctx.storage.list({ prefix: "funding-op:" })) as Map<
+      string,
+      FundingOperation
+    >;
+    const limit = filter?.limit ?? 50;
+    const matches: FundingOperation[] = [];
+    for (const operation of stored.values()) {
+      if (!operation?.operationId) continue;
+      if (filter?.status && operation.status !== filter.status) continue;
+      matches.push(operation);
+    }
+    matches.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return matches.slice(0, limit);
   }
 
   async listRecipientEnvelopes(

@@ -403,6 +403,26 @@ class FailingRepository implements ApiRepository {
   ) {
     return this.inner.createManagedWalletIfAbsent(wallet);
   }
+  async getFundingOperation(operationId: string) {
+    this.maybeFail("getFundingOperation");
+    return this.inner.getFundingOperation(operationId);
+  }
+  async setFundingOperation(operation: import("../../../src/server/api/domain").FundingOperation) {
+    this.maybeFail("setFundingOperation");
+    return this.inner.setFundingOperation(operation);
+  }
+  async createFundingOperationIfAbsent(
+    operation: import("../../../src/server/api/domain").FundingOperation,
+  ) {
+    return this.inner.createFundingOperationIfAbsent(operation);
+  }
+  async listFundingOperations(filter?: {
+    status?: import("../../../src/server/api/domain").FundingOperation["status"];
+    limit?: number;
+  }) {
+    this.maybeFail("listFundingOperations");
+    return this.inner.listFundingOperations(filter);
+  }
   async listRecipientEnvelopes(
     recipient: string,
     options?: import("../../../src/server/api/repository").MailboxQueryOptions,

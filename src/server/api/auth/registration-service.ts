@@ -80,6 +80,8 @@ export async function registerWithPassword(
     storageSecret,
     now,
     prepared,
+    accountId: userId,
+    origin: ip,
   });
 
   await apiContext.repository.incrementCounter(rateLimitKey, SIGNUP_RATE_LIMIT_WINDOW_SECONDS, 1);

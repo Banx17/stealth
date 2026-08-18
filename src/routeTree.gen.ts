@@ -50,6 +50,7 @@ import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/a
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
 import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/jobs/index'
+import { Route as ApiV1AdminFundingIndexRouteImport } from './routes/api/v1/admin/funding/index'
 import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
@@ -281,6 +282,11 @@ const ApiV1AdminJobsIndexRoute = ApiV1AdminJobsIndexRouteImport.update({
   path: '/api/v1/admin/jobs/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminFundingIndexRoute = ApiV1AdminFundingIndexRouteImport.update({
+  id: '/api/v1/admin/funding/',
+  path: '/api/v1/admin/funding/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminDlqIndexRoute = ApiV1AdminDlqIndexRouteImport.update({
   id: '/api/v1/admin/dlq/',
   path: '/api/v1/admin/dlq/',
@@ -469,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
+  '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
@@ -535,6 +542,7 @@ export interface FileRoutesByTo {
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
   '/api/v1/admin/dlq': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs': typeof ApiV1AdminJobsIndexRoute
+  '/api/v1/admin/funding': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/identity/keys': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
@@ -602,6 +610,7 @@ export interface FileRoutesById {
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
+  '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
@@ -670,6 +679,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/verify'
     | '/api/v1/admin/dlq/'
     | '/api/v1/admin/jobs/'
+    | '/api/v1/admin/funding/'
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
     | '/api/v1/admin/dlq/$id/abandon'
@@ -736,6 +746,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/verify'
     | '/api/v1/admin/dlq'
     | '/api/v1/admin/jobs'
+    | '/api/v1/admin/funding'
     | '/api/v1/identity/keys'
     | '/api/v1/wallet/link'
     | '/api/v1/admin/dlq/$id/abandon'
@@ -802,6 +813,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/verify'
     | '/api/v1/admin/dlq/'
     | '/api/v1/admin/jobs/'
+    | '/api/v1/admin/funding/'
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
     | '/api/v1/admin/dlq/$id/abandon'
@@ -863,6 +875,7 @@ export interface RootRouteChildren {
   ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
   ApiV1AdminDlqIndexRoute: typeof ApiV1AdminDlqIndexRoute
   ApiV1AdminJobsIndexRoute: typeof ApiV1AdminJobsIndexRoute
+  ApiV1AdminFundingIndexRoute: typeof ApiV1AdminFundingIndexRoute
   ApiV1IdentityKeysIndexRoute: typeof ApiV1IdentityKeysIndexRoute
   ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
 }
@@ -1156,6 +1169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminJobsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/funding/': {
+      id: '/api/v1/admin/funding/'
+      path: '/api/v1/admin/funding'
+      fullPath: '/api/v1/admin/funding/'
+      preLoaderRoute: typeof ApiV1AdminFundingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/dlq/': {
       id: '/api/v1/admin/dlq/'
       path: '/api/v1/admin/dlq'
@@ -1446,6 +1466,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
   ApiV1AdminDlqIndexRoute: ApiV1AdminDlqIndexRoute,
   ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
+  ApiV1AdminFundingIndexRoute: ApiV1AdminFundingIndexRoute,
   ApiV1IdentityKeysIndexRoute: ApiV1IdentityKeysIndexRoute,
   ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
 }

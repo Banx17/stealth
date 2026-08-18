@@ -34,6 +34,10 @@ export const Route = createFileRoute("/api/v1/accounts/$userId/wallet/provision"
 
           requireActorMatches(apiContext, user.address);
 
+          const origin =
+            request.headers.get("cf-connecting-ip") ??
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+            "unknown";
           const config = loadRuntimeConfig();
           const storageSecret = config.secrets?.storageSecret ?? "dev-storage-secret-change-me";
           const rawIdempotencyKey = request.headers.get("x-idempotency-key");
@@ -48,6 +52,8 @@ export const Route = createFileRoute("/api/v1/accounts/$userId/wallet/provision"
                   useFake: config.profile === "development" || config.profile === "test",
                 }),
                 storageSecret,
+                accountId: userId,
+                origin,
               },
             );
             return { status: 200, body: result };

@@ -4,9 +4,10 @@ import type { BetaRuntimeConfig } from "../../config/schema";
 import { loadRuntimeConfig } from "../../config";
 import type { StellarFundingAdapter } from "@/services/stellar/funding-adapter";
 import { createFundingAdapter } from "@/services/stellar/funding-adapter";
+import { runFundingOperation } from "@/services/stellar/funding";
+import { consumeProvisioningQuota } from "./rate-limit";
 import {
   assertTestnetManagedWalletNetwork,
-  fundManagedWalletAccount,
   prepareManagedWalletSecret,
   type PreparedManagedWallet,
 } from "../../services/stellar/account-provision";
@@ -48,15 +49,14 @@ export interface ProvisionManagedStellarWalletOptions {
   now?: Date;
   /** When supplied (e.g. during registration), skip fresh keypair generation. */
   prepared?: PreparedManagedWallet;
+  /** Account subject for BETA-018 provisioning quotas. Defaults to `userId`. */
+  accountId?: string;
+  /** Request origin / IP for BETA-018 per-origin provisioning quotas. */
+  origin?: string;
 }
 
 function managedWalletKeyRef(userId: string): string {
   return `wallet:managed:${userId}`;
-}
-
-function redactFundingError(error: unknown): string {
-  const message = error instanceof Error ? error.message : "Funding failed";
-  return message.slice(0, 300);
 }
 
 /**
@@ -86,6 +86,23 @@ export async function provisionManagedStellarWallet(
   const now = options.now ?? new Date();
   const nowIso = now.toISOString();
   const existing = await repository.getManagedWallet(userId);
+
+  if (existing?.fundingStatus === "funded") {
+    return {
+      wallet: toPublicManagedWallet(existing, false),
+    };
+  }
+
+  const quota = await consumeProvisioningQuota(repository, {
+    accountId: options.accountId ?? userId,
+    origin: options.origin ?? "unknown",
+  });
+  if (!quota.allowed) {
+    throw new ApiError("too_many_requests", {
+      retryAfterSeconds: quota.retryAfterSeconds,
+      limitedBy: quota.limitedBy,
+    });
+  }
 
   if (existing) {
     const wallet = await ensureManagedWalletFunded(
@@ -158,26 +175,39 @@ async function ensureManagedWalletFunded(
     return wallet;
   }
 
-  try {
-    await fundManagedWalletAccount(fundingAdapter, wallet.address);
-    const funded: ManagedWalletRecord = {
+  const operation = await runFundingOperation({
+    repository,
+    adapter: fundingAdapter,
+    userId: wallet.userId,
+    address: wallet.address,
+    now,
+  });
+
+  if (operation.status === "succeeded") {
+    return repository.setManagedWallet({
       ...wallet,
       fundingStatus: "funded",
-      fundedAt: now.toISOString(),
+      fundedAt: wallet.fundedAt ?? now.toISOString(),
       updatedAt: now.toISOString(),
       lastError: null,
-    };
-    return repository.setManagedWallet(funded);
-  } catch (error) {
-    const failed: ManagedWalletRecord = {
+    });
+  }
+
+  if (operation.status === "failed") {
+    return repository.setManagedWallet({
       ...wallet,
       fundingStatus: "failed",
       updatedAt: now.toISOString(),
-      lastError: redactFundingError(error),
-    };
-    await repository.setManagedWallet(failed);
-    throw new ApiError(503, "dependency_unavailable", "Managed wallet funding failed");
+      lastError: operation.lastError,
+    });
   }
+
+  return repository.setManagedWallet({
+    ...wallet,
+    fundingStatus: "pending",
+    updatedAt: now.toISOString(),
+    lastError: operation.lastError,
+  });
 }
 
 // ---------------------------------------------------------------------------
