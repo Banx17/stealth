@@ -18,6 +18,7 @@ import { Route as AuthSignInRouteImport } from "./routes/auth/sign-in";
 import { Route as ApiV1ProtocolRouteImport } from "./routes/api/v1/protocol";
 import { Route as ApiV1OpenapiDotjsonRouteImport } from "./routes/api/v1/openapi[.]json";
 import { Route as ApiV1HealthRouteImport } from "./routes/api/v1/health";
+import { Route as ApiV1DeliveryMessageIdRouteImport } from "./routes/api/v1/delivery/$messageId";
 import { Route as ApiV1RequestsIndexRouteImport } from "./routes/api/v1/requests/index";
 import { Route as ApiV1ReceiptsIndexRouteImport } from "./routes/api/v1/receipts/index";
 import { Route as ApiV1PostageIndexRouteImport } from "./routes/api/v1/postage/index";
@@ -354,6 +355,7 @@ export interface FileRoutesByFullPath {
   "/auth/sign-up": typeof AuthSignUpRoute;
   "/auth/verify": typeof AuthVerifyRoute;
   "/api/v1/health": typeof ApiV1HealthRoute;
+  "/api/v1/delivery/$messageId": typeof ApiV1DeliveryMessageIdRoute;
   "/api/v1/openapi.json": typeof ApiV1OpenapiDotjsonRoute;
   "/api/v1/protocol": typeof ApiV1ProtocolRoute;
   "/api/v1/accounts/provisioning": typeof ApiV1AccountsProvisioningRouteWithChildren;
@@ -411,6 +413,7 @@ export interface FileRoutesByTo {
   "/auth/sign-up": typeof AuthSignUpRoute;
   "/auth/verify": typeof AuthVerifyRoute;
   "/api/v1/health": typeof ApiV1HealthRoute;
+  "/api/v1/delivery/$messageId": typeof ApiV1DeliveryMessageIdRoute;
   "/api/v1/openapi.json": typeof ApiV1OpenapiDotjsonRoute;
   "/api/v1/protocol": typeof ApiV1ProtocolRoute;
   "/api/v1/accounts/provisioning": typeof ApiV1AccountsProvisioningRouteWithChildren;
@@ -469,6 +472,7 @@ export interface FileRoutesById {
   "/auth/sign-up": typeof AuthSignUpRoute;
   "/auth/verify": typeof AuthVerifyRoute;
   "/api/v1/health": typeof ApiV1HealthRoute;
+  "/api/v1/delivery/$messageId": typeof ApiV1DeliveryMessageIdRoute;
   "/api/v1/openapi.json": typeof ApiV1OpenapiDotjsonRoute;
   "/api/v1/protocol": typeof ApiV1ProtocolRoute;
   "/api/v1/accounts/provisioning": typeof ApiV1AccountsProvisioningRouteWithChildren;
@@ -528,6 +532,7 @@ export interface FileRouteTypes {
     | "/auth/sign-up"
     | "/auth/verify"
     | "/api/v1/health"
+    | "/api/v1/delivery/$messageId"
     | "/api/v1/openapi.json"
     | "/api/v1/protocol"
     | "/api/v1/accounts/provisioning"
@@ -585,6 +590,7 @@ export interface FileRouteTypes {
     | "/auth/sign-up"
     | "/auth/verify"
     | "/api/v1/health"
+    | "/api/v1/delivery/$messageId"
     | "/api/v1/openapi.json"
     | "/api/v1/protocol"
     | "/api/v1/accounts/provisioning"
@@ -642,6 +648,7 @@ export interface FileRouteTypes {
     | "/auth/sign-up"
     | "/auth/verify"
     | "/api/v1/health"
+    | "/api/v1/delivery/$messageId"
     | "/api/v1/openapi.json"
     | "/api/v1/protocol"
     | "/api/v1/accounts/provisioning"
@@ -700,6 +707,7 @@ export interface RootRouteChildren {
   AuthSignUpRoute: typeof AuthSignUpRoute;
   AuthVerifyRoute: typeof AuthVerifyRoute;
   ApiV1HealthRoute: typeof ApiV1HealthRoute;
+  ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute;
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute;
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute;
   ApiV1AccountsProvisioningRoute: typeof ApiV1AccountsProvisioningRouteWithChildren;
@@ -806,6 +814,13 @@ declare module "@tanstack/react-router" {
       path: "/api/v1/health";
       fullPath: "/api/v1/health";
       preLoaderRoute: typeof ApiV1HealthRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/v1/delivery/$messageId": {
+      id: "/api/v1/delivery/$messageId";
+      path: "/api/v1/delivery/$messageId";
+      fullPath: "/api/v1/delivery/$messageId";
+      preLoaderRoute: typeof ApiV1DeliveryMessageIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/api/v1/requests/": {
@@ -1195,6 +1210,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignUpRoute: AuthSignUpRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
+  ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
