@@ -9,7 +9,7 @@ import { getMailboxPolicy } from "@/server/api/policy-service";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { resolveActiveSigner } from "@/server/api/wallet-link-service";
 
-export const Route = createFileRoute("/api/v1/bootstrap" as any)({
+export const Route = createFileRoute("/api/v1/bootstrap")({
   server: {
     handlers: {
       GET: ({ request }) =>
