@@ -30,6 +30,7 @@ import type {
   UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
   Wallet,
 } from "./domain";
 import type { ZodSchema } from "zod";
@@ -190,6 +191,16 @@ export interface MailboxQueryOptions {
   limit?: number;
   after?: string;
 }
+
+/**
+ * Outcome of an atomic managed-wallet create.
+ *
+ * - "created": a new managed wallet record was stored for the user.
+ * - "existing": a wallet already existed; the stored record is returned unchanged.
+ */
+export type CreateManagedWalletResult =
+  | { outcome: "created"; wallet: ManagedWalletRecord }
+  | { outcome: "existing"; wallet: ManagedWalletRecord };
 
 // ---------------------------------------------------------------------------
 // Issue #1973 (BETA-066) — Live contacts repository
@@ -437,6 +448,11 @@ export interface ApiRepository {
   getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
   savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
+
+  // BETA-015 (Issue #1922): managed Stellar testnet wallet persistence.
+  getManagedWallet(userId: string): Promise<ManagedWalletRecord | null>;
+  setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord>;
+  createManagedWalletIfAbsent(wallet: ManagedWalletRecord): Promise<CreateManagedWalletResult>;
 
   // ---------------------------------------------------------------------------
   // Issue #1973 (BETA-066) — Live contacts CRUD
@@ -1095,6 +1111,26 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
   }
 
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    const raw = await this.inner.getManagedWallet(userId);
+    return raw ? validateRecord<ManagedWalletRecord>("managedWalletRecord", raw) : null;
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    const result = await this.inner.setManagedWallet(versionRecord("managedWalletRecord", wallet));
+    return validateRecord<ManagedWalletRecord>("managedWalletRecord", result);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    const result = await this.inner.createManagedWalletIfAbsent(
+      versionRecord("managedWalletRecord", wallet),
+    );
+    result.wallet = validateRecord<ManagedWalletRecord>("managedWalletRecord", result.wallet);
+    return result;
+  }
+
   async listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
     const page = await this.inner.listContacts(owner, options);
     return {
@@ -1254,6 +1290,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "findExternalWalletOwner",
   "getVerificationToken",
   "getWalletChallenge",
+  "getManagedWallet",
+  "setManagedWallet",
   "listContacts",
   "getContact",
   "getJob",
@@ -1713,6 +1751,18 @@ export class RetryableApiRepository implements ApiRepository {
 
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
     return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
+  }
+
+  getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.withRetry("getManagedWallet", () => this.inner.getManagedWallet(userId));
+  }
+
+  setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.withRetry("setManagedWallet", () => this.inner.setManagedWallet(wallet));
+  }
+
+  createManagedWalletIfAbsent(wallet: ManagedWalletRecord): Promise<CreateManagedWalletResult> {
+    return this.inner.createManagedWalletIfAbsent(wallet);
   }
 
   listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {

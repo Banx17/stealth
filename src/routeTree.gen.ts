@@ -69,6 +69,7 @@ import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/c
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
+import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
@@ -385,6 +386,12 @@ const ApiV1AccountsProvisioningRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiV1AccountsProvisioningRoute,
   } as any)
+const ApiV1AccountsUserIdWalletProvisionRoute =
+  ApiV1AccountsUserIdWalletProvisionRouteImport.update({
+    id: '/api/v1/accounts/$userId/wallet/provision',
+    path: '/api/v1/accounts/$userId/wallet/provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -442,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -507,6 +515,7 @@ export interface FileRoutesByTo {
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -573,6 +582,7 @@ export interface FileRoutesById {
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -640,6 +650,7 @@ export interface FileRouteTypes {
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/api/v1/receipts'
     | '/api/v1/requests'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -770,6 +782,7 @@ export interface FileRouteTypes {
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -831,6 +844,7 @@ export interface RootRouteChildren {
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1SendCoordinateRoute: typeof ApiV1SendCoordinateRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
+  ApiV1AccountsUserIdWalletProvisionRoute: typeof ApiV1AccountsUserIdWalletProvisionRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
@@ -1275,6 +1289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
       parentRoute: typeof ApiV1AccountsProvisioningRoute
     }
+    '/api/v1/accounts/$userId/wallet/provision': {
+      id: '/api/v1/accounts/$userId/wallet/provision'
+      path: '/api/v1/accounts/$userId/wallet/provision'
+      fullPath: '/api/v1/accounts/$userId/wallet/provision'
+      preLoaderRoute: typeof ApiV1AccountsUserIdWalletProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -1406,6 +1427,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1SendCoordinateRoute: ApiV1SendCoordinateRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
+  ApiV1AccountsUserIdWalletProvisionRoute: ApiV1AccountsUserIdWalletProvisionRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,

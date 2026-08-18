@@ -30,12 +30,14 @@ import type {
   UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
   Wallet,
 } from "./domain";
 import type {
   ApiRepository,
   ContactQueryOptions,
   ConsumeVerificationTokenResult,
+  CreateManagedWalletResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
@@ -152,6 +154,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly keyDirectories = new Map<string, KeyDirectoryRecord>();
   private readonly publishedKeys = new Map<string, PublishedKey>(); // key: `${owner}:${keyId}`
   private readonly keyDirectoryLocks = new Map<string, Promise<void>>();
+  private readonly managedWallets = new Map<string, ManagedWalletRecord>();
 
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
@@ -1038,6 +1041,28 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(stored);
   }
 
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return structuredClone(this.managedWallets.get(userId) ?? null);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    const stored = structuredClone(wallet);
+    this.managedWallets.set(wallet.userId, stored);
+    return structuredClone(stored);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    const existing = this.managedWallets.get(wallet.userId);
+    if (existing) {
+      return { outcome: "existing", wallet: structuredClone(existing) };
+    }
+    const stored = structuredClone(wallet);
+    this.managedWallets.set(wallet.userId, stored);
+    return { outcome: "created", wallet: structuredClone(stored) };
+  }
+
   async listContacts(
     owner: string,
     options: ContactQueryOptions = {},
@@ -1261,6 +1286,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.keyDirectories.clear();
     this.publishedKeys.clear();
     this.keyDirectoryLocks.clear();
+    this.managedWallets.clear();
     this.contacts.clear();
     this.jobs.clear();
     this.jobsByIdempotencyKey.clear();

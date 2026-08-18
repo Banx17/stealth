@@ -39,6 +39,7 @@ import type {
   UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
   Wallet,
 } from "./domain";
 import { ApiError } from "./errors";
@@ -555,6 +556,20 @@ export class HybridApiRepository implements ApiRepository {
       JSON.stringify(record),
     );
     return record;
+  }
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.getStub().getManagedWallet(userId);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.getStub().setManagedWallet(wallet);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<import("./repository").CreateManagedWalletResult> {
+    return this.getStub().createManagedWalletIfAbsent(wallet);
   }
 
   // ---------------------------------------------------------------------------

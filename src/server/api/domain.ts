@@ -418,6 +418,66 @@ export const verificationTokenSchema = z.object({
 
 export type VerificationToken = z.infer<typeof verificationTokenSchema>;
 
+// ---------------------------------------------------------------------------
+// BETA-015 (Issue #1922) — system-managed Stellar testnet wallet provisioning
+//
+// Public metadata and encrypted secret material are stored together under a
+// user-scoped record. Plaintext seeds never reach durable storage, API
+// responses, or logs — only the public Stellar address and funding status are
+// exposed to clients.
+// ---------------------------------------------------------------------------
+
+export const managedWalletFundingStatusSchema = z.enum(["pending", "funded", "failed"]);
+export type ManagedWalletFundingStatus = z.infer<typeof managedWalletFundingStatusSchema>;
+
+export const encryptedWalletSecretSchema = z.object({
+  ciphertext: z.string().min(1, "Encrypted ciphertext cannot be empty"),
+  nonce: z.string().min(1, "Encrypted nonce cannot be empty"),
+  tag: z.string().min(1, "Encrypted tag cannot be empty"),
+  keyVersion: z.number().int().positive().default(1),
+});
+
+export type EncryptedWalletSecret = z.infer<typeof encryptedWalletSecretSchema>;
+
+export const managedWalletRecordSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  /** Beta managed wallets are testnet-only. */
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  encryptedSecret: encryptedWalletSecretSchema,
+  fundedAt: z.string().datetime().nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  lastError: z.string().max(300).nullable().default(null),
+});
+
+export type ManagedWalletRecord = z.infer<typeof managedWalletRecordSchema>;
+
+/** Client-safe wallet metadata — never includes seed material. */
+export const publicManagedWalletSchema = z.object({
+  address: stellarAddressSchema,
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  provisioned: z.boolean(),
+  fundedAt: z.string().datetime().nullable().optional(),
+});
+
+export type PublicManagedWallet = z.infer<typeof publicManagedWalletSchema>;
+
+export function toPublicManagedWallet(
+  wallet: ManagedWalletRecord,
+  provisioned: boolean,
+): PublicManagedWallet {
+  return {
+    address: wallet.address,
+    network: wallet.network,
+    fundingStatus: wallet.fundingStatus,
+    provisioned,
+    fundedAt: wallet.fundedAt ?? null,
+  };
+}
+
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 export type User = z.infer<typeof userSchema>;
 export type Profile = z.infer<typeof profileSchema>;

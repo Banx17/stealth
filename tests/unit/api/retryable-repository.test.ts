@@ -390,6 +390,19 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("saveKeyDirectory");
     return this.inner.saveKeyDirectory(record);
   }
+  async getManagedWallet(userId: string) {
+    this.maybeFail("getManagedWallet");
+    return this.inner.getManagedWallet(userId);
+  }
+  async setManagedWallet(wallet: import("../../../src/server/api/domain").ManagedWalletRecord) {
+    this.maybeFail("setManagedWallet");
+    return this.inner.setManagedWallet(wallet);
+  }
+  async createManagedWalletIfAbsent(
+    wallet: import("../../../src/server/api/domain").ManagedWalletRecord,
+  ) {
+    return this.inner.createManagedWalletIfAbsent(wallet);
+  }
   async listRecipientEnvelopes(
     recipient: string,
     options?: import("../../../src/server/api/repository").MailboxQueryOptions,

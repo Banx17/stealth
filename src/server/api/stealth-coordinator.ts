@@ -6,6 +6,7 @@ import type {
   DurableJobType,
   IdempotencyRecord,
   JobStatus,
+  ManagedWalletRecord,
   Postage,
   PostageStatus,
   Profile,
@@ -26,6 +27,7 @@ import type {
 import type {
   AcquireIdempotencyResult,
   ConsumeVerificationTokenResult,
+  CreateManagedWalletResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
@@ -794,6 +796,35 @@ export class StealthCoordinator extends DurableObjectBase {
       } as import("./domain").UnknownSenderRequest;
       await this.ctx.storage.put(`sender-request:${requestId}`, request);
       return { outcome: "applied" as const, request };
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // BETA-015 (Issue #1922) — Managed Stellar testnet wallet persistence
+  // ---------------------------------------------------------------------------
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    const wallet = (await this.ctx.storage.get(`managed-wallet:${userId}`)) as
+      | ManagedWalletRecord
+      | undefined;
+    return wallet ?? null;
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+    return wallet;
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    return this.runExclusive(`managed-wallet:${wallet.userId}`, async () => {
+      const existing = await this.getManagedWallet(wallet.userId);
+      if (existing) {
+        return { outcome: "existing", wallet: existing };
+      }
+      await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+      return { outcome: "created", wallet };
     });
   }
 
