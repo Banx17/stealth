@@ -96,13 +96,15 @@ async function main() {
     const deployedId = manifest.contracts[c].contractId;
     const deployedHash = manifest.contracts[c].wasmHash;
     console.log(`- ${c}: ${deployedId} (WASM Hash: ${deployedHash})`);
-    
+
     // Compare deployed WASM hash with local built WASM hash
     // (Note: deploy.ts uses optimized WASM so we get the hash of the optimized WASM)
     const localOptimizedPath = join(targetDir, `stealth_${c}.optimized.wasm`);
     const localHash = await getWasmHash(localOptimizedPath);
     if (localHash !== deployedHash) {
-      throw new Error(`Hash mismatch for ${c}! Local optimized: ${localHash}, Deployed: ${deployedHash}`);
+      throw new Error(
+        `Hash mismatch for ${c}! Local optimized: ${localHash}, Deployed: ${deployedHash}`,
+      );
     }
   }
   console.log("✅ WASM hashes match perfectly.");
