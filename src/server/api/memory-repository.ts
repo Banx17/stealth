@@ -860,6 +860,58 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return structuredClone(this.senderRequests.get(requestId) ?? null);
+  }
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return [...this.senderRequests.values()]
+      .filter((r) => r.recipient === recipient && (!status || r.status === status))
+      .map((r) => structuredClone(r));
+  }
+  async createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.withEnvelopeLock(`request:${request.requestId}`, async () => {
+      const existing = this.senderRequests.get(request.requestId);
+      if (existing) return { created: false, request: structuredClone(existing) };
+      this.senderRequests.set(request.requestId, structuredClone(request));
+      return { created: true, request: structuredClone(request) };
+    });
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now = new Date(),
+  ) {
+    return this.withEnvelopeLock(`request:${requestId}`, async () => {
+      const current = this.senderRequests.get(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" as const };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      )
+        return { outcome: "conflict" as const, request: structuredClone(current) };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as UnknownSenderRequest;
+      if (decision === "always_allow")
+        this.senderRules.set(key(recipient, current.sender), "allow");
+      if (decision === "block") this.senderRules.set(key(recipient, current.sender), "block");
+      this.senderRequests.set(requestId, request);
+      return { outcome: "applied" as const, request: structuredClone(request) };
+    });
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},

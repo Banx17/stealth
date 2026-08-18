@@ -733,6 +733,63 @@ export class StealthCoordinator extends DurableObjectBase {
       return { outcome: "inserted" as const, envelope };
     });
   }
+  async getSenderRequest(requestId: string) {
+    return (
+      ((await this.ctx.storage.get(`sender-request:${requestId}`)) as
+        | import("./domain").UnknownSenderRequest
+        | undefined) ?? null
+    );
+  }
+  async listSenderRequests(recipient: string, status?: "pending") {
+    const all = (await this.ctx.storage.list({ prefix: "sender-request:" })) as Map<
+      string,
+      import("./domain").UnknownSenderRequest
+    >;
+    return [...all.values()].filter(
+      (r) => r.recipient === recipient && (!status || r.status === status),
+    );
+  }
+  async createSenderRequestIfAbsent(request: import("./domain").UnknownSenderRequest) {
+    return this.runExclusive(`sender-request:${request.requestId}`, async () => {
+      const key = `sender-request:${request.requestId}`;
+      const existing = await this.getSenderRequest(request.requestId);
+      if (existing) return { created: false, request: existing };
+      await this.ctx.storage.put(key, request);
+      return { created: true, request };
+    });
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: import("./domain").UnknownSenderDecision,
+    now = new Date(),
+  ) {
+    return this.runExclusive(`sender-request:${requestId}`, async () => {
+      const current = await this.getSenderRequest(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" as const };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      )
+        return { outcome: "conflict" as const, request: current };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as import("./domain").UnknownSenderRequest;
+      await this.ctx.storage.put(`sender-request:${requestId}`, request);
+      return { outcome: "applied" as const, request };
+    });
+  }
 
   async listRecipientEnvelopes(
     recipient: string,
