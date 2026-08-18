@@ -9,363 +9,254 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as MotionGalleryRouteImport } from './routes/motion-gallery'
 import { Route as PolicyEditorRouteRouteImport } from './routes/policy-editor/route'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
-import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
-import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
-import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
+import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
-import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
-import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
-import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
-import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
+import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
+import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
-import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
-import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
-import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
-import { Route as ApiV1RelayHealthRouteImport } from './routes/api/v1/relay/health'
-import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
-import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
-import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
-import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
-import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
-import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
-import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
-import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
-import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
-import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
-import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
-import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
-import { Route as ApiV1AuthResendVerificationRouteImport } from './routes/api/v1/auth/resend-verification'
-import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
-import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
-import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
-import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/accounts/provisioning'
-import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
-import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
-import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/jobs/index'
-import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
-import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
-import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
-import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
-import { Route as ApiV1RequestsRequestIdDecisionsRouteImport } from './routes/api/v1/requests/$requestId/decisions'
-import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
-import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
-import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
-import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
-import { Route as ApiV1PoliciesOwnerProvisionRouteImport } from './routes/api/v1/policies/$owner/provision'
-import { Route as ApiV1IdentityKeysRotateRouteImport } from './routes/api/v1/identity/keys/rotate'
-import { Route as ApiV1IdentityKeysRevokeRouteImport } from './routes/api/v1/identity/keys/revoke'
-import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/identity/keys/retire'
-import { Route as ApiV1IdentityKeysKeyIdRouteImport } from './routes/api/v1/identity/keys/$keyId'
-import { Route as ApiV1ContactsImportPreviewRouteImport } from './routes/api/v1/contacts/import/preview'
-import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/contacts/import/commit'
-import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
-import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
+import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
+import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
+import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
+import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/register'
+import { Route as ApiV1AuthResendVerificationRouteImport } from './routes/api/v1/auth/resend-verification'
+import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
+import { Route as ApiV1AuthVerifyRouteImport } from './routes/api/v1/auth/verify'
+import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
+import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
+import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
+import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
+import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
+import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
+import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
+import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
+import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/quote'
+import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
+import { Route as ApiV1ReceiptsMessageIdRouteImport } from './routes/api/v1/receipts/$messageId'
+import { Route as ApiV1RelayHealthRouteImport } from './routes/api/v1/relay/health'
+import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
+import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
+import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
+import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
-import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
-import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
+import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
+import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
+import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/jobs/index'
+import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
+import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/contacts/import/commit'
+import { Route as ApiV1ContactsImportPreviewRouteImport } from './routes/api/v1/contacts/import/preview'
+import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
+import { Route as ApiV1IdentityKeysKeyIdRouteImport } from './routes/api/v1/identity/keys/$keyId'
+import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/identity/keys/retire'
+import { Route as ApiV1IdentityKeysRevokeRouteImport } from './routes/api/v1/identity/keys/revoke'
+import { Route as ApiV1IdentityKeysRotateRouteImport } from './routes/api/v1/identity/keys/rotate'
+import { Route as ApiV1PoliciesOwnerProvisionRouteImport } from './routes/api/v1/policies/$owner/provision'
+import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
+import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
+import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
+import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
+import { Route as ApiV1RequestsRequestIdDecisionsRouteImport } from './routes/api/v1/requests/$requestId/decisions'
+import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
+import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
+import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
+import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
+import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
+import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 
-const MotionGalleryRoute = MotionGalleryRouteImport.update({
-  id: "/motion-gallery",
-  path: "/motion-gallery",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const PolicyEditorRouteRoute = PolicyEditorRouteRouteImport.update({
-  id: "/policy-editor",
-  path: "/policy-editor",
-  getParentRoute: () => rootRouteImport,
-} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
-const AuthVerifyRoute = AuthVerifyRouteImport.update({
-  id: "/auth/verify",
-  path: "/auth/verify",
+} as any)
+const MotionGalleryRoute = MotionGalleryRouteImport.update({
+  id: '/motion-gallery',
+  path: '/motion-gallery',
   getParentRoute: () => rootRouteImport,
-} as any);
-const AuthSignUpRoute = AuthSignUpRouteImport.update({
-  id: "/auth/sign-up",
-  path: "/auth/sign-up",
+} as any)
+const PolicyEditorRouteRoute = PolicyEditorRouteRouteImport.update({
+  id: '/policy-editor',
+  path: '/policy-editor',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
-  id: "/auth/sign-in",
-  path: "/auth/sign-in",
+  id: '/auth/sign-in',
+  path: '/auth/sign-in',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ProtocolRoute = ApiV1ProtocolRouteImport.update({
-  id: "/api/v1/protocol",
-  path: "/api/v1/protocol",
+} as any)
+const AuthSignUpRoute = AuthSignUpRouteImport.update({
+  id: '/auth/sign-up',
+  path: '/auth/sign-up',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
-  id: "/api/v1/openapi.json",
-  path: "/api/v1/openapi.json",
+} as any)
+const AuthVerifyRoute = AuthVerifyRouteImport.update({
+  id: '/auth/verify',
+  path: '/auth/verify',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
-  id: "/api/v1/health",
-  path: "/api/v1/health",
+  id: '/api/v1/health',
+  path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
-  id: "/api/v1/delivery/$messageId",
-  path: "/api/v1/delivery/$messageId",
+} as any)
+const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
+  id: '/api/v1/openapi.json',
+  path: '/api/v1/openapi.json',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
-  id: "/api/v1/requests/",
-  path: "/api/v1/requests/",
+} as any)
+const ApiV1ProtocolRoute = ApiV1ProtocolRouteImport.update({
+  id: '/api/v1/protocol',
+  path: '/api/v1/protocol',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
-  id: "/api/v1/receipts/",
-  path: "/api/v1/receipts/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
-  id: "/api/v1/postage/",
-  path: "/api/v1/postage/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
-  id: "/api/v1/contacts/",
-  path: "/api/v1/contacts/",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
-  id: "/api/v1/accounts/",
-  path: "/api/v1/accounts/",
+  id: '/api/v1/accounts/',
+  path: '/api/v1/accounts/',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
-  id: "/api/v1/relay/version",
-  path: "/api/v1/relay/version",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1RelayReadinessRoute = ApiV1RelayReadinessRouteImport.update({
-  id: "/api/v1/relay/readiness",
-  path: "/api/v1/relay/readiness",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1RelayMessagesRoute = ApiV1RelayMessagesRouteImport.update({
-  id: "/api/v1/relay/messages",
-  path: "/api/v1/relay/messages",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1RelayHealthRoute = ApiV1RelayHealthRouteImport.update({
-  id: "/api/v1/relay/health",
-  path: "/api/v1/relay/health",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
-  id: "/api/v1/receipts/$messageId",
-  path: "/api/v1/receipts/$messageId",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1PostageQuoteRoute = ApiV1PostageQuoteRouteImport.update({
-  id: "/api/v1/postage/quote",
-  path: "/api/v1/postage/quote",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1PostageMessageIdRoute = ApiV1PostageMessageIdRouteImport.update({
-  id: "/api/v1/postage/$messageId",
-  path: "/api/v1/postage/$messageId",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
-  id: "/api/v1/policies/evaluate",
-  path: "/api/v1/policies/evaluate",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
-  id: "/api/v1/policies/$owner",
-  path: "/api/v1/policies/$owner",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1MailboxQueueRoute = ApiV1MailboxQueueRouteImport.update({
-  id: "/api/v1/mailbox/queue",
-  path: "/api/v1/mailbox/queue",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
-  id: "/api/v1/mailbox/$messageId",
-  path: "/api/v1/mailbox/$messageId",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
-  id: "/api/v1/identity/resolve",
-  path: "/api/v1/identity/resolve",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ContactsMergeRoute = ApiV1ContactsMergeRouteImport.update({
-  id: "/api/v1/contacts/merge",
-  path: "/api/v1/contacts/merge",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ContactsContactIdRoute = ApiV1ContactsContactIdRouteImport.update({
-  id: "/api/v1/contacts/$contactId",
-  path: "/api/v1/contacts/$contactId",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AuthVerifyRoute = ApiV1AuthVerifyRouteImport.update({
-  id: "/api/v1/auth/verify",
-  path: "/api/v1/auth/verify",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
-  id: "/api/v1/auth/session",
-  path: "/api/v1/auth/session",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AuthResendVerificationRoute = ApiV1AuthResendVerificationRouteImport.update({
-  id: "/api/v1/auth/resend-verification",
-  path: "/api/v1/auth/resend-verification",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AuthRegisterRoute = ApiV1AuthRegisterRouteImport.update({
-  id: "/api/v1/auth/register",
-  path: "/api/v1/auth/register",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AuthLogoutAllRoute = ApiV1AuthLogoutAllRouteImport.update({
-  id: "/api/v1/auth/logout-all",
-  path: "/api/v1/auth/logout-all",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AuthLogoutRoute = ApiV1AuthLogoutRouteImport.update({
-  id: "/api/v1/auth/logout",
-  path: "/api/v1/auth/logout",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
+const ApiV1AccountsProvisioningRoute =
+  ApiV1AccountsProvisioningRouteImport.update({
+    id: '/api/v1/accounts/provisioning',
+    path: '/api/v1/accounts/provisioning',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
-  id: "/api/v1/auth/login",
-  path: "/api/v1/auth/login",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1AccountsProvisioningRoute = ApiV1AccountsProvisioningRouteImport.update({
-  id: "/api/v1/accounts/provisioning",
-  path: "/api/v1/accounts/provisioning",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1WalletLinkIndexRoute = ApiV1WalletLinkIndexRouteImport.update({
-  id: "/api/v1/wallet/link/",
-  path: "/api/v1/wallet/link/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1IdentityKeysIndexRoute = ApiV1IdentityKeysIndexRouteImport.update({
-  id: "/api/v1/identity/keys/",
-  path: "/api/v1/identity/keys/",
+  id: '/api/v1/auth/login',
+  path: '/api/v1/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1AdminJobsIndexRoute = ApiV1AdminJobsIndexRouteImport.update({
-  id: '/api/v1/admin/jobs/',
-  path: '/api/v1/admin/jobs/',
+const ApiV1AuthLogoutRoute = ApiV1AuthLogoutRouteImport.update({
+  id: '/api/v1/auth/logout',
+  path: '/api/v1/auth/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1AdminDlqIndexRoute = ApiV1AdminDlqIndexRouteImport.update({
-  id: '/api/v1/admin/dlq/',
-  path: '/api/v1/admin/dlq/',
+const ApiV1AuthLogoutAllRoute = ApiV1AuthLogoutAllRouteImport.update({
+  id: '/api/v1/auth/logout-all',
+  path: '/api/v1/auth/logout-all',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1WalletLinkVerifyRoute = ApiV1WalletLinkVerifyRouteImport.update({
-  id: "/api/v1/wallet/link/verify",
-  path: "/api/v1/wallet/link/verify",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1WalletLinkChallengeRoute = ApiV1WalletLinkChallengeRouteImport.update({
-  id: "/api/v1/wallet/link/challenge",
-  path: "/api/v1/wallet/link/challenge",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
-  id: "/api/v1/wallet/link/$address",
-  path: "/api/v1/wallet/link/$address",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1RequestsRequestIdDecisionsRoute = ApiV1RequestsRequestIdDecisionsRouteImport.update({
-  id: "/api/v1/requests/$requestId/decisions",
-  path: "/api/v1/requests/$requestId/decisions",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ReceiptsMessageIdReadRoute = ApiV1ReceiptsMessageIdReadRouteImport.update({
-  id: "/read",
-  path: "/read",
-  getParentRoute: () => ApiV1ReceiptsMessageIdRoute,
-} as any);
-const ApiV1PostageMessageIdSettleRoute = ApiV1PostageMessageIdSettleRouteImport.update({
-  id: "/settle",
-  path: "/settle",
-  getParentRoute: () => ApiV1PostageMessageIdRoute,
-} as any);
-const ApiV1PostageMessageIdRefundRoute = ApiV1PostageMessageIdRefundRouteImport.update({
-  id: "/refund",
-  path: "/refund",
-  getParentRoute: () => ApiV1PostageMessageIdRoute,
-} as any);
-const ApiV1PoliciesOwnerReconciliationRoute = ApiV1PoliciesOwnerReconciliationRouteImport.update({
-  id: "/reconciliation",
-  path: "/reconciliation",
-  getParentRoute: () => ApiV1PoliciesOwnerRoute,
-} as any);
-const ApiV1PoliciesOwnerProvisionRoute = ApiV1PoliciesOwnerProvisionRouteImport.update({
-  id: "/provision",
-  path: "/provision",
-  getParentRoute: () => ApiV1PoliciesOwnerRoute,
-} as any);
-const ApiV1IdentityKeysRotateRoute = ApiV1IdentityKeysRotateRouteImport.update({
-  id: "/api/v1/identity/keys/rotate",
-  path: "/api/v1/identity/keys/rotate",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1IdentityKeysRevokeRoute = ApiV1IdentityKeysRevokeRouteImport.update({
-  id: "/api/v1/identity/keys/revoke",
-  path: "/api/v1/identity/keys/revoke",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1IdentityKeysRetireRoute = ApiV1IdentityKeysRetireRouteImport.update({
-  id: "/api/v1/identity/keys/retire",
-  path: "/api/v1/identity/keys/retire",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1IdentityKeysKeyIdRoute = ApiV1IdentityKeysKeyIdRouteImport.update({
-  id: "/api/v1/identity/keys/$keyId",
-  path: "/api/v1/identity/keys/$keyId",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiV1ContactsImportPreviewRoute = ApiV1ContactsImportPreviewRouteImport.update({
-  id: "/api/v1/contacts/import/preview",
-  path: "/api/v1/contacts/import/preview",
+const ApiV1AuthRegisterRoute = ApiV1AuthRegisterRouteImport.update({
+  id: '/api/v1/auth/register',
+  path: '/api/v1/auth/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1ContactsImportPreviewRoute =
-  ApiV1ContactsImportPreviewRouteImport.update({
-    id: '/api/v1/contacts/import/preview',
-    path: '/api/v1/contacts/import/preview',
+const ApiV1AuthResendVerificationRoute =
+  ApiV1AuthResendVerificationRouteImport.update({
+    id: '/api/v1/auth/resend-verification',
+    path: '/api/v1/auth/resend-verification',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiV1ContactsImportCommitRoute =
-  ApiV1ContactsImportCommitRouteImport.update({
-    id: '/api/v1/contacts/import/commit',
-    path: '/api/v1/contacts/import/commit',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1AdminJobsIdRoute = ApiV1AdminJobsIdRouteImport.update({
-  id: '/api/v1/admin/jobs/$id',
-  path: '/api/v1/admin/jobs/$id',
+const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
+  id: '/api/v1/auth/session',
+  path: '/api/v1/auth/session',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1AdminDlqIdRoute = ApiV1AdminDlqIdRouteImport.update({
-  id: '/api/v1/admin/dlq/$id',
-  path: '/api/v1/admin/dlq/$id',
+const ApiV1AuthVerifyRoute = ApiV1AuthVerifyRouteImport.update({
+  id: '/api/v1/auth/verify',
+  path: '/api/v1/auth/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
+  id: '/api/v1/contacts/',
+  path: '/api/v1/contacts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsContactIdRoute = ApiV1ContactsContactIdRouteImport.update({
+  id: '/api/v1/contacts/$contactId',
+  path: '/api/v1/contacts/$contactId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsMergeRoute = ApiV1ContactsMergeRouteImport.update({
+  id: '/api/v1/contacts/merge',
+  path: '/api/v1/contacts/merge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
+  id: '/api/v1/delivery/$messageId',
+  path: '/api/v1/delivery/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
+  id: '/api/v1/identity/resolve',
+  path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
+  id: '/api/v1/mailbox/$messageId',
+  path: '/api/v1/mailbox/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MailboxQueueRoute = ApiV1MailboxQueueRouteImport.update({
+  id: '/api/v1/mailbox/queue',
+  path: '/api/v1/mailbox/queue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
+  id: '/api/v1/policies/$owner',
+  path: '/api/v1/policies/$owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
+  id: '/api/v1/policies/evaluate',
+  path: '/api/v1/policies/evaluate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
+  id: '/api/v1/postage/',
+  path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageMessageIdRoute = ApiV1PostageMessageIdRouteImport.update({
+  id: '/api/v1/postage/$messageId',
+  path: '/api/v1/postage/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PostageQuoteRoute = ApiV1PostageQuoteRouteImport.update({
+  id: '/api/v1/postage/quote',
+  path: '/api/v1/postage/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
+  id: '/api/v1/receipts/',
+  path: '/api/v1/receipts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReceiptsMessageIdRoute = ApiV1ReceiptsMessageIdRouteImport.update({
+  id: '/api/v1/receipts/$messageId',
+  path: '/api/v1/receipts/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayHealthRoute = ApiV1RelayHealthRouteImport.update({
+  id: '/api/v1/relay/health',
+  path: '/api/v1/relay/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayMessagesRoute = ApiV1RelayMessagesRouteImport.update({
+  id: '/api/v1/relay/messages',
+  path: '/api/v1/relay/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayReadinessRoute = ApiV1RelayReadinessRouteImport.update({
+  id: '/api/v1/relay/readiness',
+  path: '/api/v1/relay/readiness',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
+  id: '/api/v1/relay/version',
+  path: '/api/v1/relay/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
+  id: '/api/v1/requests/',
+  path: '/api/v1/requests/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AccountsProvisioningRetryRoute =
@@ -374,22 +265,136 @@ const ApiV1AccountsProvisioningRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiV1AccountsProvisioningRoute,
   } as any)
-const ApiV1PoliciesOwnerSendersSenderRoute =
-  ApiV1PoliciesOwnerSendersSenderRouteImport.update({
-    id: '/senders/$sender',
-    path: '/senders/$sender',
+const ApiV1AdminDlqIndexRoute = ApiV1AdminDlqIndexRouteImport.update({
+  id: '/api/v1/admin/dlq/',
+  path: '/api/v1/admin/dlq/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminDlqIdRoute = ApiV1AdminDlqIdRouteImport.update({
+  id: '/api/v1/admin/dlq/$id',
+  path: '/api/v1/admin/dlq/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminJobsIndexRoute = ApiV1AdminJobsIndexRouteImport.update({
+  id: '/api/v1/admin/jobs/',
+  path: '/api/v1/admin/jobs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminJobsIdRoute = ApiV1AdminJobsIdRouteImport.update({
+  id: '/api/v1/admin/jobs/$id',
+  path: '/api/v1/admin/jobs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ContactsImportCommitRoute =
+  ApiV1ContactsImportCommitRouteImport.update({
+    id: '/api/v1/contacts/import/commit',
+    path: '/api/v1/contacts/import/commit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1ContactsImportPreviewRoute =
+  ApiV1ContactsImportPreviewRouteImport.update({
+    id: '/api/v1/contacts/import/preview',
+    path: '/api/v1/contacts/import/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1IdentityKeysIndexRoute = ApiV1IdentityKeysIndexRouteImport.update({
+  id: '/api/v1/identity/keys/',
+  path: '/api/v1/identity/keys/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IdentityKeysKeyIdRoute = ApiV1IdentityKeysKeyIdRouteImport.update({
+  id: '/api/v1/identity/keys/$keyId',
+  path: '/api/v1/identity/keys/$keyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IdentityKeysRetireRoute = ApiV1IdentityKeysRetireRouteImport.update({
+  id: '/api/v1/identity/keys/retire',
+  path: '/api/v1/identity/keys/retire',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IdentityKeysRevokeRoute = ApiV1IdentityKeysRevokeRouteImport.update({
+  id: '/api/v1/identity/keys/revoke',
+  path: '/api/v1/identity/keys/revoke',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IdentityKeysRotateRoute = ApiV1IdentityKeysRotateRouteImport.update({
+  id: '/api/v1/identity/keys/rotate',
+  path: '/api/v1/identity/keys/rotate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PoliciesOwnerProvisionRoute =
+  ApiV1PoliciesOwnerProvisionRouteImport.update({
+    id: '/provision',
+    path: '/provision',
     getParentRoute: () => ApiV1PoliciesOwnerRoute,
   } as any)
-const ApiV1AdminDlqIdRetryRoute = ApiV1AdminDlqIdRetryRouteImport.update({
-  id: '/retry',
-  path: '/retry',
-  getParentRoute: () => ApiV1AdminDlqIdRoute,
+const ApiV1PoliciesOwnerReconciliationRoute =
+  ApiV1PoliciesOwnerReconciliationRouteImport.update({
+    id: '/reconciliation',
+    path: '/reconciliation',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
+const ApiV1PostageMessageIdRefundRoute =
+  ApiV1PostageMessageIdRefundRouteImport.update({
+    id: '/refund',
+    path: '/refund',
+    getParentRoute: () => ApiV1PostageMessageIdRoute,
+  } as any)
+const ApiV1PostageMessageIdSettleRoute =
+  ApiV1PostageMessageIdSettleRouteImport.update({
+    id: '/settle',
+    path: '/settle',
+    getParentRoute: () => ApiV1PostageMessageIdRoute,
+  } as any)
+const ApiV1ReceiptsMessageIdReadRoute =
+  ApiV1ReceiptsMessageIdReadRouteImport.update({
+    id: '/read',
+    path: '/read',
+    getParentRoute: () => ApiV1ReceiptsMessageIdRoute,
+  } as any)
+const ApiV1RequestsRequestIdDecisionsRoute =
+  ApiV1RequestsRequestIdDecisionsRouteImport.update({
+    id: '/api/v1/requests/$requestId/decisions',
+    path: '/api/v1/requests/$requestId/decisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1WalletLinkIndexRoute = ApiV1WalletLinkIndexRouteImport.update({
+  id: '/api/v1/wallet/link/',
+  path: '/api/v1/wallet/link/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
+  id: '/api/v1/wallet/link/$address',
+  path: '/api/v1/wallet/link/$address',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletLinkChallengeRoute =
+  ApiV1WalletLinkChallengeRouteImport.update({
+    id: '/api/v1/wallet/link/challenge',
+    path: '/api/v1/wallet/link/challenge',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1WalletLinkVerifyRoute = ApiV1WalletLinkVerifyRouteImport.update({
+  id: '/api/v1/wallet/link/verify',
+  path: '/api/v1/wallet/link/verify',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AdminDlqIdAbandonRoute = ApiV1AdminDlqIdAbandonRouteImport.update({
   id: '/abandon',
   path: '/abandon',
   getParentRoute: () => ApiV1AdminDlqIdRoute,
 } as any)
+const ApiV1AdminDlqIdRetryRoute = ApiV1AdminDlqIdRetryRouteImport.update({
+  id: '/retry',
+  path: '/retry',
+  getParentRoute: () => ApiV1AdminDlqIdRoute,
+} as any)
+const ApiV1PoliciesOwnerSendersSenderRoute =
+  ApiV1PoliciesOwnerSendersSenderRouteImport.update({
+    id: '/senders/$sender',
+    path: '/senders/$sender',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -411,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -474,6 +480,7 @@ export interface FileRoutesByTo {
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -538,6 +545,7 @@ export interface FileRoutesById {
   '/api/v1/auth/verify': typeof ApiV1AuthVerifyRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
+  '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
@@ -582,7 +590,7 @@ export interface FileRoutesById {
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/policy-editor'
@@ -603,6 +611,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/verify'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -666,6 +675,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/verify'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -729,6 +739,7 @@ export interface FileRouteTypes {
     | '/api/v1/auth/verify'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
+    | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
@@ -793,6 +804,7 @@ export interface RootRouteChildren {
   ApiV1AuthVerifyRoute: typeof ApiV1AuthVerifyRoute
   ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
+  ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
@@ -828,8 +840,15 @@ export interface RootRouteChildren {
   ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motion-gallery': {
       id: '/motion-gallery'
       path: '/motion-gallery'
@@ -844,18 +863,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof PolicyEditorRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/verify': {
-      id: '/auth/verify'
-      path: '/auth/verify'
-      fullPath: '/auth/verify'
-      preLoaderRoute: typeof AuthVerifyRouteImport
+    '/auth/sign-in': {
+      id: '/auth/sign-in'
+      path: '/auth/sign-in'
+      fullPath: '/auth/sign-in'
+      preLoaderRoute: typeof AuthSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/sign-up': {
@@ -865,25 +877,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/sign-in': {
-      id: '/auth/sign-in'
-      path: '/auth/sign-in'
-      fullPath: '/auth/sign-in'
-      preLoaderRoute: typeof AuthSignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/protocol': {
-      id: '/api/v1/protocol'
-      path: '/api/v1/protocol'
-      fullPath: '/api/v1/protocol'
-      preLoaderRoute: typeof ApiV1ProtocolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/openapi.json': {
-      id: '/api/v1/openapi.json'
-      path: '/api/v1/openapi.json'
-      fullPath: '/api/v1/openapi.json'
-      preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
+    '/auth/verify': {
+      id: '/auth/verify'
+      path: '/auth/verify'
+      fullPath: '/auth/verify'
+      preLoaderRoute: typeof AuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/health': {
@@ -893,32 +891,18 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/requests/': {
-      id: '/api/v1/requests/'
-      path: '/api/v1/requests'
-      fullPath: '/api/v1/requests/'
-      preLoaderRoute: typeof ApiV1RequestsIndexRouteImport
+    '/api/v1/openapi.json': {
+      id: '/api/v1/openapi.json'
+      path: '/api/v1/openapi.json'
+      fullPath: '/api/v1/openapi.json'
+      preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/receipts/': {
-      id: '/api/v1/receipts/'
-      path: '/api/v1/receipts'
-      fullPath: '/api/v1/receipts/'
-      preLoaderRoute: typeof ApiV1ReceiptsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/postage/': {
-      id: '/api/v1/postage/'
-      path: '/api/v1/postage'
-      fullPath: '/api/v1/postage/'
-      preLoaderRoute: typeof ApiV1PostageIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/contacts/': {
-      id: '/api/v1/contacts/'
-      path: '/api/v1/contacts'
-      fullPath: '/api/v1/contacts/'
-      preLoaderRoute: typeof ApiV1ContactsIndexRouteImport
+    '/api/v1/protocol': {
+      id: '/api/v1/protocol'
+      path: '/api/v1/protocol'
+      fullPath: '/api/v1/protocol'
+      preLoaderRoute: typeof ApiV1ProtocolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/accounts/': {
@@ -928,144 +912,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiV1AccountsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/relay/version': {
-      id: '/api/v1/relay/version'
-      path: '/api/v1/relay/version'
-      fullPath: '/api/v1/relay/version'
-      preLoaderRoute: typeof ApiV1RelayVersionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/relay/readiness': {
-      id: '/api/v1/relay/readiness'
-      path: '/api/v1/relay/readiness'
-      fullPath: '/api/v1/relay/readiness'
-      preLoaderRoute: typeof ApiV1RelayReadinessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/relay/messages': {
-      id: '/api/v1/relay/messages'
-      path: '/api/v1/relay/messages'
-      fullPath: '/api/v1/relay/messages'
-      preLoaderRoute: typeof ApiV1RelayMessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/relay/health': {
-      id: '/api/v1/relay/health'
-      path: '/api/v1/relay/health'
-      fullPath: '/api/v1/relay/health'
-      preLoaderRoute: typeof ApiV1RelayHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/receipts/$messageId': {
-      id: '/api/v1/receipts/$messageId'
-      path: '/api/v1/receipts/$messageId'
-      fullPath: '/api/v1/receipts/$messageId'
-      preLoaderRoute: typeof ApiV1ReceiptsMessageIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/postage/quote': {
-      id: '/api/v1/postage/quote'
-      path: '/api/v1/postage/quote'
-      fullPath: '/api/v1/postage/quote'
-      preLoaderRoute: typeof ApiV1PostageQuoteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/postage/$messageId': {
-      id: '/api/v1/postage/$messageId'
-      path: '/api/v1/postage/$messageId'
-      fullPath: '/api/v1/postage/$messageId'
-      preLoaderRoute: typeof ApiV1PostageMessageIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/policies/evaluate': {
-      id: '/api/v1/policies/evaluate'
-      path: '/api/v1/policies/evaluate'
-      fullPath: '/api/v1/policies/evaluate'
-      preLoaderRoute: typeof ApiV1PoliciesEvaluateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/policies/$owner': {
-      id: '/api/v1/policies/$owner'
-      path: '/api/v1/policies/$owner'
-      fullPath: '/api/v1/policies/$owner'
-      preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/mailbox/queue': {
-      id: '/api/v1/mailbox/queue'
-      path: '/api/v1/mailbox/queue'
-      fullPath: '/api/v1/mailbox/queue'
-      preLoaderRoute: typeof ApiV1MailboxQueueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/mailbox/$messageId': {
-      id: '/api/v1/mailbox/$messageId'
-      path: '/api/v1/mailbox/$messageId'
-      fullPath: '/api/v1/mailbox/$messageId'
-      preLoaderRoute: typeof ApiV1MailboxMessageIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/identity/resolve': {
-      id: '/api/v1/identity/resolve'
-      path: '/api/v1/identity/resolve'
-      fullPath: '/api/v1/identity/resolve'
-      preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/contacts/merge': {
-      id: '/api/v1/contacts/merge'
-      path: '/api/v1/contacts/merge'
-      fullPath: '/api/v1/contacts/merge'
-      preLoaderRoute: typeof ApiV1ContactsMergeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/contacts/$contactId': {
-      id: '/api/v1/contacts/$contactId'
-      path: '/api/v1/contacts/$contactId'
-      fullPath: '/api/v1/contacts/$contactId'
-      preLoaderRoute: typeof ApiV1ContactsContactIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/verify': {
-      id: '/api/v1/auth/verify'
-      path: '/api/v1/auth/verify'
-      fullPath: '/api/v1/auth/verify'
-      preLoaderRoute: typeof ApiV1AuthVerifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/session': {
-      id: '/api/v1/auth/session'
-      path: '/api/v1/auth/session'
-      fullPath: '/api/v1/auth/session'
-      preLoaderRoute: typeof ApiV1AuthSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/resend-verification': {
-      id: '/api/v1/auth/resend-verification'
-      path: '/api/v1/auth/resend-verification'
-      fullPath: '/api/v1/auth/resend-verification'
-      preLoaderRoute: typeof ApiV1AuthResendVerificationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/register': {
-      id: '/api/v1/auth/register'
-      path: '/api/v1/auth/register'
-      fullPath: '/api/v1/auth/register'
-      preLoaderRoute: typeof ApiV1AuthRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/logout-all': {
-      id: '/api/v1/auth/logout-all'
-      path: '/api/v1/auth/logout-all'
-      fullPath: '/api/v1/auth/logout-all'
-      preLoaderRoute: typeof ApiV1AuthLogoutAllRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/logout': {
-      id: '/api/v1/auth/logout'
-      path: '/api/v1/auth/logout'
-      fullPath: '/api/v1/auth/logout'
-      preLoaderRoute: typeof ApiV1AuthLogoutRouteImport
+    '/api/v1/accounts/provisioning': {
+      id: '/api/v1/accounts/provisioning'
+      path: '/api/v1/accounts/provisioning'
+      fullPath: '/api/v1/accounts/provisioning'
+      preLoaderRoute: typeof ApiV1AccountsProvisioningRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/auth/login': {
@@ -1075,158 +926,179 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiV1AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/accounts/provisioning': {
-      id: '/api/v1/accounts/provisioning'
-      path: '/api/v1/accounts/provisioning'
-      fullPath: '/api/v1/accounts/provisioning'
-      preLoaderRoute: typeof ApiV1AccountsProvisioningRouteImport
+    '/api/v1/auth/logout': {
+      id: '/api/v1/auth/logout'
+      path: '/api/v1/auth/logout'
+      fullPath: '/api/v1/auth/logout'
+      preLoaderRoute: typeof ApiV1AuthLogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/wallet/link/': {
-      id: '/api/v1/wallet/link/'
-      path: '/api/v1/wallet/link'
-      fullPath: '/api/v1/wallet/link/'
-      preLoaderRoute: typeof ApiV1WalletLinkIndexRouteImport
+    '/api/v1/auth/logout-all': {
+      id: '/api/v1/auth/logout-all'
+      path: '/api/v1/auth/logout-all'
+      fullPath: '/api/v1/auth/logout-all'
+      preLoaderRoute: typeof ApiV1AuthLogoutAllRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/identity/keys/': {
-      id: '/api/v1/identity/keys/'
-      path: '/api/v1/identity/keys'
-      fullPath: '/api/v1/identity/keys/'
-      preLoaderRoute: typeof ApiV1IdentityKeysIndexRouteImport
+    '/api/v1/auth/register': {
+      id: '/api/v1/auth/register'
+      path: '/api/v1/auth/register'
+      fullPath: '/api/v1/auth/register'
+      preLoaderRoute: typeof ApiV1AuthRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/admin/jobs/': {
-      id: '/api/v1/admin/jobs/'
-      path: '/api/v1/admin/jobs'
-      fullPath: '/api/v1/admin/jobs/'
-      preLoaderRoute: typeof ApiV1AdminJobsIndexRouteImport
+    '/api/v1/auth/resend-verification': {
+      id: '/api/v1/auth/resend-verification'
+      path: '/api/v1/auth/resend-verification'
+      fullPath: '/api/v1/auth/resend-verification'
+      preLoaderRoute: typeof ApiV1AuthResendVerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/admin/dlq/': {
-      id: '/api/v1/admin/dlq/'
-      path: '/api/v1/admin/dlq'
-      fullPath: '/api/v1/admin/dlq/'
-      preLoaderRoute: typeof ApiV1AdminDlqIndexRouteImport
+    '/api/v1/auth/session': {
+      id: '/api/v1/auth/session'
+      path: '/api/v1/auth/session'
+      fullPath: '/api/v1/auth/session'
+      preLoaderRoute: typeof ApiV1AuthSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/wallet/link/verify': {
-      id: '/api/v1/wallet/link/verify'
-      path: '/api/v1/wallet/link/verify'
-      fullPath: '/api/v1/wallet/link/verify'
-      preLoaderRoute: typeof ApiV1WalletLinkVerifyRouteImport
+    '/api/v1/auth/verify': {
+      id: '/api/v1/auth/verify'
+      path: '/api/v1/auth/verify'
+      fullPath: '/api/v1/auth/verify'
+      preLoaderRoute: typeof ApiV1AuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/wallet/link/challenge': {
-      id: '/api/v1/wallet/link/challenge'
-      path: '/api/v1/wallet/link/challenge'
-      fullPath: '/api/v1/wallet/link/challenge'
-      preLoaderRoute: typeof ApiV1WalletLinkChallengeRouteImport
+    '/api/v1/contacts/': {
+      id: '/api/v1/contacts/'
+      path: '/api/v1/contacts'
+      fullPath: '/api/v1/contacts/'
+      preLoaderRoute: typeof ApiV1ContactsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/wallet/link/$address': {
-      id: '/api/v1/wallet/link/$address'
-      path: '/api/v1/wallet/link/$address'
-      fullPath: '/api/v1/wallet/link/$address'
-      preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
+    '/api/v1/contacts/$contactId': {
+      id: '/api/v1/contacts/$contactId'
+      path: '/api/v1/contacts/$contactId'
+      fullPath: '/api/v1/contacts/$contactId'
+      preLoaderRoute: typeof ApiV1ContactsContactIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/requests/$requestId/decisions': {
-      id: '/api/v1/requests/$requestId/decisions'
-      path: '/api/v1/requests/$requestId/decisions'
-      fullPath: '/api/v1/requests/$requestId/decisions'
-      preLoaderRoute: typeof ApiV1RequestsRequestIdDecisionsRouteImport
+    '/api/v1/contacts/merge': {
+      id: '/api/v1/contacts/merge'
+      path: '/api/v1/contacts/merge'
+      fullPath: '/api/v1/contacts/merge'
+      preLoaderRoute: typeof ApiV1ContactsMergeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/receipts/$messageId/read': {
-      id: '/api/v1/receipts/$messageId/read'
-      path: '/read'
-      fullPath: '/api/v1/receipts/$messageId/read'
-      preLoaderRoute: typeof ApiV1ReceiptsMessageIdReadRouteImport
-      parentRoute: typeof ApiV1ReceiptsMessageIdRoute
-    }
-    '/api/v1/postage/$messageId/settle': {
-      id: '/api/v1/postage/$messageId/settle'
-      path: '/settle'
-      fullPath: '/api/v1/postage/$messageId/settle'
-      preLoaderRoute: typeof ApiV1PostageMessageIdSettleRouteImport
-      parentRoute: typeof ApiV1PostageMessageIdRoute
-    }
-    '/api/v1/postage/$messageId/refund': {
-      id: '/api/v1/postage/$messageId/refund'
-      path: '/refund'
-      fullPath: '/api/v1/postage/$messageId/refund'
-      preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
-      parentRoute: typeof ApiV1PostageMessageIdRoute
-    }
-    '/api/v1/policies/$owner/reconciliation': {
-      id: '/api/v1/policies/$owner/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/api/v1/policies/$owner/reconciliation'
-      preLoaderRoute: typeof ApiV1PoliciesOwnerReconciliationRouteImport
-      parentRoute: typeof ApiV1PoliciesOwnerRoute
-    }
-    '/api/v1/policies/$owner/provision': {
-      id: '/api/v1/policies/$owner/provision'
-      path: '/provision'
-      fullPath: '/api/v1/policies/$owner/provision'
-      preLoaderRoute: typeof ApiV1PoliciesOwnerProvisionRouteImport
-      parentRoute: typeof ApiV1PoliciesOwnerRoute
-    }
-    '/api/v1/identity/keys/rotate': {
-      id: '/api/v1/identity/keys/rotate'
-      path: '/api/v1/identity/keys/rotate'
-      fullPath: '/api/v1/identity/keys/rotate'
-      preLoaderRoute: typeof ApiV1IdentityKeysRotateRouteImport
+    '/api/v1/delivery/$messageId': {
+      id: '/api/v1/delivery/$messageId'
+      path: '/api/v1/delivery/$messageId'
+      fullPath: '/api/v1/delivery/$messageId'
+      preLoaderRoute: typeof ApiV1DeliveryMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/identity/keys/revoke': {
-      id: '/api/v1/identity/keys/revoke'
-      path: '/api/v1/identity/keys/revoke'
-      fullPath: '/api/v1/identity/keys/revoke'
-      preLoaderRoute: typeof ApiV1IdentityKeysRevokeRouteImport
+    '/api/v1/identity/resolve': {
+      id: '/api/v1/identity/resolve'
+      path: '/api/v1/identity/resolve'
+      fullPath: '/api/v1/identity/resolve'
+      preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/identity/keys/retire': {
-      id: '/api/v1/identity/keys/retire'
-      path: '/api/v1/identity/keys/retire'
-      fullPath: '/api/v1/identity/keys/retire'
-      preLoaderRoute: typeof ApiV1IdentityKeysRetireRouteImport
+    '/api/v1/mailbox/$messageId': {
+      id: '/api/v1/mailbox/$messageId'
+      path: '/api/v1/mailbox/$messageId'
+      fullPath: '/api/v1/mailbox/$messageId'
+      preLoaderRoute: typeof ApiV1MailboxMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/identity/keys/$keyId': {
-      id: '/api/v1/identity/keys/$keyId'
-      path: '/api/v1/identity/keys/$keyId'
-      fullPath: '/api/v1/identity/keys/$keyId'
-      preLoaderRoute: typeof ApiV1IdentityKeysKeyIdRouteImport
+    '/api/v1/mailbox/queue': {
+      id: '/api/v1/mailbox/queue'
+      path: '/api/v1/mailbox/queue'
+      fullPath: '/api/v1/mailbox/queue'
+      preLoaderRoute: typeof ApiV1MailboxQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/contacts/import/preview': {
-      id: '/api/v1/contacts/import/preview'
-      path: '/api/v1/contacts/import/preview'
-      fullPath: '/api/v1/contacts/import/preview'
-      preLoaderRoute: typeof ApiV1ContactsImportPreviewRouteImport
+    '/api/v1/policies/$owner': {
+      id: '/api/v1/policies/$owner'
+      path: '/api/v1/policies/$owner'
+      fullPath: '/api/v1/policies/$owner'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/contacts/import/commit': {
-      id: '/api/v1/contacts/import/commit'
-      path: '/api/v1/contacts/import/commit'
-      fullPath: '/api/v1/contacts/import/commit'
-      preLoaderRoute: typeof ApiV1ContactsImportCommitRouteImport
+    '/api/v1/policies/evaluate': {
+      id: '/api/v1/policies/evaluate'
+      path: '/api/v1/policies/evaluate'
+      fullPath: '/api/v1/policies/evaluate'
+      preLoaderRoute: typeof ApiV1PoliciesEvaluateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/admin/jobs/$id': {
-      id: '/api/v1/admin/jobs/$id'
-      path: '/api/v1/admin/jobs/$id'
-      fullPath: '/api/v1/admin/jobs/$id'
-      preLoaderRoute: typeof ApiV1AdminJobsIdRouteImport
+    '/api/v1/postage/': {
+      id: '/api/v1/postage/'
+      path: '/api/v1/postage'
+      fullPath: '/api/v1/postage/'
+      preLoaderRoute: typeof ApiV1PostageIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/admin/dlq/$id': {
-      id: '/api/v1/admin/dlq/$id'
-      path: '/api/v1/admin/dlq/$id'
-      fullPath: '/api/v1/admin/dlq/$id'
-      preLoaderRoute: typeof ApiV1AdminDlqIdRouteImport
+    '/api/v1/postage/$messageId': {
+      id: '/api/v1/postage/$messageId'
+      path: '/api/v1/postage/$messageId'
+      fullPath: '/api/v1/postage/$messageId'
+      preLoaderRoute: typeof ApiV1PostageMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/postage/quote': {
+      id: '/api/v1/postage/quote'
+      path: '/api/v1/postage/quote'
+      fullPath: '/api/v1/postage/quote'
+      preLoaderRoute: typeof ApiV1PostageQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/receipts/': {
+      id: '/api/v1/receipts/'
+      path: '/api/v1/receipts'
+      fullPath: '/api/v1/receipts/'
+      preLoaderRoute: typeof ApiV1ReceiptsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/receipts/$messageId': {
+      id: '/api/v1/receipts/$messageId'
+      path: '/api/v1/receipts/$messageId'
+      fullPath: '/api/v1/receipts/$messageId'
+      preLoaderRoute: typeof ApiV1ReceiptsMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/health': {
+      id: '/api/v1/relay/health'
+      path: '/api/v1/relay/health'
+      fullPath: '/api/v1/relay/health'
+      preLoaderRoute: typeof ApiV1RelayHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/messages': {
+      id: '/api/v1/relay/messages'
+      path: '/api/v1/relay/messages'
+      fullPath: '/api/v1/relay/messages'
+      preLoaderRoute: typeof ApiV1RelayMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/readiness': {
+      id: '/api/v1/relay/readiness'
+      path: '/api/v1/relay/readiness'
+      fullPath: '/api/v1/relay/readiness'
+      preLoaderRoute: typeof ApiV1RelayReadinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/relay/version': {
+      id: '/api/v1/relay/version'
+      path: '/api/v1/relay/version'
+      fullPath: '/api/v1/relay/version'
+      preLoaderRoute: typeof ApiV1RelayVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/requests/': {
+      id: '/api/v1/requests/'
+      path: '/api/v1/requests'
+      fullPath: '/api/v1/requests/'
+      preLoaderRoute: typeof ApiV1RequestsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/accounts/provisioning/retry': {
@@ -1236,19 +1108,152 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
       parentRoute: typeof ApiV1AccountsProvisioningRoute
     }
-    '/api/v1/policies/$owner/senders/$sender': {
-      id: '/api/v1/policies/$owner/senders/$sender'
-      path: '/senders/$sender'
-      fullPath: '/api/v1/policies/$owner/senders/$sender'
-      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderRouteImport
+    '/api/v1/admin/dlq/': {
+      id: '/api/v1/admin/dlq/'
+      path: '/api/v1/admin/dlq'
+      fullPath: '/api/v1/admin/dlq/'
+      preLoaderRoute: typeof ApiV1AdminDlqIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/dlq/$id': {
+      id: '/api/v1/admin/dlq/$id'
+      path: '/api/v1/admin/dlq/$id'
+      fullPath: '/api/v1/admin/dlq/$id'
+      preLoaderRoute: typeof ApiV1AdminDlqIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/jobs/': {
+      id: '/api/v1/admin/jobs/'
+      path: '/api/v1/admin/jobs'
+      fullPath: '/api/v1/admin/jobs/'
+      preLoaderRoute: typeof ApiV1AdminJobsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/jobs/$id': {
+      id: '/api/v1/admin/jobs/$id'
+      path: '/api/v1/admin/jobs/$id'
+      fullPath: '/api/v1/admin/jobs/$id'
+      preLoaderRoute: typeof ApiV1AdminJobsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/contacts/import/commit': {
+      id: '/api/v1/contacts/import/commit'
+      path: '/api/v1/contacts/import/commit'
+      fullPath: '/api/v1/contacts/import/commit'
+      preLoaderRoute: typeof ApiV1ContactsImportCommitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/contacts/import/preview': {
+      id: '/api/v1/contacts/import/preview'
+      path: '/api/v1/contacts/import/preview'
+      fullPath: '/api/v1/contacts/import/preview'
+      preLoaderRoute: typeof ApiV1ContactsImportPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/identity/keys/': {
+      id: '/api/v1/identity/keys/'
+      path: '/api/v1/identity/keys'
+      fullPath: '/api/v1/identity/keys/'
+      preLoaderRoute: typeof ApiV1IdentityKeysIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/identity/keys/$keyId': {
+      id: '/api/v1/identity/keys/$keyId'
+      path: '/api/v1/identity/keys/$keyId'
+      fullPath: '/api/v1/identity/keys/$keyId'
+      preLoaderRoute: typeof ApiV1IdentityKeysKeyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/identity/keys/retire': {
+      id: '/api/v1/identity/keys/retire'
+      path: '/api/v1/identity/keys/retire'
+      fullPath: '/api/v1/identity/keys/retire'
+      preLoaderRoute: typeof ApiV1IdentityKeysRetireRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/identity/keys/revoke': {
+      id: '/api/v1/identity/keys/revoke'
+      path: '/api/v1/identity/keys/revoke'
+      fullPath: '/api/v1/identity/keys/revoke'
+      preLoaderRoute: typeof ApiV1IdentityKeysRevokeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/identity/keys/rotate': {
+      id: '/api/v1/identity/keys/rotate'
+      path: '/api/v1/identity/keys/rotate'
+      fullPath: '/api/v1/identity/keys/rotate'
+      preLoaderRoute: typeof ApiV1IdentityKeysRotateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/policies/$owner/provision': {
+      id: '/api/v1/policies/$owner/provision'
+      path: '/provision'
+      fullPath: '/api/v1/policies/$owner/provision'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerProvisionRouteImport
       parentRoute: typeof ApiV1PoliciesOwnerRoute
     }
-    '/api/v1/admin/dlq/$id/retry': {
-      id: '/api/v1/admin/dlq/$id/retry'
-      path: '/retry'
-      fullPath: '/api/v1/admin/dlq/$id/retry'
-      preLoaderRoute: typeof ApiV1AdminDlqIdRetryRouteImport
-      parentRoute: typeof ApiV1AdminDlqIdRoute
+    '/api/v1/policies/$owner/reconciliation': {
+      id: '/api/v1/policies/$owner/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/api/v1/policies/$owner/reconciliation'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerReconciliationRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
+    '/api/v1/postage/$messageId/refund': {
+      id: '/api/v1/postage/$messageId/refund'
+      path: '/refund'
+      fullPath: '/api/v1/postage/$messageId/refund'
+      preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
+      parentRoute: typeof ApiV1PostageMessageIdRoute
+    }
+    '/api/v1/postage/$messageId/settle': {
+      id: '/api/v1/postage/$messageId/settle'
+      path: '/settle'
+      fullPath: '/api/v1/postage/$messageId/settle'
+      preLoaderRoute: typeof ApiV1PostageMessageIdSettleRouteImport
+      parentRoute: typeof ApiV1PostageMessageIdRoute
+    }
+    '/api/v1/receipts/$messageId/read': {
+      id: '/api/v1/receipts/$messageId/read'
+      path: '/read'
+      fullPath: '/api/v1/receipts/$messageId/read'
+      preLoaderRoute: typeof ApiV1ReceiptsMessageIdReadRouteImport
+      parentRoute: typeof ApiV1ReceiptsMessageIdRoute
+    }
+    '/api/v1/requests/$requestId/decisions': {
+      id: '/api/v1/requests/$requestId/decisions'
+      path: '/api/v1/requests/$requestId/decisions'
+      fullPath: '/api/v1/requests/$requestId/decisions'
+      preLoaderRoute: typeof ApiV1RequestsRequestIdDecisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/': {
+      id: '/api/v1/wallet/link/'
+      path: '/api/v1/wallet/link'
+      fullPath: '/api/v1/wallet/link/'
+      preLoaderRoute: typeof ApiV1WalletLinkIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/$address': {
+      id: '/api/v1/wallet/link/$address'
+      path: '/api/v1/wallet/link/$address'
+      fullPath: '/api/v1/wallet/link/$address'
+      preLoaderRoute: typeof ApiV1WalletLinkAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/challenge': {
+      id: '/api/v1/wallet/link/challenge'
+      path: '/api/v1/wallet/link/challenge'
+      fullPath: '/api/v1/wallet/link/challenge'
+      preLoaderRoute: typeof ApiV1WalletLinkChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/link/verify': {
+      id: '/api/v1/wallet/link/verify'
+      path: '/api/v1/wallet/link/verify'
+      fullPath: '/api/v1/wallet/link/verify'
+      preLoaderRoute: typeof ApiV1WalletLinkVerifyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/admin/dlq/$id/abandon': {
       id: '/api/v1/admin/dlq/$id/abandon'
@@ -1257,62 +1262,80 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiV1AdminDlqIdAbandonRouteImport
       parentRoute: typeof ApiV1AdminDlqIdRoute
     }
+    '/api/v1/admin/dlq/$id/retry': {
+      id: '/api/v1/admin/dlq/$id/retry'
+      path: '/retry'
+      fullPath: '/api/v1/admin/dlq/$id/retry'
+      preLoaderRoute: typeof ApiV1AdminDlqIdRetryRouteImport
+      parentRoute: typeof ApiV1AdminDlqIdRoute
+    }
+    '/api/v1/policies/$owner/senders/$sender': {
+      id: '/api/v1/policies/$owner/senders/$sender'
+      path: '/senders/$sender'
+      fullPath: '/api/v1/policies/$owner/senders/$sender'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
   }
 }
 
 interface ApiV1AccountsProvisioningRouteChildren {
-  ApiV1AccountsProvisioningRetryRoute: typeof ApiV1AccountsProvisioningRetryRoute;
+  ApiV1AccountsProvisioningRetryRoute: typeof ApiV1AccountsProvisioningRetryRoute
 }
 
-const ApiV1AccountsProvisioningRouteChildren: ApiV1AccountsProvisioningRouteChildren = {
-  ApiV1AccountsProvisioningRetryRoute: ApiV1AccountsProvisioningRetryRoute,
-};
+const ApiV1AccountsProvisioningRouteChildren: ApiV1AccountsProvisioningRouteChildren =
+  {
+    ApiV1AccountsProvisioningRetryRoute: ApiV1AccountsProvisioningRetryRoute,
+  }
 
-const ApiV1AccountsProvisioningRouteWithChildren = ApiV1AccountsProvisioningRoute._addFileChildren(
-  ApiV1AccountsProvisioningRouteChildren,
-);
+const ApiV1AccountsProvisioningRouteWithChildren =
+  ApiV1AccountsProvisioningRoute._addFileChildren(
+    ApiV1AccountsProvisioningRouteChildren,
+  )
 
 interface ApiV1PoliciesOwnerRouteChildren {
-  ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute;
-  ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute;
-  ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute;
+  ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
+  ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
+  ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
 }
 
 const ApiV1PoliciesOwnerRouteChildren: ApiV1PoliciesOwnerRouteChildren = {
   ApiV1PoliciesOwnerProvisionRoute: ApiV1PoliciesOwnerProvisionRoute,
   ApiV1PoliciesOwnerReconciliationRoute: ApiV1PoliciesOwnerReconciliationRoute,
   ApiV1PoliciesOwnerSendersSenderRoute: ApiV1PoliciesOwnerSendersSenderRoute,
-};
+}
 
-const ApiV1PoliciesOwnerRouteWithChildren = ApiV1PoliciesOwnerRoute._addFileChildren(
-  ApiV1PoliciesOwnerRouteChildren,
-);
+const ApiV1PoliciesOwnerRouteWithChildren =
+  ApiV1PoliciesOwnerRoute._addFileChildren(ApiV1PoliciesOwnerRouteChildren)
 
 interface ApiV1PostageMessageIdRouteChildren {
-  ApiV1PostageMessageIdRefundRoute: typeof ApiV1PostageMessageIdRefundRoute;
-  ApiV1PostageMessageIdSettleRoute: typeof ApiV1PostageMessageIdSettleRoute;
+  ApiV1PostageMessageIdRefundRoute: typeof ApiV1PostageMessageIdRefundRoute
+  ApiV1PostageMessageIdSettleRoute: typeof ApiV1PostageMessageIdSettleRoute
 }
 
 const ApiV1PostageMessageIdRouteChildren: ApiV1PostageMessageIdRouteChildren = {
   ApiV1PostageMessageIdRefundRoute: ApiV1PostageMessageIdRefundRoute,
   ApiV1PostageMessageIdSettleRoute: ApiV1PostageMessageIdSettleRoute,
-};
-
-const ApiV1PostageMessageIdRouteWithChildren = ApiV1PostageMessageIdRoute._addFileChildren(
-  ApiV1PostageMessageIdRouteChildren,
-);
-
-interface ApiV1ReceiptsMessageIdRouteChildren {
-  ApiV1ReceiptsMessageIdReadRoute: typeof ApiV1ReceiptsMessageIdReadRoute;
 }
 
-const ApiV1ReceiptsMessageIdRouteChildren: ApiV1ReceiptsMessageIdRouteChildren = {
-  ApiV1ReceiptsMessageIdReadRoute: ApiV1ReceiptsMessageIdReadRoute,
-};
+const ApiV1PostageMessageIdRouteWithChildren =
+  ApiV1PostageMessageIdRoute._addFileChildren(
+    ApiV1PostageMessageIdRouteChildren,
+  )
 
-const ApiV1ReceiptsMessageIdRouteWithChildren = ApiV1ReceiptsMessageIdRoute._addFileChildren(
-  ApiV1ReceiptsMessageIdRouteChildren,
-);
+interface ApiV1ReceiptsMessageIdRouteChildren {
+  ApiV1ReceiptsMessageIdReadRoute: typeof ApiV1ReceiptsMessageIdReadRoute
+}
+
+const ApiV1ReceiptsMessageIdRouteChildren: ApiV1ReceiptsMessageIdRouteChildren =
+  {
+    ApiV1ReceiptsMessageIdReadRoute: ApiV1ReceiptsMessageIdReadRoute,
+  }
+
+const ApiV1ReceiptsMessageIdRouteWithChildren =
+  ApiV1ReceiptsMessageIdRoute._addFileChildren(
+    ApiV1ReceiptsMessageIdRouteChildren,
+  )
 
 interface ApiV1AdminDlqIdRouteChildren {
   ApiV1AdminDlqIdAbandonRoute: typeof ApiV1AdminDlqIdAbandonRoute
@@ -1336,7 +1359,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignUpRoute: AuthSignUpRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
-  ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
@@ -1349,6 +1371,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AuthVerifyRoute: ApiV1AuthVerifyRoute,
   ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
+  ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
@@ -1382,16 +1405,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
   ApiV1IdentityKeysIndexRoute: ApiV1IdentityKeysIndexRoute,
   ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }
