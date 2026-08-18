@@ -120,6 +120,12 @@ export function createReceiptSchema(options: ReceiptSchemaOptions = {}) {
       readAt: z.string().datetime({ offset: true }).nullable(),
       recipient: stellarAddressSchema,
       sender: stellarAddressSchema,
+      payloadHash: hash32Schema.optional(),
+      protocolVersion: z.number().int().positive().optional(),
+      txHash: z.string().nullable().optional(),
+      chainStatus: z.enum(["pending", "confirmed", "failed"]).nullable().optional(),
+      ledgerSeq: z.number().int().nonnegative().nullable().optional(),
+      confirmedAt: z.string().datetime({ offset: true }).nullable().optional(),
     })
     .superRefine((data, ctx) => {
       const deliveredMs = Date.parse(data.deliveredAt);
