@@ -40,7 +40,7 @@ export interface WalletSignature {
  * connected so the caller can fall back to a draft value.
  */
 export async function resolveSenderAddress(): Promise<string | null> {
-  const wallet = freighter();
+  const wallet = await freighter();
   try {
     const connection = (await wallet.isConnected()) as {
       isConnected?: boolean;
