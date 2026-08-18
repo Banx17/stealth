@@ -22,6 +22,7 @@ import {
 import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { sharedTypedApi } from "@/lib/api";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
@@ -1290,7 +1291,7 @@ function SecuritySettings() {
                 description: "This will revoke all active sessions across all devices.",
                 onConfirm: async () => {
                   try {
-                    await fetch("/api/v1/auth/logout-all", { method: "POST" });
+                    await sharedTypedApi.auth.logoutAll();
                   } catch {
                     // Fallthrough safely
                   }
@@ -1333,9 +1334,7 @@ function SecuritySettings() {
                       description: "This will sign out this device from your account.",
                       onConfirm: async () => {
                         try {
-                          await fetch("/api/v1/auth/logout", {
-                            method: "POST",
-                          });
+                          await sharedTypedApi.auth.logout();
                         } catch {
                           // Fallthrough safely
                         }
