@@ -107,7 +107,10 @@ export function usePostageQuote(
 
         if (!response.ok) {
           const text = await response.text().catch(() => "Unknown error");
-          setQuoteState({ status: "error", message: text || `HTTP ${response.status}` });
+          setQuoteState({
+            status: "error",
+            message: text || `HTTP ${response.status}`,
+          });
           return;
         }
 

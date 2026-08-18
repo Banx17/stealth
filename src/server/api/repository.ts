@@ -11,6 +11,7 @@ import type {
   JobStatus,
   KeyDirectoryRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
@@ -164,7 +165,11 @@ export type WalletCreationResult =
   | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
-  | { outcome: "issued"; token: VerificationToken; replacedToken: VerificationToken | null }
+  | {
+      outcome: "issued";
+      token: VerificationToken;
+      replacedToken: VerificationToken | null;
+    }
   | { outcome: "conflict"; token: VerificationToken };
 
 export type ConsumeVerificationTokenResult =
@@ -238,6 +243,10 @@ export interface ApiRepository {
   insertPostage(postage: Postage): Promise<Postage>;
   getReceipt(messageId: string): Promise<Receipt | null>;
   setReceipt(receipt: Receipt): Promise<Receipt>;
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null>;
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord>;
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }>;
   markReceiptRead(messageId: string, actor: string, now?: Date): Promise<MarkReceiptReadResult>;
   acquireIdempotencyRecord(
@@ -245,6 +254,7 @@ export interface ApiRepository {
     requestDigest: string,
     leaseMs: number,
   ): Promise<AcquireIdempotencyResult>;
+
   getIdempotencyRecord(key: string): Promise<IdempotencyRecord | null>;
   setIdempotencyRecord(key: string, record: IdempotencyRecord): Promise<void>;
 
@@ -619,6 +629,22 @@ export class ValidatedApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt): Promise<Receipt> {
     const result = await this.inner.setReceipt(versionRecord("receipt", receipt));
     return validateRecord<Receipt>("receipt", result);
+  }
+
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const raw = await this.inner.getMessageDeliveryStatus(messageId);
+    return raw
+      ? validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", raw)
+      : null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    const result = await this.inner.setMessageDeliveryStatus(
+      versionRecord("messageDeliveryStatusRecord", record),
+    );
+    return validateRecord<MessageDeliveryStatusRecord>("messageDeliveryStatusRecord", result);
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -1308,6 +1334,20 @@ export class RetryableApiRepository implements ApiRepository {
 
   setReceipt(receipt: Receipt): Promise<Receipt> {
     return this.withRetry("setReceipt", () => this.inner.setReceipt(receipt));
+  }
+
+  getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    return this.withRetry("getMessageDeliveryStatus", () =>
+      this.inner.getMessageDeliveryStatus(messageId),
+    );
+  }
+
+  setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    return this.withRetry("setMessageDeliveryStatus", () =>
+      this.inner.setMessageDeliveryStatus(record),
+    );
   }
 
   createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {

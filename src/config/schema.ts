@@ -20,7 +20,9 @@ export const stellarContractIdSchema = z
   .min(1, "Contract ID cannot be empty")
   .refine(
     (val) => /^C[A-Z0-9]{55}$/.test(val) || val.startsWith("C_TEST_") || val.startsWith("C_DEV_"),
-    { message: "Must be a valid Stellar Soroban contract ID (C... 56 characters)" },
+    {
+      message: "Must be a valid Stellar Soroban contract ID (C... 56 characters)",
+    },
   );
 
 /**

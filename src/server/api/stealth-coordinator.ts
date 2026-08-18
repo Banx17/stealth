@@ -807,10 +807,9 @@ export class StealthCoordinator extends DurableObjectBase {
     const includeTombstones = options.includeTombstones ?? false;
     const limit = options.limit ?? 25;
 
-    const envelopesMap = (await this.ctx.storage.list({ prefix: "envelope:" })) as Map<
-      string,
-      StoredEnvelope
-    >;
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
 
     const filtered: StoredEnvelope[] = [];
     for (const env of envelopesMap.values()) {

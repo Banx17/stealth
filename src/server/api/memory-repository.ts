@@ -11,6 +11,7 @@ import type {
   JobStatus,
   KeyDirectoryRecord,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
@@ -60,6 +61,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
+  private readonly deliveryStatuses = new Map<string, MessageDeliveryStatusRecord>();
+
   private readonly senderRules = new Map<string, SenderRule>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
@@ -280,6 +283,15 @@ export class MemoryApiRepository implements ApiRepository {
   async setReceipt(receipt: Receipt) {
     this.receipts.set(receipt.messageId, structuredClone(receipt));
     return structuredClone(receipt);
+  }
+
+  async getMessageDeliveryStatus(messageId: string) {
+    return structuredClone(this.deliveryStatuses.get(messageId) ?? null);
+  }
+
+  async setMessageDeliveryStatus(record: MessageDeliveryStatusRecord) {
+    this.deliveryStatuses.set(record.messageId, structuredClone(record));
+    return structuredClone(record);
   }
 
   async createReceiptIfAbsent(receipt: Receipt) {
@@ -672,7 +684,10 @@ export class MemoryApiRepository implements ApiRepository {
         return { outcome: "replaced", token: structuredClone(current) };
       }
       if (current.attemptCount >= current.maxAttempts) {
-        return { outcome: "brute-force-blocked", token: structuredClone(current) };
+        return {
+          outcome: "brute-force-blocked",
+          token: structuredClone(current),
+        };
       }
       if (Date.parse(current.expiresAt) <= now.getTime()) {
         return { outcome: "expired", token: structuredClone(current) };
@@ -1215,6 +1230,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.policyWriteIntents.clear();
     this.postage.clear();
     this.receipts.clear();
+    this.deliveryStatuses.clear();
     this.senderRules.clear();
     this.counters.clear();
     this.idempotency.clear();

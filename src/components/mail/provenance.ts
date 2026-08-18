@@ -176,7 +176,12 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
               action: "Lookup domain stellar.toml",
               status: rawIdentity.includes("*") ? "OK" : "SKIP",
             },
-            { step: 2, action: "Resolve account alias", status: "OK", result: resolvedKey },
+            {
+              step: 2,
+              action: "Resolve account alias",
+              status: "OK",
+              result: resolvedKey,
+            },
             {
               step: 3,
               action: "Validate cryptographic envelope signature",
@@ -276,7 +281,10 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
     description:
       "The commitment hash registered on-chain. It proves the message was sent at a specific time without revealing its encrypted contents to the public ledger.",
     keyValuePairs: [
-      { label: "Encryption Envelope", value: "AES-256-GCM (256-bit key, 12-byte nonce)" },
+      {
+        label: "Encryption Envelope",
+        value: "AES-256-GCM (256-bit key, 12-byte nonce)",
+      },
       { label: "Commitment Hash", value: rawPayloadCommitment, isCode: true },
       { label: "Ephemeral Session Key", value: ephemeralKey, isCode: true },
     ],

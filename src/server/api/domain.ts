@@ -191,6 +191,83 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
 
+export const messageDeliveryStateSchema = z.enum([
+  "queued",
+  "accepted",
+  "anchored",
+  "delivered",
+  "read",
+  "failed",
+  "expired",
+]);
+
+export type MessageDeliveryState = z.infer<typeof messageDeliveryStateSchema>;
+
+export const TERMINAL_DELIVERY_STATES: ReadonlySet<MessageDeliveryState> = new Set([
+  "read",
+  "failed",
+  "expired",
+]);
+
+export const RETRYABLE_DELIVERY_STATES: ReadonlySet<MessageDeliveryState> = new Set([
+  "queued",
+  "accepted",
+  "anchored",
+]);
+
+export const ALLOWED_DELIVERY_TRANSITIONS: Record<
+  MessageDeliveryState,
+  ReadonlySet<MessageDeliveryState>
+> = {
+  queued: new Set(["accepted", "failed", "expired"]),
+  accepted: new Set(["anchored", "delivered", "failed", "expired"]),
+  anchored: new Set(["delivered", "failed", "expired"]),
+  delivered: new Set(["read", "failed", "expired"]),
+  read: new Set([]),
+  failed: new Set([]),
+  expired: new Set([]),
+};
+
+export const messageDeliveryTransitionSchema = z.object({
+  fromState: messageDeliveryStateSchema.nullable(),
+  toState: messageDeliveryStateSchema,
+  timestamp: z.string().datetime(),
+  actor: z.string().min(1),
+  reason: z.string().min(1),
+  chainReference: z.string().nullable().optional(),
+});
+
+export type MessageDeliveryTransition = z.infer<typeof messageDeliveryTransitionSchema>;
+
+export const messageDeliveryStatusRecordSchema = z.object({
+  messageId: hash32Schema,
+  state: messageDeliveryStateSchema,
+  isTerminal: z.boolean(),
+  isRetryable: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  actor: z.string(),
+  reason: z.string(),
+  chainReference: z.string().nullable().optional(),
+  history: z.array(messageDeliveryTransitionSchema),
+});
+
+export type MessageDeliveryStatusRecord = z.infer<typeof messageDeliveryStatusRecordSchema>;
+
+export const publicDeliveryStatusSchema = z.object({
+  messageId: hash32Schema,
+  state: messageDeliveryStateSchema,
+  isTerminal: z.boolean(),
+  isRetryable: z.boolean(),
+  observedAt: z.string().datetime(),
+  actor: z.string(),
+  reason: z.string(),
+  chainReference: z.string().nullable().optional(),
+  history: z.array(messageDeliveryTransitionSchema),
+});
+
+export type PublicDeliveryStatus = z.infer<typeof publicDeliveryStatusSchema>;
+
 // ---------------------------------------------------------------------------
 // BETA-002: Durable User Account, Profile, Credential & AccountStatus Domain
 // ---------------------------------------------------------------------------

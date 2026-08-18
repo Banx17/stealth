@@ -33,7 +33,12 @@ export async function verifyAndLink(
   const response = await fetch("/api/v1/wallet/link/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address: externalAddress, signature, capabilities, network }),
+    body: JSON.stringify({
+      address: externalAddress,
+      signature,
+      capabilities,
+      network,
+    }),
   });
 
   const body = await response.json();
