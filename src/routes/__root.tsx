@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { MailQuestion } from "lucide-react";
 
 import { ActionButton, EmptyState, Surface } from "@/features/design-system";
+import { BootstrapProvider } from "@/features/identity";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -71,5 +72,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <BootstrapProvider>
+      <Outlet />
+    </BootstrapProvider>
+  );
 }

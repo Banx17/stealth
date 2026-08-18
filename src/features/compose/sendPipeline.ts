@@ -41,13 +41,7 @@ import type { DeliveryState } from "@/services/relay/federation";
 import type { DirectoryRecipientKeyResolver } from "@/services/crypto/key-resolver";
 
 export type StageId =
-  | "resolve"
-  | "encrypt"
-  | "sign"
-  | "postage"
-  | "persist"
-  | "submit"
-  | "reconcile";
+  "resolve" | "encrypt" | "sign" | "postage" | "persist" | "submit" | "reconcile";
 
 export type StageStatus = "pending" | "active" | "done" | "error";
 
@@ -59,10 +53,7 @@ export interface StageState {
 }
 
 export type SendFailureReason =
-  | "recipient_rejected"
-  | "wallet_rejected"
-  | "wallet_unavailable"
-  | "failed";
+  "recipient_rejected" | "wallet_rejected" | "wallet_unavailable" | "failed";
 
 export type SendOutcome =
   | { ok: true; messageId: string; delivered: boolean; state: DeliveryState }

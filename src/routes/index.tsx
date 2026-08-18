@@ -71,6 +71,7 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
 import { AuthModal } from "@/components/mail/AuthModal";
+import { BootstrapStateView, useBootstrap } from "@/features/identity";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,7 +92,13 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  return <MailApp isDemoMode />;
+  const { branch } = useBootstrap();
+
+  if (branch !== "active") {
+    return <BootstrapStateView />;
+  }
+
+  return <MailApp isDemoMode={false} />;
 }
 
 function delay(ms: number) {
