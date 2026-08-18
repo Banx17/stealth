@@ -40,7 +40,7 @@ const coordinateActionSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
-export const Route = createFileRoute("/api/v1/send/coordinate" as any)({
+export const Route = createFileRoute("/api/v1/send/coordinate")({
   server: {
     handlers: {
       POST: ({ request }) =>
