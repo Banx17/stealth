@@ -23,6 +23,7 @@ import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
+import { Route as ApiV1WalletManagedRouteImport } from './routes/api/v1/wallet/managed'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
 import { Route as ApiV1RelayMessagesRouteImport } from './routes/api/v1/relay/messages'
@@ -139,6 +140,11 @@ const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
 const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
   id: '/api/v1/accounts/',
   path: '/api/v1/accounts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletManagedRoute = ApiV1WalletManagedRouteImport.update({
+  id: '/api/v1/wallet/managed',
+  path: '/api/v1/wallet/managed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1RelayVersionRoute = ApiV1RelayVersionRouteImport.update({
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
@@ -549,6 +557,7 @@ export interface FileRoutesById {
   '/api/v1/relay/messages': typeof ApiV1RelayMessagesRoute
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
+  '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
@@ -614,6 +623,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/wallet/managed'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
@@ -677,6 +687,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/wallet/managed'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
     | '/api/v1/postage'
@@ -740,6 +751,7 @@ export interface FileRouteTypes {
     | '/api/v1/relay/messages'
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
+    | '/api/v1/wallet/managed'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
@@ -804,6 +816,7 @@ export interface RootRouteChildren {
   ApiV1RelayMessagesRoute: typeof ApiV1RelayMessagesRoute
   ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
+  ApiV1WalletManagedRoute: typeof ApiV1WalletManagedRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
@@ -925,6 +938,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/accounts'
       fullPath: '/api/v1/accounts/'
       preLoaderRoute: typeof ApiV1AccountsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/managed': {
+      id: '/api/v1/wallet/managed'
+      path: '/api/v1/wallet/managed'
+      fullPath: '/api/v1/wallet/managed'
+      preLoaderRoute: typeof ApiV1WalletManagedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/relay/version': {
@@ -1363,6 +1383,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayMessagesRoute: ApiV1RelayMessagesRoute,
   ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
+  ApiV1WalletManagedRoute: ApiV1WalletManagedRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,

@@ -245,6 +245,30 @@ export const externalWalletChallengeSchema = z.object({
 
 export type ExternalWalletChallenge = z.infer<typeof externalWalletChallengeSchema>;
 
+export const activeSignerSchema = z.object({
+  signerType: z.enum(["external", "managed"]),
+  address: stellarAddressSchema,
+  capabilities: z.array(walletCapabilitySchema),
+  isFallback: z.boolean(),
+});
+
+export type ActiveSigner = z.infer<typeof activeSignerSchema>;
+
+export const managedWalletStatusSchema = z.object({
+  address: stellarAddressSchema,
+  status: z.enum(["active", "funded", "unfunded"]),
+  network: z.string().min(1),
+  balance: z.object({
+    available: z.string().nullable(),
+    balanceXlm: z.string().nullable(),
+  }),
+  capabilities: z.array(walletCapabilitySchema),
+  isDefaultSigner: z.boolean(),
+  activeSigner: activeSignerSchema,
+});
+
+export type ManagedWalletStatus = z.infer<typeof managedWalletStatusSchema>;
+
 export const networkPassphraseSchema = z.string().min(1);
 export const profileSchema = z.object({
   userId: z.string().min(1, "User ID cannot be empty"),
