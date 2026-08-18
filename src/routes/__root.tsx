@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { MailQuestion } from "lucide-react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { ActionButton, EmptyState, Surface } from "@/features/design-system";
 import { BootstrapProvider } from "@/features/identity";
@@ -71,10 +72,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+const queryClient = new QueryClient();
+
 function RootComponent() {
   return (
-    <BootstrapProvider>
+    <QueryClientProvider client={queryClient}>
       <Outlet />
-    </BootstrapProvider>
+    </QueryClientProvider>
   );
 }

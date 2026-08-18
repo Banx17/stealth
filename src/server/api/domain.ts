@@ -120,6 +120,12 @@ export function createReceiptSchema(options: ReceiptSchemaOptions = {}) {
       readAt: z.string().datetime({ offset: true }).nullable(),
       recipient: stellarAddressSchema,
       sender: stellarAddressSchema,
+      payloadHash: hash32Schema.optional(),
+      protocolVersion: z.number().int().positive().optional(),
+      txHash: z.string().nullable().optional(),
+      chainStatus: z.enum(["pending", "confirmed", "failed"]).nullable().optional(),
+      ledgerSeq: z.number().int().nonnegative().nullable().optional(),
+      confirmedAt: z.string().datetime({ offset: true }).nullable().optional(),
     })
     .superRefine((data, ctx) => {
       const deliveredMs = Date.parse(data.deliveredAt);
@@ -899,3 +905,54 @@ export const receiptCheckpointSchema = z.object({
   gapCount: z.number().int().nonnegative().default(0),
 });
 export type ReceiptCheckpoint = z.infer<typeof receiptCheckpointSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1954 (BETA-048) — Recoverable Send Operation State & Idempotency
+// ---------------------------------------------------------------------------
+
+export const sendOperationStatusSchema = z.enum([
+  "created",
+  "quoted",
+  "escrowed",
+  "submitted",
+  "anchored",
+  "delivered",
+  "failed",
+]);
+export type SendOperationStatus = z.infer<typeof sendOperationStatusSchema>;
+
+export const sendProofReferencesSchema = z.object({
+  receiptId: z.string().optional(),
+  anchorTxHash: z.string().optional(),
+  postagePaymentHash: z.string().optional(),
+  relayMessageId: z.string().optional(),
+});
+export type SendProofReferences = z.infer<typeof sendProofReferencesSchema>;
+
+export const sendOperationStateSchema = z.object({
+  version: z.number().int().positive().default(1),
+  messageId: hash32Schema,
+  sender: stellarAddressSchema,
+  recipient: stellarAddressSchema,
+  recipientDomain: z.string().default("stellar.network"),
+  status: sendOperationStatusSchema.default("created"),
+  quote: z.record(z.unknown()).optional(),
+  postage: postageSchema.optional(),
+  envelope: storedEnvelopeSchema.optional(),
+  relaySubmission: z
+    .object({
+      accepted: z.boolean(),
+      state: z.string(),
+      attempts: z.number(),
+    })
+    .optional(),
+  receipt: receiptSchema.optional(),
+  anchorTxHash: z.string().optional(),
+  proofReferences: sendProofReferencesSchema.optional(),
+  idempotencyKey: z.string().min(1),
+  failureReason: z.string().optional(),
+  errorCode: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type SendOperationState = z.infer<typeof sendOperationStateSchema>;

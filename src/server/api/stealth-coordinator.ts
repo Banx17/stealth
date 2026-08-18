@@ -1012,4 +1012,33 @@ export class StealthCoordinator extends DurableObjectBase {
     await this.ctx.storage.put(`receipt_cp:${checkpoint.streamId}`, checkpoint);
     return checkpoint;
   }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const state = (await this.ctx.storage.get(`send_op:${messageId}`)) as
+      | import("./domain").SendOperationState
+      | undefined;
+    return state ?? null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+    return state;
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.runExclusive(`send_op:${state.messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`send_op:${state.messageId}`)) as
+        | import("./domain").SendOperationState
+        | undefined;
+      if (existing) {
+        return { created: false, state: existing };
+      }
+      await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+      return { created: true, state };
+    });
+  }
 }
