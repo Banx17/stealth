@@ -10,7 +10,7 @@ import { decideSenderRequest } from "@/server/api/sender-request-service";
 
 const decisionBodySchema = z.object({ decision: unknownSenderDecisionSchema });
 
-export const Route = createFileRoute("/api/v1/requests/$requestId/decisions" as never)({
+export const Route = createFileRoute(`/api/v1/requests/$requestId/decisions`)({
   server: {
     handlers: {
       POST: ({ request, params }) =>
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/v1/requests/$requestId/decisions" as 
             request,
             await decideSenderRequest(
               context.repository,
-              (params as { requestId: string }).requestId,
+              params.requestId,
               actor,
               decision,
             ),
