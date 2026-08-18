@@ -38,6 +38,31 @@ export interface WalletSignature {
 }
 
 /**
+ * Resolve the address the wallet will sign with (i.e. the sender for a new
+ * message). Reads the same provider seam as `authorizeSend`, so e2e stubs and
+ * production agree on the signer identity. Returns `null` when no wallet is
+ * connected so the caller can fall back to a draft value.
+ */
+export async function resolveSenderAddress(): Promise<string | null> {
+  const wallet = await freighter();
+  try {
+    const connection = (await wallet.isConnected()) as {
+      isConnected?: boolean;
+      error?: unknown;
+    };
+    if (!connection?.isConnected) return null;
+    const access = (await wallet.requestAccess()) as {
+      address?: string;
+      error?: unknown;
+    };
+    if (access?.error || !access?.address) return null;
+    return access.address;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Wallet provider seam.
  *
  * Production always talks to the real Freighter API. End-to-end tests run in a
