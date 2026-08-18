@@ -22,12 +22,7 @@ export const Route = createFileRoute(`/api/v1/requests/$requestId/decisions`)({
           });
           return apiSuccess(
             request,
-            await decideSenderRequest(
-              context.repository,
-              params.requestId,
-              actor,
-              decision,
-            ),
+            await decideSenderRequest(context.repository, params.requestId, actor, decision),
           );
         }),
     },
