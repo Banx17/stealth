@@ -14,7 +14,7 @@ const transitionRequestSchema = z.object({
   chainReference: z.string().optional().nullable(),
 });
 
-export const Route = createFileRoute("/api/v1/delivery/$messageId")({
+export const Route = createFileRoute("/api/v1/delivery/$messageId" as any)({
   server: {
     handlers: {
       GET: ({ request, params }) =>
