@@ -1,4 +1,5 @@
 import type {
+  Contact,
   Credential,
   ExternalWallet,
   ExternalWalletChallenge,
@@ -10,24 +11,34 @@ import type {
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   PublishedKey,
   Receipt,
   RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
+  UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  Wallet,
 } from "./domain";
 import type {
   ApiRepository,
+  ContactQueryOptions,
   ConsumeVerificationTokenResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
+  UpdateContactResult,
+  UpdateProvisioningResult,
   UpdateUserResult,
+  UsernameReservationResult,
+  WalletCreationResult,
 } from "./repository";
 import { ApiError } from "./errors";
 
@@ -55,6 +66,10 @@ export class MemoryApiRepository implements ApiRepository {
   // Issue #1936: envelope store and per-key insert locks.
   private readonly envelopes = new Map<string, StoredEnvelope>();
   private readonly envelopeLocks = new Map<string, Promise<void>>();
+  private readonly senderRequests = new Map<string, UnknownSenderRequest>();
+  private readonly senderRequestLocks = new Map<string, Promise<void>>();
+  // Issue #1973: owner-scoped contact store keyed by `${owner}:${contactId}`.
+  private readonly contacts = new Map<string, Contact>();
 
   // BETA-002: User Account, Profile, Credential storage & unique index maps
   private readonly usersById = new Map<string, User>();
@@ -63,6 +78,33 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly usersByAddress = new Map<string, string>();
   private readonly profiles = new Map<string, Profile>();
   private readonly credentials = new Map<string, Credential>();
+
+  // BETA-014: Account-provisioning storage
+  private readonly provisioning = new Map<string, ProvisioningRecord>();
+  private readonly usernameReservations = new Map<string, UsernameReservation>();
+  private readonly wallets = new Map<string, Wallet>();
+  private readonly keyLocks = new Map<string, Promise<void>>();
+
+  private async withKeyLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.keyLocks.get(lockKey) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.keyLocks.set(lockKey, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.keyLocks.get(lockKey) === queued) {
+        this.keyLocks.delete(lockKey);
+      }
+    }
+  }
+  // BETA-006: Session storage
   private readonly sessions = new Map<string, Session>();
   private readonly retiredSessions = new Map<string, RetiredSession>();
 
@@ -134,6 +176,24 @@ export class MemoryApiRepository implements ApiRepository {
       if (this.envelopeLocks.get(messageId) === queued) {
         this.envelopeLocks.delete(messageId);
       }
+    }
+  }
+
+  private async withSenderRequestLock<T>(requestId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.senderRequestLocks.get(requestId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.senderRequestLocks.set(requestId, queued);
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.senderRequestLocks.get(requestId) === queued)
+        this.senderRequestLocks.delete(requestId);
     }
   }
 
@@ -382,6 +442,128 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(credential);
   }
 
+  // BETA-014: Transactional account-provisioning implementation
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return structuredClone(this.provisioning.get(userId) ?? null);
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    return this.withKeyLock(`provisioning:${record.userId}`, async () => {
+      const existing = this.provisioning.get(record.userId);
+      if (existing) {
+        return { created: false, record: structuredClone(existing) };
+      }
+      this.provisioning.set(record.userId, structuredClone(record));
+      return { created: true, record: structuredClone(record) };
+    });
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.withKeyLock(`provisioning:${record.userId}`, async () => {
+      const current = this.provisioning.get(record.userId);
+      if (!current) {
+        return { updated: false, current: null };
+      }
+      if (current.version !== expectedVersion) {
+        return { updated: false, current: structuredClone(current) };
+      }
+      const next: ProvisioningRecord = {
+        ...record,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      this.provisioning.set(record.userId, structuredClone(next));
+      return { updated: true, record: structuredClone(next) };
+    });
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const norm = username.toLowerCase().trim();
+    return structuredClone(this.usernameReservations.get(norm) ?? null);
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const norm = username.toLowerCase().trim();
+    return this.withKeyLock(`username-reservation:${norm}`, async () => {
+      const boundUser = this.usersByUsername.get(norm);
+      if (boundUser && boundUser !== userId) {
+        return { outcome: "unavailable" };
+      }
+
+      const existing = this.usernameReservations.get(norm);
+      const now = Date.now();
+
+      if (existing) {
+        if (existing.userId === userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "already-reserved", reservation: structuredClone(existing) };
+        }
+        if (existing.userId !== userId && now < new Date(existing.expiresAt).getTime()) {
+          return { outcome: "unavailable" };
+        }
+      }
+
+      const reservation: UsernameReservation = {
+        username: norm,
+        userId,
+        reservedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + leaseMs).toISOString(),
+      };
+      this.usernameReservations.set(norm, structuredClone(reservation));
+      return { outcome: "reserved", reservation: structuredClone(reservation) };
+    });
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    const norm = username.toLowerCase().trim();
+    return this.withKeyLock(`username-reservation:${norm}`, async () => {
+      const existing = this.usernameReservations.get(norm);
+      if (!existing) return false;
+      if (existing.userId !== userId) return false;
+      this.usernameReservations.delete(norm);
+      return true;
+    });
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    return structuredClone(this.wallets.get(userId) ?? null);
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.withKeyLock(`wallet:${wallet.userId}`, async () => {
+      const existing = this.wallets.get(wallet.userId);
+      if (existing) {
+        return { outcome: "already-exists", wallet: structuredClone(existing) };
+      }
+      this.wallets.set(wallet.userId, structuredClone(wallet));
+      return { outcome: "created", wallet: structuredClone(wallet) };
+    });
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const normOwner = owner.toUpperCase().trim();
+    return this.withKeyLock(`policy-init:${normOwner}`, async () => {
+      const existing = this.policies.get(normOwner);
+      if (existing) {
+        return { created: false, policy: structuredClone(existing) };
+      }
+      this.policies.set(normOwner, structuredClone(policy));
+      return { created: true, policy: structuredClone(policy) };
+    });
+  }
+
+  // BETA-006: Session CRUD Methods
   async getSession(sessionId: string): Promise<Session | null> {
     return structuredClone(this.sessions.get(sessionId) ?? null);
   }
@@ -698,6 +880,58 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null> {
+    return structuredClone(this.senderRequests.get(requestId) ?? null);
+  }
+  async listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]> {
+    return [...this.senderRequests.values()]
+      .filter((r) => r.recipient === recipient && (!status || r.status === status))
+      .map((r) => structuredClone(r));
+  }
+  async createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.withEnvelopeLock(`request:${request.requestId}`, async () => {
+      const existing = this.senderRequests.get(request.requestId);
+      if (existing) return { created: false, request: structuredClone(existing) };
+      this.senderRequests.set(request.requestId, structuredClone(request));
+      return { created: true, request: structuredClone(request) };
+    });
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now = new Date(),
+  ) {
+    return this.withEnvelopeLock(`request:${requestId}`, async () => {
+      const current = this.senderRequests.get(requestId);
+      if (!current || current.recipient !== recipient) return { outcome: "not_found" as const };
+      if (
+        current.status !== "pending" ||
+        (new Date(current.expiresAt) <= now && decision !== "expire")
+      )
+        return { outcome: "conflict" as const, request: structuredClone(current) };
+      const status =
+        decision === "approve_once" || decision === "always_allow"
+          ? "approved"
+          : decision === "block"
+            ? "blocked"
+            : decision === "expire"
+              ? "expired"
+              : "rejected";
+      const request = {
+        ...current,
+        status,
+        decision,
+        decidedAt: now.toISOString(),
+      } as UnknownSenderRequest;
+      if (decision === "always_allow")
+        this.senderRules.set(key(recipient, current.sender), "allow");
+      if (decision === "block") this.senderRules.set(key(recipient, current.sender), "block");
+      this.senderRequests.set(requestId, request);
+      return { outcome: "applied" as const, request: structuredClone(request) };
+    });
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
@@ -790,6 +1024,75 @@ export class MemoryApiRepository implements ApiRepository {
     return structuredClone(stored);
   }
 
+  async listContacts(
+    owner: string,
+    options: ContactQueryOptions = {},
+  ): Promise<import("./repository").Page<Contact>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const query = options.query?.trim().toLowerCase();
+
+    const filtered: Contact[] = [];
+    for (const contact of this.contacts.values()) {
+      if (contact.owner.toUpperCase().trim() !== normOwner) {
+        continue;
+      }
+      if (query) {
+        const haystack =
+          `${contact.name} ${contact.address} ${contact.canonicalAddress ?? ""}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+      filtered.push(structuredClone(contact));
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listContacts;
+    return paginate(filtered, spec, { limit, after: options.after });
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const contact = this.contacts.get(this.contactKey(owner, contactId));
+    return contact ? structuredClone(contact) : null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const key = this.contactKey(contact.owner, contact.contactId);
+    if (this.contacts.has(key)) {
+      throw new ApiError(409, "conflict", `A contact already exists for ${contact.contactId}`);
+    }
+    const stored = structuredClone(contact);
+    this.contacts.set(key, stored);
+    return structuredClone(stored);
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const key = this.contactKey(contact.owner, contact.contactId);
+    const existing = this.contacts.get(key);
+    if (!existing) {
+      return { updated: false, current: null };
+    }
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(existing) };
+    }
+    const updated = { ...contact, version: expectedVersion + 1 };
+    this.contacts.set(key, updated);
+    return { updated: true, contact: structuredClone(updated) };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    const key = this.contactKey(owner, contactId);
+    if (!this.contacts.has(key)) {
+      throw new ApiError(404, "not_found", `No contact found for ${contactId}`);
+    }
+    this.contacts.delete(key);
+  }
+
+  private contactKey(owner: string, contactId: string): string {
+    return `${owner.toUpperCase().trim()}:${contactId}`;
+  }
+
   reset() {
     this.policies.clear();
     this.policyWriteIntents.clear();
@@ -804,12 +1107,18 @@ export class MemoryApiRepository implements ApiRepository {
     this.receiptLocks.clear();
     this.envelopes.clear();
     this.envelopeLocks.clear();
+    this.senderRequests.clear();
+    this.senderRequestLocks.clear();
     this.usersById.clear();
     this.usersByEmail.clear();
     this.usersByUsername.clear();
     this.usersByAddress.clear();
     this.profiles.clear();
     this.credentials.clear();
+    this.provisioning.clear();
+    this.usernameReservations.clear();
+    this.wallets.clear();
+    this.keyLocks.clear();
     this.sessions.clear();
     this.retiredSessions.clear();
     this.verificationTokens.clear();
@@ -818,5 +1127,6 @@ export class MemoryApiRepository implements ApiRepository {
     this.keyDirectories.clear();
     this.publishedKeys.clear();
     this.keyDirectoryLocks.clear();
+    this.contacts.clear();
   }
 }

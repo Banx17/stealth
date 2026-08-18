@@ -1,4 +1,5 @@
 import type {
+  Contact,
   Credential,
   ExternalWallet,
   ExternalWalletChallenge,
@@ -10,15 +11,20 @@ import type {
   Postage,
   PostageStatus,
   Profile,
+  ProvisioningRecord,
   PublishedKey,
   Receipt,
   RetiredSession,
   SenderRule,
   Session,
   StoredEnvelope,
+  UnknownSenderDecision,
+  UnknownSenderRequest,
   User,
+  UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  Wallet,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -91,7 +97,66 @@ export type MarkReceiptReadResult =
   | { outcome: "marked"; receipt: Receipt };
 
 export type UpdateUserResult =
-  { updated: true; user: User } | { updated: false; current: User | null };
+  | { updated: true; user: User }
+  | { updated: false; current: User | null };
+export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
+export type SenderRequestTransitionResult =
+  | { outcome: "not_found" }
+  | { outcome: "conflict"; request: UnknownSenderRequest }
+  | { outcome: "applied"; request: UnknownSenderRequest };
+
+/**
+ * Outcome of a compare-and-swap contact write (Issue #1973 BETA-066).
+ *
+ * - `updated: true`  : the contact was persisted at `expectedVersion + 1`.
+ * - `updated: false` : the contact moved underneath this writer (or does not
+ *   exist); `current` reflects the authoritative state so the caller can
+ *   re-read and reconcile instead of blindly overwriting.
+ */
+export type UpdateContactResult =
+  | { updated: true; contact: Contact }
+  | { updated: false; current: Contact | null };
+
+// ---------------------------------------------------------------------------
+// BETA-014: Account-provisioning repository contracts
+// ---------------------------------------------------------------------------
+
+/**
+ * Outcome of a compare-and-swap provisioning-record write.
+ *
+ * - `updated: true`  : the record was persisted at `expectedVersion + 1`.
+ * - `updated: false` : the record moved underneath this writer (or does not
+ *   exist); `current` reflects the authoritative state so the caller can
+ *   re-read and reconcile instead of blindly overwriting progress.
+ */
+export type UpdateProvisioningResult =
+  | { updated: true; record: ProvisioningRecord }
+  | { updated: false; current: ProvisioningRecord | null };
+
+/**
+ * Outcome of an atomic username claim.
+ *
+ * - "reserved": the username was claimed by this user for `leaseMs`.
+ * - "already-reserved": this user holds a live claim already (idempotent
+ *   retry); the existing reservation is returned unchanged.
+ * - "unavailable": a live claim is held by another user, or a user record
+ *   is already bound to this username. The claim is never stolen.
+ */
+export type UsernameReservationResult =
+  | { outcome: "reserved"; reservation: UsernameReservation }
+  | { outcome: "already-reserved"; reservation: UsernameReservation }
+  | { outcome: "unavailable" };
+
+/**
+ * Outcome of an insert-once wallet write for a user.
+ *
+ * - "created": the wallet record was stored for the first time.
+ * - "already-exists": this user already has a wallet; the stored record is
+ *   returned unchanged (idempotent retry).
+ */
+export type WalletCreationResult =
+  | { outcome: "created"; wallet: Wallet }
+  | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
   | {
@@ -116,6 +181,21 @@ export type RecordVerificationAttemptResult =
 export interface MailboxQueryOptions {
   status?: "pending" | "delivered" | "all";
   includeTombstones?: boolean;
+  limit?: number;
+  after?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Issue #1973 (BETA-066) — Live contacts repository
+// ---------------------------------------------------------------------------
+
+/**
+ * Options for listing a user's contacts. `query` filters case-insensitively
+ * against the contact name and raw address; `limit`/`after` walk the declared
+ * total order ({@link PAGINATED_QUERY_ORDERINGS}.listContacts).
+ */
+export interface ContactQueryOptions {
+  query?: string;
   limit?: number;
   after?: string;
 }
@@ -195,6 +275,63 @@ export interface ApiRepository {
   getCredential(userId: string): Promise<Credential | null>;
   setCredential(credential: Credential): Promise<Credential>;
 
+  // BETA-014: Transactional account-provisioning methods
+  getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null>;
+  /**
+   * Insert-once initialization of a provisioning record. Concurrent
+   * initializations must yield exactly one `created: true`; every other call
+   * receives the authoritative existing record so no account can ever have
+   * two competing provisioning ledgers.
+   */
+  createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }>;
+  /**
+   * Compare-and-swap write of the provisioning state machine. `expectedVersion`
+   * must match the persisted record's version; a stale writer receives
+   * `{ updated: false, current }` instead of silently clobbering progress.
+   * Concurrent provisioners for the same account must serialize so exactly
+   * one writer advances the record per step.
+   */
+  setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult>;
+  /**
+   * Atomically claims a username for `leaseMs`. Single-winner: concurrent
+   * claims for the same username must never both succeed, and a claim held
+   * by another user must never be stolen or overwritten.
+   */
+  reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult>;
+  getUsernameReservation(username: string): Promise<UsernameReservation | null>;
+  /**
+   * Releases a reservation owned by `userId` (compensation path). Returns
+   * true when a live claim was released, false when nothing was owned or
+   * the claim already expired. Idempotent: releasing twice is safe.
+   */
+  releaseUsernameReservation(username: string, userId: string): Promise<boolean>;
+  getWallet(userId: string): Promise<Wallet | null>;
+  /**
+   * Insert-once wallet creation keyed by user. Concurrent creations must
+   * yield exactly one "created" outcome; every other call receives the
+   * authoritative existing record as "already-exists".
+   */
+  createWallet(wallet: Wallet): Promise<WalletCreationResult>;
+  /**
+   * Initializes a mailbox policy only when none is stored for the owner.
+   * `created: true` when the default was written, `created: false` when a
+   * policy already exists (the existing policy is returned and never
+   * overwritten — idempotent retry).
+   */
+  initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }>;
+  // BETA-006 & BETA-007: Server-Side Session Domain Methods
   // BETA-006: Server-side session lifecycle methods.
   getSession(sessionId: string): Promise<Session | null>;
   createSession(session: Session): Promise<Session>;
@@ -255,6 +392,15 @@ export interface ApiRepository {
    * Plaintext MUST NOT be passed to this method; ciphertext only.
    */
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult>;
+  getSenderRequest(requestId: string): Promise<UnknownSenderRequest | null>;
+  listSenderRequests(recipient: string, status?: "pending"): Promise<UnknownSenderRequest[]>;
+  createSenderRequestIfAbsent(request: UnknownSenderRequest): Promise<CreateSenderRequestResult>;
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ): Promise<SenderRequestTransitionResult>;
 
   // ---------------------------------------------------------------------------
   // Issue #1940 (BETA-033) — Authenticated Recipient Mailbox Queue Repository
@@ -276,6 +422,21 @@ export interface ApiRepository {
   getPublishedKey(owner: string, keyId: string): Promise<PublishedKey | null>;
   savePublishedKey(owner: string, key: PublishedKey): Promise<PublishedKey>;
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1973 (BETA-066) — Live contacts CRUD
+  // ---------------------------------------------------------------------------
+  listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>>;
+  getContact(owner: string, contactId: string): Promise<Contact | null>;
+  /**
+   * Insert-once contact creation keyed by contactId (scoped to `owner`).
+   * A duplicate contactId for the same owner must reject with a deterministic
+   * conflict (ApiError 409 "conflict") so imports can never create ambiguous
+   * address-book state.
+   */
+  createContact(contact: Contact): Promise<Contact>;
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult>;
+  deleteContact(owner: string, contactId: string): Promise<void>;
 
   reset?(): void;
 }
@@ -561,6 +722,83 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<Credential>("credential", result);
   }
 
+  async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    const raw = await this.inner.getProvisioningRecord(userId);
+    return raw ? validateRecord<ProvisioningRecord>("provisioning", raw) : null;
+  }
+
+  async createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    const result = await this.inner.createProvisioningRecord(versionRecord("provisioning", record));
+    result.record = validateRecord<ProvisioningRecord>("provisioning", result.record);
+    return result;
+  }
+
+  async setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    const result = await this.inner.setProvisioningRecord(
+      versionRecord("provisioning", record),
+      expectedVersion,
+    );
+    if (result.updated) {
+      result.record = validateRecord<ProvisioningRecord>("provisioning", result.record);
+    } else if (result.current) {
+      result.current = validateRecord<ProvisioningRecord>("provisioning", result.current);
+    }
+    return result;
+  }
+
+  async reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    const result = await this.inner.reserveUsername(username, userId, leaseMs);
+    if (result.outcome === "reserved" || result.outcome === "already-reserved") {
+      result.reservation = validateRecord<UsernameReservation>(
+        "usernameReservation",
+        result.reservation,
+      );
+    }
+    return result;
+  }
+
+  async getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    const raw = await this.inner.getUsernameReservation(username);
+    return raw ? validateRecord<UsernameReservation>("usernameReservation", raw) : null;
+  }
+
+  async releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.inner.releaseUsernameReservation(username, userId);
+  }
+
+  async getWallet(userId: string): Promise<Wallet | null> {
+    const raw = await this.inner.getWallet(userId);
+    return raw ? validateRecord<Wallet>("wallet", raw) : null;
+  }
+
+  async createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    const result = await this.inner.createWallet(versionRecord("wallet", wallet));
+    if (result.outcome === "created" || result.outcome === "already-exists") {
+      result.wallet = validateRecord<Wallet>("wallet", result.wallet);
+    }
+    return result;
+  }
+
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    const result = await this.inner.initializePolicyIfAbsent(owner, policy);
+    if (result.created) {
+      result.policy = validateRecord<MailboxPolicy>("mailboxPolicy", result.policy);
+    }
+    return result;
+  }
+
   async getSession(sessionId: string): Promise<Session | null> {
     const raw = await this.inner.getSession(sessionId);
     return raw ? validateRecord<Session>("session", raw) : null;
@@ -693,6 +931,23 @@ export class ValidatedApiRepository implements ApiRepository {
     }
     return result;
   }
+  getSenderRequest(requestId: string) {
+    return this.inner.getSenderRequest(requestId);
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.inner.listSenderRequests(recipient, status);
+  }
+  createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
+  }
 
   async listRecipientEnvelopes(
     recipient: string,
@@ -770,6 +1025,42 @@ export class ValidatedApiRepository implements ApiRepository {
     return validateRecord<KeyDirectoryRecord>("keyDirectoryRecord", result);
   }
 
+  async listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
+    const page = await this.inner.listContacts(owner, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<Contact>("contact", item)),
+    };
+  }
+
+  async getContact(owner: string, contactId: string): Promise<Contact | null> {
+    const raw = await this.inner.getContact(owner, contactId);
+    return raw ? validateRecord<Contact>("contact", raw) : null;
+  }
+
+  async createContact(contact: Contact): Promise<Contact> {
+    const result = await this.inner.createContact(versionRecord("contact", contact));
+    return validateRecord<Contact>("contact", result);
+  }
+
+  async updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    const result = await this.inner.updateContact(
+      versionRecord("contact", contact),
+      expectedVersion,
+    );
+    if (result.updated) {
+      return { updated: true, contact: validateRecord<Contact>("contact", result.contact) };
+    }
+    return {
+      updated: false,
+      current: result.current ? validateRecord<Contact>("contact", result.current) : null,
+    };
+  }
+
+  async deleteContact(owner: string, contactId: string): Promise<void> {
+    return this.inner.deleteContact(owner, contactId);
+  }
+
   reset(): void {
     this.inner.reset?.();
   }
@@ -823,13 +1114,19 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "updateSession",
   "getRetiredSession",
   "getEnvelope",
+  "getProvisioningRecord",
+  "getUsernameReservation",
+  "getWallet",
+  "releaseUsernameReservation",
+  "initializePolicyIfAbsent",
+  "getActiveVerificationToken",
   "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
   "getVerificationToken",
   "getWalletChallenge",
-  "getMessageDeliveryStatus",
-  "setMessageDeliveryStatus",
+  "listContacts",
+  "getContact",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1022,6 +1319,65 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
   }
 
+  // BETA-014: retry-safe reads + idempotent compensation are retried; the
+  // single-winner writes (reserve, createWallet, setProvisioningRecord) never
+  // are, so a half-applied claim can never be double-applied by this wrapper.
+  getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
+    return this.withRetry("getProvisioningRecord", () => this.inner.getProvisioningRecord(userId));
+  }
+
+  createProvisioningRecord(
+    record: ProvisioningRecord,
+  ): Promise<{ created: boolean; record: ProvisioningRecord }> {
+    // Never retry: an insert-once initialization must not be re-applied after
+    // a client-side timeout (the stored record would be authoritative).
+    return this.inner.createProvisioningRecord(record);
+  }
+
+  setProvisioningRecord(
+    record: ProvisioningRecord,
+    expectedVersion: number,
+  ): Promise<UpdateProvisioningResult> {
+    return this.inner.setProvisioningRecord(record, expectedVersion);
+  }
+
+  reserveUsername(
+    username: string,
+    userId: string,
+    leaseMs: number,
+  ): Promise<UsernameReservationResult> {
+    return this.inner.reserveUsername(username, userId, leaseMs);
+  }
+
+  getUsernameReservation(username: string): Promise<UsernameReservation | null> {
+    return this.withRetry("getUsernameReservation", () =>
+      this.inner.getUsernameReservation(username),
+    );
+  }
+
+  releaseUsernameReservation(username: string, userId: string): Promise<boolean> {
+    return this.withRetry("releaseUsernameReservation", () =>
+      this.inner.releaseUsernameReservation(username, userId),
+    );
+  }
+
+  getWallet(userId: string): Promise<Wallet | null> {
+    return this.withRetry("getWallet", () => this.inner.getWallet(userId));
+  }
+
+  createWallet(wallet: Wallet): Promise<WalletCreationResult> {
+    return this.inner.createWallet(wallet);
+  }
+
+  initializePolicyIfAbsent(
+    owner: string,
+    policy: MailboxPolicy,
+  ): Promise<{ created: boolean; policy: MailboxPolicy }> {
+    return this.withRetry("initializePolicyIfAbsent", () =>
+      this.inner.initializePolicyIfAbsent(owner, policy),
+    );
+  }
+
   getSession(sessionId: string): Promise<Session | null> {
     return this.withRetry("getSession", () => this.inner.getSession(sessionId));
   }
@@ -1127,6 +1483,25 @@ export class RetryableApiRepository implements ApiRepository {
     // bytes). Callers should handle those outcomes explicitly.
     return this.inner.insertEnvelope(envelope);
   }
+  getSenderRequest(requestId: string) {
+    return this.withRetry("getSenderRequest", () => this.inner.getSenderRequest(requestId));
+  }
+  listSenderRequests(recipient: string, status?: "pending") {
+    return this.withRetry("listSenderRequests", () =>
+      this.inner.listSenderRequests(recipient, status),
+    );
+  }
+  createSenderRequestIfAbsent(request: UnknownSenderRequest) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
+  }
 
   listRecipientEnvelopes(
     recipient: string,
@@ -1198,6 +1573,28 @@ export class RetryableApiRepository implements ApiRepository {
 
   saveKeyDirectory(record: KeyDirectoryRecord): Promise<KeyDirectoryRecord> {
     return this.withRetry("saveKeyDirectory", () => this.inner.saveKeyDirectory(record));
+  }
+
+  listContacts(owner: string, options?: ContactQueryOptions): Promise<Page<Contact>> {
+    return this.withRetry("listContacts", () => this.inner.listContacts(owner, options));
+  }
+
+  getContact(owner: string, contactId: string): Promise<Contact | null> {
+    return this.withRetry("getContact", () => this.inner.getContact(owner, contactId));
+  }
+
+  createContact(contact: Contact): Promise<Contact> {
+    return this.inner.createContact(contact);
+  }
+
+  updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult> {
+    return this.withRetry("updateContact", () =>
+      this.inner.updateContact(contact, expectedVersion),
+    );
+  }
+
+  deleteContact(owner: string, contactId: string): Promise<void> {
+    return this.withRetry("deleteContact", () => this.inner.deleteContact(owner, contactId));
   }
 
   reset(): void {
@@ -1437,6 +1834,13 @@ export const PAGINATED_QUERY_ORDERINGS = {
     [{ field: "createdAt", direction: "desc" }],
     "messageId",
   ),
+  /**
+   * Issue #1973 (BETA-066): Owner-scoped contact listing.
+   * Ordered by creation time descending (newest first); contactId is the
+   * unique tie-breaker so the walk is stable. Callers filter by owner and the
+   * optional search query before passing the collection to `paginate`.
+   */
+  listContacts: declareOrdering<Contact>([{ field: "createdAt", direction: "desc" }], "contactId"),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

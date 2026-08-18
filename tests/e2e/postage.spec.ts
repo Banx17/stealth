@@ -51,7 +51,7 @@ test.describe("postage API", () => {
       requireVerified: false,
     });
 
-    const quoteRes = await api.quotePostage(actor, sender);
+    const quoteRes = await api.quotePostage(actor, sender, msgId);
     const { data: quoteData } = await quoteRes.json();
 
     const submitRes = await page.request.post("/api/v1/postage/", {
@@ -65,6 +65,9 @@ test.describe("postage API", () => {
         paymentHash: payHash,
         recipient: actor,
         sender: sender,
+        asset: quoteData.asset,
+        policyVersion: quoteData.policyVersion,
+        network: quoteData.network,
         issuedAt: quoteData.issuedAt,
         expiresAt: quoteData.expiresAt,
         quoteDigest: quoteData.digest,
@@ -98,7 +101,7 @@ test.describe("postage API", () => {
       requireVerified: false,
     });
 
-    const quoteRes = await api.quotePostage(actor, sender);
+    const quoteRes = await api.quotePostage(actor, sender, msgId);
     const { data: quoteData } = await quoteRes.json();
 
     const submitRes = await page.request.post("/api/v1/postage/", {
@@ -112,6 +115,9 @@ test.describe("postage API", () => {
         paymentHash: payHash,
         recipient: actor,
         sender: sender,
+        asset: quoteData.asset,
+        policyVersion: quoteData.policyVersion,
+        network: quoteData.network,
         issuedAt: quoteData.issuedAt,
         expiresAt: quoteData.expiresAt,
         quoteDigest: quoteData.digest,
@@ -142,7 +148,7 @@ test.describe("postage API", () => {
       requireVerified: false,
     });
 
-    const quoteRes = await api.quotePostage(actor, sender);
+    const quoteRes = await api.quotePostage(actor, sender, msgId);
     const { data: quoteData } = await quoteRes.json();
 
     const submitFn = () =>
@@ -157,6 +163,9 @@ test.describe("postage API", () => {
           paymentHash: payHash,
           recipient: actor,
           sender: sender,
+          asset: quoteData.asset,
+          policyVersion: quoteData.policyVersion,
+          network: quoteData.network,
           issuedAt: quoteData.issuedAt,
           expiresAt: quoteData.expiresAt,
           quoteDigest: quoteData.digest,
@@ -182,7 +191,7 @@ test.describe("postage API", () => {
       requireVerified: false,
     });
 
-    const quoteRes = await api.quotePostage(actor, sender);
+    const quoteRes = await api.quotePostage(actor, sender, msgId);
     const { data: quoteData } = await quoteRes.json();
 
     const res = await page.request.post("/api/v1/postage/", {
@@ -196,6 +205,9 @@ test.describe("postage API", () => {
         paymentHash: payHash,
         recipient: actor,
         sender: sender,
+        asset: quoteData.asset,
+        policyVersion: quoteData.policyVersion,
+        network: quoteData.network,
         issuedAt: quoteData.issuedAt,
         expiresAt: quoteData.expiresAt,
         quoteDigest: quoteData.digest,

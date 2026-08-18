@@ -212,6 +212,50 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setCredential");
     return this.inner.setCredential(credential);
   }
+  async getProvisioningRecord(userId: string) {
+    this.maybeFail("getProvisioningRecord");
+    return this.inner.getProvisioningRecord(userId);
+  }
+  async createProvisioningRecord(
+    record: import("../../../src/server/api/domain").ProvisioningRecord,
+  ) {
+    this.maybeFail("createProvisioningRecord");
+    return this.inner.createProvisioningRecord(record);
+  }
+  async setProvisioningRecord(
+    record: import("../../../src/server/api/domain").ProvisioningRecord,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("setProvisioningRecord");
+    return this.inner.setProvisioningRecord(record, expectedVersion);
+  }
+  async reserveUsername(username: string, userId: string, leaseMs: number) {
+    this.maybeFail("reserveUsername");
+    return this.inner.reserveUsername(username, userId, leaseMs);
+  }
+  async getUsernameReservation(username: string) {
+    this.maybeFail("getUsernameReservation");
+    return this.inner.getUsernameReservation(username);
+  }
+  async releaseUsernameReservation(username: string, userId: string) {
+    this.maybeFail("releaseUsernameReservation");
+    return this.inner.releaseUsernameReservation(username, userId);
+  }
+  async getWallet(userId: string) {
+    this.maybeFail("getWallet");
+    return this.inner.getWallet(userId);
+  }
+  async createWallet(wallet: import("../../../src/server/api/domain").Wallet) {
+    this.maybeFail("createWallet");
+    return this.inner.createWallet(wallet);
+  }
+  async initializePolicyIfAbsent(
+    owner: string,
+    policy: import("../../../src/server/api/domain").MailboxPolicy,
+  ) {
+    this.maybeFail("initializePolicyIfAbsent");
+    return this.inner.initializePolicyIfAbsent(owner, policy);
+  }
   async getSession(sessionId: string) {
     this.maybeFail("getSession");
     return this.inner.getSession(sessionId);
@@ -249,6 +293,25 @@ class FailingRepository implements ApiRepository {
   async insertEnvelope(envelope: import("../../../src/server/api/domain").StoredEnvelope) {
     this.maybeFail("insertEnvelope");
     return this.inner.insertEnvelope(envelope);
+  }
+  async getSenderRequest(requestId: string) {
+    return this.inner.getSenderRequest(requestId);
+  }
+  async listSenderRequests(recipient: string, status?: "pending") {
+    return this.inner.listSenderRequests(recipient, status);
+  }
+  async createSenderRequestIfAbsent(
+    request: import("../../../src/server/api/domain").UnknownSenderRequest,
+  ) {
+    return this.inner.createSenderRequestIfAbsent(request);
+  }
+  async transitionSenderRequest(
+    requestId: string,
+    recipient: string,
+    decision: import("../../../src/server/api/domain").UnknownSenderDecision,
+    now?: Date,
+  ) {
+    return this.inner.transitionSenderRequest(requestId, recipient, decision, now);
   }
   async getVerificationToken(tokenHash: string) {
     this.maybeFail("getVerificationToken");
@@ -344,6 +407,32 @@ class FailingRepository implements ApiRepository {
   ) {
     this.maybeFail("updateEnvelopeStatus");
     return this.inner.updateEnvelopeStatus(messageId, status);
+  }
+  async listContacts(
+    owner: string,
+    options?: import("../../../src/server/api/repository").ContactQueryOptions,
+  ) {
+    this.maybeFail("listContacts");
+    return this.inner.listContacts(owner, options);
+  }
+  async getContact(owner: string, contactId: string) {
+    this.maybeFail("getContact");
+    return this.inner.getContact(owner, contactId);
+  }
+  async createContact(contact: import("../../../src/server/api/domain").Contact) {
+    this.maybeFail("createContact");
+    return this.inner.createContact(contact);
+  }
+  async updateContact(
+    contact: import("../../../src/server/api/domain").Contact,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("updateContact");
+    return this.inner.updateContact(contact, expectedVersion);
+  }
+  async deleteContact(owner: string, contactId: string) {
+    this.maybeFail("deleteContact");
+    return this.inner.deleteContact(owner, contactId);
   }
   reset(): void {
     this.inner.reset();
