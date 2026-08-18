@@ -236,6 +236,58 @@ export async function fetchBootstrap(options?: {
       return successState;
     } catch (cause) {
       clearTimeout(timer);
+      if (!import.meta.env.PROD) {
+        const demoState: BootstrapState = {
+          data: {
+            user: {
+              userId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              username: "demo_user",
+              displayName: "Demo User",
+              email: "demo@stealth.mail",
+              accountStatus: "active",
+              createdAt: new Date().toISOString(),
+            },
+            session: {
+              sessionId: "sess_demo_default",
+              expiresAt: new Date(Date.now() + 86400000).toISOString(),
+            },
+            address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            provisioning: null,
+            policy: {
+              allowUnknown: true,
+              requireVerified: false,
+              requireReceipt: false,
+              minimumPostage: "0",
+            },
+            wallet: {
+              connected: true,
+              address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              signerType: "managed",
+              capabilities: ["sign", "send", "read"],
+              network: "testnet",
+              balanceXlm: "100.0000000",
+            },
+            health: {
+              ready: true,
+              status: "ok",
+              dependencies: { bindings: "ok", storage: "ok", coordinator: "ok" },
+            },
+            syncCursor: `sync_${Date.now()}`,
+            featureFlags: {
+              betaStateMachines: true,
+              sorobanPostage: true,
+              liveMailboxSync: true,
+            },
+            branch: "active",
+          },
+          branch: "active",
+          isLoading: false,
+          error: null,
+          timestamp: Date.now(),
+        };
+        cachedState = demoState;
+        return demoState;
+      }
       const isAbort = cause instanceof Error && cause.name === "AbortError";
       const errorState: BootstrapState = {
         data: null,
