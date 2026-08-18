@@ -166,6 +166,56 @@ const demoLayoutPreferences = {
   rightPanelCollapsed: false,
 };
 
+const demoAddress = `G${"A".repeat(55)}`;
+
+function demoBootstrapBody() {
+  const now = new Date().toISOString();
+  return {
+    data: {
+      user: {
+        userId: demoAddress,
+        username: "demo_user",
+        displayName: "Demo User",
+        email: "demo@stealth.mail",
+        accountStatus: "active",
+        createdAt: now,
+      },
+      session: {
+        sessionId: "sess_e2e_default",
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+      address: demoAddress,
+      provisioning: null,
+      policy: {
+        allowUnknown: true,
+        requireVerified: false,
+        requireReceipt: false,
+        minimumPostage: "0",
+      },
+      wallet: {
+        connected: true,
+        address: demoAddress,
+        signerType: "managed",
+        capabilities: ["sign", "send", "read"],
+        network: "testnet",
+        balanceXlm: "100.0000000",
+      },
+      health: {
+        ready: true,
+        status: "ok",
+        dependencies: { bindings: "ok", storage: "ok", coordinator: "ok" },
+      },
+      syncCursor: `sync_${Date.now()}`,
+      featureFlags: {
+        betaStateMachines: true,
+        sorobanPostage: true,
+        liveMailboxSync: true,
+      },
+      branch: "active",
+    },
+  };
+}
+
 export async function openDemoMailbox(page: Page) {
   await page.addInitScript(
     ({ layout, preferences }) => {
@@ -177,6 +227,14 @@ export async function openDemoMailbox(page: Page) {
       layout: demoLayoutPreferences,
       preferences: demoUiPreferences,
     },
+  );
+
+  await page.route("**/api/v1/bootstrap", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(demoBootstrapBody()),
+    }),
   );
 
   await page.goto("/");
