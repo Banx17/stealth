@@ -25,6 +25,7 @@ import {
   contactSchema,
   managedWalletRecordSchema,
   fundingOperationSchema,
+  recoveryCodeSetSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -241,6 +242,10 @@ registerRecordSchema("keyDirectoryRecord", 1, keyDirectoryRecordSchema);
 registerRecordSchema("contact", 1, contactSchema);
 registerRecordSchema("managedWalletRecord", 1, managedWalletRecordSchema);
 registerRecordSchema("fundingOperation", 1, fundingOperationSchema);
+// Issue #1917 (BETA-010): register the recovery code set schema so that
+// ValidatedApiRepository can detect tampered or structurally invalid
+// recovery records at the adapter boundary.
+registerRecordSchema("recoveryCodeSet", 1, recoveryCodeSetSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

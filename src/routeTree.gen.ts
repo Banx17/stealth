@@ -72,6 +72,9 @@ import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/ide
 import { Route as ApiV1IdentityKeysKeyIdRouteImport } from './routes/api/v1/identity/keys/$keyId'
 import { Route as ApiV1ContactsImportPreviewRouteImport } from './routes/api/v1/contacts/import/preview'
 import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/contacts/import/commit'
+import { Route as ApiV1AuthRecoveryStatusRouteImport } from './routes/api/v1/auth/recovery/status'
+import { Route as ApiV1AuthRecoveryRegenerateRouteImport } from './routes/api/v1/auth/recovery/regenerate'
+import { Route as ApiV1AuthRecoveryRedeemRouteImport } from './routes/api/v1/auth/recovery/redeem'
 import { Route as ApiV1AuthPasswordResetRequestRouteImport } from './routes/api/v1/auth/password-reset/request'
 import { Route as ApiV1AuthPasswordResetCompleteRouteImport } from './routes/api/v1/auth/password-reset/complete'
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
@@ -408,6 +411,22 @@ const ApiV1ContactsImportCommitRoute =
     path: '/api/v1/contacts/import/commit',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1AuthRecoveryStatusRoute = ApiV1AuthRecoveryStatusRouteImport.update({
+  id: '/api/v1/auth/recovery/status',
+  path: '/api/v1/auth/recovery/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthRecoveryRegenerateRoute =
+  ApiV1AuthRecoveryRegenerateRouteImport.update({
+    id: '/api/v1/auth/recovery/regenerate',
+    path: '/api/v1/auth/recovery/regenerate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AuthRecoveryRedeemRoute = ApiV1AuthRecoveryRedeemRouteImport.update({
+  id: '/api/v1/auth/recovery/redeem',
+  path: '/api/v1/auth/recovery/redeem',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthPasswordResetRequestRoute =
   ApiV1AuthPasswordResetRequestRouteImport.update({
     id: '/api/v1/auth/password-reset/request',
@@ -508,6 +527,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
   '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
+  '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
+  '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
+  '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
   '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
@@ -582,6 +604,9 @@ export interface FileRoutesByTo {
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
   '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
+  '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
+  '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
+  '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
   '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
@@ -657,6 +682,9 @@ export interface FileRoutesById {
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
   '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
+  '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
+  '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
+  '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
   '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
@@ -733,6 +761,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/auth/password-reset/complete'
     | '/api/v1/auth/password-reset/request'
+    | '/api/v1/auth/recovery/redeem'
+    | '/api/v1/auth/recovery/regenerate'
+    | '/api/v1/auth/recovery/status'
     | '/api/v1/contacts/import/commit'
     | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
@@ -807,6 +838,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/auth/password-reset/complete'
     | '/api/v1/auth/password-reset/request'
+    | '/api/v1/auth/recovery/redeem'
+    | '/api/v1/auth/recovery/regenerate'
+    | '/api/v1/auth/recovery/status'
     | '/api/v1/contacts/import/commit'
     | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
@@ -881,6 +915,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/auth/password-reset/complete'
     | '/api/v1/auth/password-reset/request'
+    | '/api/v1/auth/recovery/redeem'
+    | '/api/v1/auth/recovery/regenerate'
+    | '/api/v1/auth/recovery/status'
     | '/api/v1/contacts/import/commit'
     | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
@@ -955,6 +992,9 @@ export interface RootRouteChildren {
   ApiV1AdminJobsIdRoute: typeof ApiV1AdminJobsIdRoute
   ApiV1AuthPasswordResetCompleteRoute: typeof ApiV1AuthPasswordResetCompleteRoute
   ApiV1AuthPasswordResetRequestRoute: typeof ApiV1AuthPasswordResetRequestRoute
+  ApiV1AuthRecoveryRedeemRoute: typeof ApiV1AuthRecoveryRedeemRoute
+  ApiV1AuthRecoveryRegenerateRoute: typeof ApiV1AuthRecoveryRegenerateRoute
+  ApiV1AuthRecoveryStatusRoute: typeof ApiV1AuthRecoveryStatusRoute
   ApiV1ContactsImportCommitRoute: typeof ApiV1ContactsImportCommitRoute
   ApiV1ContactsImportPreviewRoute: typeof ApiV1ContactsImportPreviewRoute
   ApiV1IdentityKeysKeyIdRoute: typeof ApiV1IdentityKeysKeyIdRoute
@@ -1416,6 +1456,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ContactsImportCommitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/recovery/status': {
+      id: '/api/v1/auth/recovery/status'
+      path: '/api/v1/auth/recovery/status'
+      fullPath: '/api/v1/auth/recovery/status'
+      preLoaderRoute: typeof ApiV1AuthRecoveryStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/recovery/regenerate': {
+      id: '/api/v1/auth/recovery/regenerate'
+      path: '/api/v1/auth/recovery/regenerate'
+      fullPath: '/api/v1/auth/recovery/regenerate'
+      preLoaderRoute: typeof ApiV1AuthRecoveryRegenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/recovery/redeem': {
+      id: '/api/v1/auth/recovery/redeem'
+      path: '/api/v1/auth/recovery/redeem'
+      fullPath: '/api/v1/auth/recovery/redeem'
+      preLoaderRoute: typeof ApiV1AuthRecoveryRedeemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/auth/password-reset/request': {
       id: '/api/v1/auth/password-reset/request'
       path: '/api/v1/auth/password-reset/request'
@@ -1602,6 +1663,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AdminJobsIdRoute: ApiV1AdminJobsIdRoute,
   ApiV1AuthPasswordResetCompleteRoute: ApiV1AuthPasswordResetCompleteRoute,
   ApiV1AuthPasswordResetRequestRoute: ApiV1AuthPasswordResetRequestRoute,
+  ApiV1AuthRecoveryRedeemRoute: ApiV1AuthRecoveryRedeemRoute,
+  ApiV1AuthRecoveryRegenerateRoute: ApiV1AuthRecoveryRegenerateRoute,
+  ApiV1AuthRecoveryStatusRoute: ApiV1AuthRecoveryStatusRoute,
   ApiV1ContactsImportCommitRoute: ApiV1ContactsImportCommitRoute,
   ApiV1ContactsImportPreviewRoute: ApiV1ContactsImportPreviewRoute,
   ApiV1IdentityKeysKeyIdRoute: ApiV1IdentityKeysKeyIdRoute,

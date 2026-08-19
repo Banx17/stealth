@@ -690,6 +690,11 @@ export const sessionSchema = z.object({
   ipAddress: z.string().optional().nullable(),
   userAgent: z.string().optional().nullable(),
   deviceFingerprint: z.string().optional().nullable(),
+  // Issue #1917 (BETA-010): the last time the account holder authenticated
+  // with a password (or via a one-code recovery). Optional so sessions
+  // created before this feature remains valid; recovery-code regeneration
+  // requires a session whose recentLoginAt is fresh.
+  recentLoginAt: z.string().datetime().optional(),
 });
 
 export const publicSessionSchema = z.object({
@@ -723,6 +728,47 @@ export function toPublicSession(session: Session): PublicSession {
     absoluteExpiresAt: session.absoluteExpiresAt,
   };
 }
+
+// ---------------------------------------------------------------------------
+// BETA-010 (Issue #1917): One-time recovery code sets
+//
+// Recovery codes are single-use secrets for restoring account access. Only
+// PBKDF2 hashes of the codes are ever persisted — the plaintext code is
+// returned to the user exactly once, at generation time, and cannot be
+// retrieved afterwards.
+// ---------------------------------------------------------------------------
+
+export const recoveryCodeStatusSchema = z.enum(["active", "exhausted"]);
+
+export const recoveryCodeEntrySchema = z.object({
+  hash: z.string().min(1, "Recovery code hash cannot be empty"),
+  salt: z.string().min(1, "Recovery code salt cannot be empty"),
+  usedAt: z.string().datetime().nullable(),
+});
+
+export const recoveryCodeSetSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  status: recoveryCodeStatusSchema,
+  codes: z.array(recoveryCodeEntrySchema).min(1, "Recovery code set cannot be empty"),
+  generatedAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export type RecoveryCodeEntry = z.infer<typeof recoveryCodeEntrySchema>;
+export type RecoveryCodeSet = z.infer<typeof recoveryCodeSetSchema>;
+
+/**
+ * Safety-model view of a recovery set. Deliberately carries no hash material,
+ * no codes, and no identifiers — only state and aggregate counters, so UI
+ * surfaces can answer "is recovery ready?" without exposing secrets.
+ */
+export type RecoveryCodeSetStatusView = {
+  status: "none" | "active" | "exhausted";
+  totalCodes: number;
+  remainingCodes: number;
+  generatedAt: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // StoredEnvelope — durable encrypted-message record (Issue #1936 / BETA-029)

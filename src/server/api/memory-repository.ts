@@ -20,6 +20,7 @@ import type {
   PublishedKey,
   Receipt,
   ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -45,6 +46,7 @@ import type {
   RecordVerificationAttemptResult,
   UpdateContactResult,
   UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
   UsernameReservationResult,
   WalletCreationResult,
@@ -158,6 +160,10 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly managedWallets = new Map<string, ManagedWalletRecord>();
   private readonly fundingOperations = new Map<string, FundingOperation>();
 
+  // Issue #1917 (BETA-010): Recovery code sets + per-user CAS locks
+  private readonly recoveryCodeSets = new Map<string, RecoveryCodeSet>();
+  private readonly recoveryCodeSetLocks = new Map<string, Promise<void>>();
+
   private async withReceiptLock<T>(messageId: string, action: () => Promise<T>): Promise<T> {
     const previous = this.receiptLocks.get(messageId) ?? Promise.resolve();
     let release!: () => void;
@@ -213,6 +219,26 @@ export class MemoryApiRepository implements ApiRepository {
       release();
       if (this.senderRequestLocks.get(requestId) === queued)
         this.senderRequestLocks.delete(requestId);
+    }
+  }
+
+  private async withRecoveryCodeSetLock<T>(userId: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.recoveryCodeSetLocks.get(userId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.recoveryCodeSetLocks.set(userId, queued);
+
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.recoveryCodeSetLocks.get(userId) === queued) {
+        this.recoveryCodeSetLocks.delete(userId);
+      }
     }
   }
 
@@ -726,6 +752,41 @@ export class MemoryApiRepository implements ApiRepository {
       };
       this.verificationTokens.set(tokenHash, updated);
       return { recorded: true, token: structuredClone(updated) };
+    });
+  }
+
+  // Issue #1917 (BETA-010): Recovery code set CAS storage
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return structuredClone(this.recoveryCodeSets.get(userId) ?? null);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.withRecoveryCodeSetLock(set.userId, async () => {
+      const current = this.recoveryCodeSets.get(set.userId);
+
+      if (expectedVersion === 0) {
+        // Create-only reservation. If a concurrent generation won first, the
+        // caller reconciles against `current`.
+        if (current) {
+          return { updated: false, current: structuredClone(current) };
+        }
+        this.recoveryCodeSets.set(set.userId, structuredClone(set));
+        return { updated: true, set: structuredClone(set) };
+      }
+
+      if (!current || current.version !== expectedVersion) {
+        return { updated: false, current: current ? structuredClone(current) : null };
+      }
+
+      const next: RecoveryCodeSet = {
+        ...set,
+        version: expectedVersion + 1,
+      };
+      this.recoveryCodeSets.set(set.userId, structuredClone(next));
+      return { updated: true, set: structuredClone(next) };
     });
   }
 
@@ -1354,6 +1415,8 @@ export class MemoryApiRepository implements ApiRepository {
     this.receiptCheckpoints.clear();
     this.jobLocks.clear();
     this.sendOperations.clear();
+    this.recoveryCodeSets.clear();
+    this.recoveryCodeSetLocks.clear();
   }
 
   async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
