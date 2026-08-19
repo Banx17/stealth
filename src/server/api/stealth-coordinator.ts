@@ -673,6 +673,31 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.runExclusive(`verification-token:user:${userId}:${purpose}`, async () => {
+      const activeHash = (await this.ctx.storage.get(
+        `verification-token:active:${userId}:${purpose}`,
+      )) as string | undefined;
+      if (activeHash) {
+        const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
+          | VerificationToken
+          | undefined;
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+          };
+          await this.ctx.storage.put(`verification-token:hash:${activeHash}`, invalidated);
+        }
+        await this.ctx.storage.delete(`verification-token:active:${userId}:${purpose}`);
+      }
+    });
+  }
+
   async getCounter(key: string): Promise<number> {
     const timestamps =
       ((await this.ctx.storage.get(`counter:${key}`)) as number[] | undefined) ?? [];

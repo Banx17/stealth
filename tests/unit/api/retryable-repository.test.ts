@@ -336,6 +336,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("recordVerificationAttempt");
     return this.inner.recordVerificationAttempt(tokenHash, now);
   }
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: import("../../../src/server/api/domain").VerificationPurpose,
+    now: Date,
+  ) {
+    this.maybeFail("invalidateActiveVerificationToken");
+    return this.inner.invalidateActiveVerificationToken(userId, purpose, now);
+  }
   async getExternalWallets(owner: string) {
     this.maybeFail("getExternalWallets");
     return this.inner.getExternalWallets(owner);
