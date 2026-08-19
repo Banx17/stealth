@@ -19,8 +19,8 @@ function pendingRequest(overrides: Record<string, unknown> = {}) {
       messageId: "a".repeat(64),
       ciphertextHash: "b".repeat(64),
     },
-    createdAt: "2026-08-18T00:00:00.000Z",
-    expiresAt: "2026-08-19T00:00:00.000Z",
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 86400000).toISOString(),
     status: "pending" as const,
     ...overrides,
   };

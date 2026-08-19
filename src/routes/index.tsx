@@ -70,6 +70,7 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
 import { AuthModal } from "@/components/mail/AuthModal";
+import { BootstrapStateView, useBootstrap } from "@/features/identity";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -90,6 +91,12 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
+  const { branch } = useBootstrap();
+
+  if (branch !== "active") {
+    return <BootstrapStateView />;
+  }
+
   // Demo mode is a development-only escape hatch: `import.meta.env.DEV` is
   // statically false in production builds, so the demo branch (and its dynamic
   // import of the mock fixtures) is removed by the bundler. The production app
