@@ -1,13 +1,16 @@
 import { test, expect, openDemoMailbox } from "./fixtures";
 
 test.describe("Account Settings", () => {
+  // Mutable display-name used by the route mock across GET / PATCH cycles.
+  let currentDisplayName = "Alice User";
+
   test.beforeEach(async ({ page }) => {
-    await openDemoMailbox(page);
-  });
+    currentDisplayName = "Alice User";
 
-  test("can view and update profile settings", async ({ page }) => {
-    let currentDisplayName = "Alice User";
-
+    // Register the API mock *before* navigation so it is ready for any
+    // requests that fire during the initial page load.  This also avoids
+    // the CI-only flake where `page.route()` registered after navigation
+    // could collide with Vite module loading on slow runners.
     await page.route("**/api/v1/accounts/profile", async (route) => {
       if (route.request().method() === "GET") {
         await route.fulfill({
@@ -51,6 +54,10 @@ test.describe("Account Settings", () => {
       }
     });
 
+    await openDemoMailbox(page);
+  });
+
+  test("can view and update profile settings", async ({ page }) => {
     // Open Settings modal
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
@@ -69,7 +76,9 @@ test.describe("Account Settings", () => {
     await expect(page.getByText("Alice Updated").first()).toBeVisible();
 
     // Check identifiers section
-    await expect(page.getByLabel("Email changes require identity verification (not yet available)")).toBeVisible();
+    await expect(
+      page.getByLabel("Email changes require identity verification (not yet available)"),
+    ).toBeVisible();
     await expect(page.getByLabel("Usernames cannot be changed")).toBeVisible();
     await expect(page.getByLabel("Immutable").first()).toBeVisible();
   });
