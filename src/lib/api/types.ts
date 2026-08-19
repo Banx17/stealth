@@ -278,3 +278,21 @@ export interface MailboxSettings {
   policy: MailboxPolicy;
   requireReceipt: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// BETA-019 — public managed-wallet status (no custody fields)
+// ---------------------------------------------------------------------------
+
+export type WalletActivationState = "pending" | "active" | "failed";
+export type WalletStatusFreshness = "fresh" | "stale" | "unavailable";
+
+export interface PublicWalletStatus {
+  address: string;
+  network: "testnet";
+  networkPassphrase: string;
+  balanceXlm: string | null;
+  activation: WalletActivationState;
+  lastSyncedAt: string | null;
+  stale: boolean;
+  freshness: WalletStatusFreshness;
+}

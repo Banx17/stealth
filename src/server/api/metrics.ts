@@ -80,6 +80,9 @@ export const METRIC_DESCRIPTORS = {
   api_errors_total: ["method", "path", "status", "type", "synthetic", "error_type"],
   abuse_dependency_fallback: ["check", "decision", "errorType", "policy", "route"],
   postage_limit_rejected: ["limit", "actorId", "ip", "fingerprint", "sender", "relayId"],
+  abuse_disposable_email_blocked: ["domain"],
+  abuse_invite_code_invalid: ["code"],
+  abuse_verification_token_locked: ["tokenId"],
 } as const;
 
 export type MetricName = keyof typeof METRIC_DESCRIPTORS;

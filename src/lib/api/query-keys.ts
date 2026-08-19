@@ -48,6 +48,10 @@ export const queryKeys = {
   settings: {
     all: ["settings"] as const,
   },
+  wallet: {
+    all: ["wallet"] as const,
+    status: ["wallet", "status"] as const,
+  },
 } as const;
 
 /** Mutation → query invalidation map. Extend as new mutations are added. */

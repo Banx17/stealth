@@ -39,6 +39,8 @@ import type {
   UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
+  FundingOperation,
   Wallet,
 } from "./domain";
 import { ApiError } from "./errors";
@@ -555,6 +557,41 @@ export class HybridApiRepository implements ApiRepository {
       JSON.stringify(record),
     );
     return record;
+  }
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.getStub().getManagedWallet(userId);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.getStub().setManagedWallet(wallet);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<import("./repository").CreateManagedWalletResult> {
+    return this.getStub().createManagedWalletIfAbsent(wallet);
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return this.getStub().getFundingOperation(operationId);
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.getStub().setFundingOperation(operation);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.getStub().createFundingOperationIfAbsent(operation);
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    return this.getStub().listFundingOperations(filter);
   }
 
   // ---------------------------------------------------------------------------

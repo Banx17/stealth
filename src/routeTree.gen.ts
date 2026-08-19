@@ -18,11 +18,13 @@ import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
+import { Route as ApiV1WalletManagedRouteImport } from './routes/api/v1/wallet/managed'
 import { Route as ApiV1SendCoordinateRouteImport } from './routes/api/v1/send/coordinate'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
 import { Route as ApiV1RelayReadinessRouteImport } from './routes/api/v1/relay/readiness'
@@ -50,8 +52,10 @@ import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/a
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
 import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/jobs/index'
+import { Route as ApiV1AdminFundingIndexRouteImport } from './routes/api/v1/admin/funding/index'
 import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
+import { Route as ApiV1WalletStatusRouteImport } from './routes/api/v1/wallet/status'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
 import { Route as ApiV1RequestsRequestIdDecisionsRouteImport } from './routes/api/v1/requests/$requestId/decisions'
@@ -69,6 +73,7 @@ import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/c
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
+import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
@@ -118,6 +123,11 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
+  id: '/api/v1/bootstrap',
+  path: '/api/v1/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
   id: '/api/v1/requests/',
   path: '/api/v1/requests/',
@@ -141,6 +151,11 @@ const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
 const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
   id: '/api/v1/accounts/',
   path: '/api/v1/accounts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletManagedRoute = ApiV1WalletManagedRouteImport.update({
+  id: '/api/v1/wallet/managed',
+  path: '/api/v1/wallet/managed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1SendCoordinateRoute = ApiV1SendCoordinateRouteImport.update({
@@ -280,6 +295,11 @@ const ApiV1AdminJobsIndexRoute = ApiV1AdminJobsIndexRouteImport.update({
   path: '/api/v1/admin/jobs/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminFundingIndexRoute = ApiV1AdminFundingIndexRouteImport.update({
+  id: '/api/v1/admin/funding/',
+  path: '/api/v1/admin/funding/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminDlqIndexRoute = ApiV1AdminDlqIndexRouteImport.update({
   id: '/api/v1/admin/dlq/',
   path: '/api/v1/admin/dlq/',
@@ -288,6 +308,11 @@ const ApiV1AdminDlqIndexRoute = ApiV1AdminDlqIndexRouteImport.update({
 const ApiV1WalletLinkVerifyRoute = ApiV1WalletLinkVerifyRouteImport.update({
   id: '/api/v1/wallet/link/verify',
   path: '/api/v1/wallet/link/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletStatusRoute = ApiV1WalletStatusRouteImport.update({
+  id: '/api/v1/wallet/status',
+  path: '/api/v1/wallet/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1WalletLinkChallengeRoute =
@@ -385,6 +410,12 @@ const ApiV1AccountsProvisioningRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiV1AccountsProvisioningRoute,
   } as any)
+const ApiV1AccountsUserIdWalletProvisionRoute =
+  ApiV1AccountsUserIdWalletProvisionRouteImport.update({
+    id: '/api/v1/accounts/$userId/wallet/provision',
+    path: '/api/v1/accounts/$userId/wallet/provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -409,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -436,12 +468,14 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
+  '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -459,8 +493,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
+  '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
@@ -474,6 +510,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -501,12 +538,14 @@ export interface FileRoutesByTo {
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
+  '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -524,8 +563,10 @@ export interface FileRoutesByTo {
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs': typeof ApiV1AdminJobsIndexRoute
+  '/api/v1/admin/funding': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/identity/keys': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
@@ -540,6 +581,7 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -567,12 +609,14 @@ export interface FileRoutesById {
   '/api/v1/relay/readiness': typeof ApiV1RelayReadinessRoute
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
+  '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -590,8 +634,10 @@ export interface FileRoutesById {
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
   '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
+  '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
@@ -607,6 +653,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
+    | '/api/v1/bootstrap'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -634,12 +681,14 @@ export interface FileRouteTypes {
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
     | '/api/v1/send/coordinate'
+    | '/api/v1/wallet/managed'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -657,8 +706,10 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq/'
     | '/api/v1/admin/jobs/'
+    | '/api/v1/admin/funding/'
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
     | '/api/v1/admin/dlq/$id/abandon'
@@ -672,6 +723,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
+    | '/api/v1/bootstrap'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -699,12 +751,14 @@ export interface FileRouteTypes {
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
     | '/api/v1/send/coordinate'
+    | '/api/v1/wallet/managed'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -722,8 +776,10 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq'
     | '/api/v1/admin/jobs'
+    | '/api/v1/admin/funding'
     | '/api/v1/identity/keys'
     | '/api/v1/wallet/link'
     | '/api/v1/admin/dlq/$id/abandon'
@@ -737,6 +793,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
+    | '/api/v1/bootstrap'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -764,12 +821,14 @@ export interface FileRouteTypes {
     | '/api/v1/relay/readiness'
     | '/api/v1/relay/version'
     | '/api/v1/send/coordinate'
+    | '/api/v1/wallet/managed'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -787,8 +846,10 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
+    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq/'
     | '/api/v1/admin/jobs/'
+    | '/api/v1/admin/funding/'
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
     | '/api/v1/admin/dlq/$id/abandon'
@@ -803,6 +864,7 @@ export interface RootRouteChildren {
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
+  ApiV1BootstrapRoute: typeof ApiV1BootstrapRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
@@ -830,7 +892,9 @@ export interface RootRouteChildren {
   ApiV1RelayReadinessRoute: typeof ApiV1RelayReadinessRoute
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1SendCoordinateRoute: typeof ApiV1SendCoordinateRoute
+  ApiV1WalletManagedRoute: typeof ApiV1WalletManagedRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
+  ApiV1AccountsUserIdWalletProvisionRoute: typeof ApiV1AccountsUserIdWalletProvisionRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
@@ -847,8 +911,10 @@ export interface RootRouteChildren {
   ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
   ApiV1WalletLinkChallengeRoute: typeof ApiV1WalletLinkChallengeRoute
   ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
+  ApiV1WalletStatusRoute: typeof ApiV1WalletStatusRoute
   ApiV1AdminDlqIndexRoute: typeof ApiV1AdminDlqIndexRoute
   ApiV1AdminJobsIndexRoute: typeof ApiV1AdminJobsIndexRoute
+  ApiV1AdminFundingIndexRoute: typeof ApiV1AdminFundingIndexRoute
   ApiV1IdentityKeysIndexRoute: typeof ApiV1IdentityKeysIndexRoute
   ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
 }
@@ -918,6 +984,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/bootstrap': {
+      id: '/api/v1/bootstrap'
+      path: '/api/v1/bootstrap'
+      fullPath: '/api/v1/bootstrap'
+      preLoaderRoute: typeof ApiV1BootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/requests/': {
       id: '/api/v1/requests/'
       path: '/api/v1/requests'
@@ -951,6 +1024,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/accounts'
       fullPath: '/api/v1/accounts/'
       preLoaderRoute: typeof ApiV1AccountsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/managed': {
+      id: '/api/v1/wallet/managed'
+      path: '/api/v1/wallet/managed'
+      fullPath: '/api/v1/wallet/managed'
+      preLoaderRoute: typeof ApiV1WalletManagedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/send/coordinate': {
@@ -1142,6 +1222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminJobsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/funding/': {
+      id: '/api/v1/admin/funding/'
+      path: '/api/v1/admin/funding'
+      fullPath: '/api/v1/admin/funding/'
+      preLoaderRoute: typeof ApiV1AdminFundingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/dlq/': {
       id: '/api/v1/admin/dlq/'
       path: '/api/v1/admin/dlq'
@@ -1154,6 +1241,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/wallet/link/verify'
       fullPath: '/api/v1/wallet/link/verify'
       preLoaderRoute: typeof ApiV1WalletLinkVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/status': {
+      id: '/api/v1/wallet/status'
+      path: '/api/v1/wallet/status'
+      fullPath: '/api/v1/wallet/status'
+      preLoaderRoute: typeof ApiV1WalletStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/wallet/link/challenge': {
@@ -1275,6 +1369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
       parentRoute: typeof ApiV1AccountsProvisioningRoute
     }
+    '/api/v1/accounts/$userId/wallet/provision': {
+      id: '/api/v1/accounts/$userId/wallet/provision'
+      path: '/api/v1/accounts/$userId/wallet/provision'
+      fullPath: '/api/v1/accounts/$userId/wallet/provision'
+      preLoaderRoute: typeof ApiV1AccountsUserIdWalletProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -1378,6 +1479,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   AuthVerifyRoute: AuthVerifyRoute,
+  ApiV1BootstrapRoute: ApiV1BootstrapRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
@@ -1405,7 +1507,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayReadinessRoute: ApiV1RelayReadinessRoute,
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1SendCoordinateRoute: ApiV1SendCoordinateRoute,
+  ApiV1WalletManagedRoute: ApiV1WalletManagedRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
+  ApiV1AccountsUserIdWalletProvisionRoute: ApiV1AccountsUserIdWalletProvisionRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
@@ -1422,8 +1526,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,
   ApiV1WalletLinkChallengeRoute: ApiV1WalletLinkChallengeRoute,
   ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
+  ApiV1WalletStatusRoute: ApiV1WalletStatusRoute,
   ApiV1AdminDlqIndexRoute: ApiV1AdminDlqIndexRoute,
   ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
+  ApiV1AdminFundingIndexRoute: ApiV1AdminFundingIndexRoute,
   ApiV1IdentityKeysIndexRoute: ApiV1IdentityKeysIndexRoute,
   ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
 }

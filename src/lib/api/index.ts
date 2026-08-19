@@ -37,6 +37,7 @@ export {
   ReceiptsClient,
   RequestsClient,
   SettingsClient,
+  WalletClient,
   type ApiContext,
   type CreateTypedApiOptions,
   type TypedApi,

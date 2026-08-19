@@ -3,6 +3,7 @@ import { MailQuestion } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { ActionButton, EmptyState, Surface } from "@/features/design-system";
+import { BootstrapProvider } from "@/features/identity";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -76,7 +77,9 @@ const queryClient = new QueryClient();
 function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <BootstrapProvider>
+        <Outlet />
+      </BootstrapProvider>
     </QueryClientProvider>
   );
 }
