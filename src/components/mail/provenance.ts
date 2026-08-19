@@ -112,16 +112,18 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   const isSmtpBridge = email.folder === "spam" || email.from.toLowerCase().includes("bridge");
   const isRequest = email.folder === "requests" || email.from.toLowerCase().includes("unknown");
   const isVerified =
-    !isSmtpBridge &&
-    (["verified", "priority", "encrypted", "receipts", "inbox"].includes(email.folder) ||
-      !!email.senderPolicy);
+    email.provenanceData?.senderVerified ??
+    (!isSmtpBridge &&
+      (["verified", "priority", "encrypted", "receipts", "inbox"].includes(email.folder) ||
+        !!email.senderPolicy));
 
   // 1. Sender Identity
   let resolvedKey = "";
-  const rawIdentity = email.email || "unknown@stealth.network";
+  const rawIdentity = email.provenanceData?.sender || email.email || "unknown@stealth.network";
 
-  // Check if raw identity looks like a public key already
-  if (/^G[A-Z2-7]{55}$/.test(rawIdentity)) {
+  if (email.provenanceData?.signerAddress) {
+    resolvedKey = email.provenanceData.signerAddress;
+  } else if (/^G[A-Z2-7]{55}$/.test(rawIdentity)) {
     resolvedKey = rawIdentity;
   } else {
     resolvedKey = getDeterministicStellarAddress(rawIdentity, "G");
@@ -202,9 +204,10 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   const relayPubkey = getDeterministicStellarAddress(relayDomain, "G");
   const relaySignature = `sig_${getDeterministicHash(seed, "relay_sig", 64)}`;
   const relayTimestamp =
-    email.time.includes("AM") || email.time.includes("PM")
+    email.provenanceData?.timestamp ??
+    (email.time.includes("AM") || email.time.includes("PM")
       ? `2026-06-16 ${email.time}`
-      : `2026-06-15 14:32:10 UTC`;
+      : `2026-06-15 14:32:10 UTC`);
 
   const relaySourceInspector: ProvenanceItemDetails = {
     title: "Relay Node Processing Record",
@@ -238,7 +241,7 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   };
 
   // 3. Message Hash
-  const rawMessageHash = getDeterministicHash(seed, email.body, 64);
+  const rawMessageHash = email.provenanceData?.digest ?? getDeterministicHash(seed, email.body, 64);
   const sizeBytes = new Blob([email.body]).size;
 
   const messageHashInspector: ProvenanceItemDetails = {
@@ -273,7 +276,8 @@ export function getEmailProvenance(email: Email): ProvenanceDetails {
   };
 
   // 4. Payload Commitment
-  const rawPayloadCommitment = getDeterministicHash(seed, "commitment", 64);
+  const rawPayloadCommitment =
+    email.provenanceData?.contentCommitment ?? getDeterministicHash(seed, "commitment", 64);
   const ephemeralKey = getDeterministicStellarAddress(seed + "ephemeral", "G");
 
   const payloadCommitmentInspector: ProvenanceItemDetails = {

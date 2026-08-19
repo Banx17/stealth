@@ -390,6 +390,39 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("saveKeyDirectory");
     return this.inner.saveKeyDirectory(record);
   }
+  async getManagedWallet(userId: string) {
+    this.maybeFail("getManagedWallet");
+    return this.inner.getManagedWallet(userId);
+  }
+  async setManagedWallet(wallet: import("../../../src/server/api/domain").ManagedWalletRecord) {
+    this.maybeFail("setManagedWallet");
+    return this.inner.setManagedWallet(wallet);
+  }
+  async createManagedWalletIfAbsent(
+    wallet: import("../../../src/server/api/domain").ManagedWalletRecord,
+  ) {
+    return this.inner.createManagedWalletIfAbsent(wallet);
+  }
+  async getFundingOperation(operationId: string) {
+    this.maybeFail("getFundingOperation");
+    return this.inner.getFundingOperation(operationId);
+  }
+  async setFundingOperation(operation: import("../../../src/server/api/domain").FundingOperation) {
+    this.maybeFail("setFundingOperation");
+    return this.inner.setFundingOperation(operation);
+  }
+  async createFundingOperationIfAbsent(
+    operation: import("../../../src/server/api/domain").FundingOperation,
+  ) {
+    return this.inner.createFundingOperationIfAbsent(operation);
+  }
+  async listFundingOperations(filter?: {
+    status?: import("../../../src/server/api/domain").FundingOperation["status"];
+    limit?: number;
+  }) {
+    this.maybeFail("listFundingOperations");
+    return this.inner.listFundingOperations(filter);
+  }
   async listRecipientEnvelopes(
     recipient: string,
     options?: import("../../../src/server/api/repository").MailboxQueryOptions,
