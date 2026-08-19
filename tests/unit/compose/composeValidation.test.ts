@@ -48,7 +48,7 @@ describe("composeValidation", () => {
       amount: "10000000",
       eligible: true,
       trusted: false,
-        reason: "mailbox_minimum" as const,
+      reason: "mailbox_minimum" as const,
       expiresAt: expiredTime,
     };
 

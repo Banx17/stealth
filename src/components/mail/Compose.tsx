@@ -567,9 +567,11 @@ export function Compose({
                       recipient.keyStatus === "revoked" ||
                       recipient.keyStatus === "retired",
                   ) ||
-                  Boolean(quoteState.status === "quoted" &&
+                  Boolean(
+                    quoteState.status === "quoted" &&
                     quoteState.quote.expiresAt &&
-                    new Date() > new Date(quoteState.quote.expiresAt))
+                    new Date() > new Date(quoteState.quote.expiresAt),
+                  )
                 }
                 className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -592,9 +594,11 @@ export function Compose({
                   resolvedRecipients.some(
                     (r) => r.expiresAt && new Date() > new Date(r.expiresAt),
                   ) ||
-                  Boolean(quoteState.status === "quoted" &&
+                  Boolean(
+                    quoteState.status === "quoted" &&
                     quoteState.quote.expiresAt &&
-                    new Date() > new Date(quoteState.quote.expiresAt));
+                    new Date() > new Date(quoteState.quote.expiresAt),
+                  );
 
                 // Determine send CTA disabled state
                 const isSendDisabled = isSending || isBlocked || recipientResolving || isStale;
