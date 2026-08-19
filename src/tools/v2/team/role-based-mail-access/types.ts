@@ -1,5 +1,8 @@
 export type Permission =
-  "READ_SENSITIVE" | "REPLY_AS_TEAM" | "DELETE_THREAD" | "VIEW_INTERNAL_NOTES";
+  | "READ_SENSITIVE"
+  | "REPLY_AS_TEAM"
+  | "DELETE_THREAD"
+  | "VIEW_INTERNAL_NOTES";
 
 export interface Role {
   id: string;

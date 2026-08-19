@@ -4,7 +4,12 @@ import { sharedTypedApi as api, queryKeys } from "@/lib/api";
 import type { PublicWalletStatus } from "@/lib/api";
 
 export type WalletStatusUiKind =
-  "loading" | "active" | "pending" | "stale" | "unavailable" | "failed";
+  | "loading"
+  | "active"
+  | "pending"
+  | "stale"
+  | "unavailable"
+  | "failed";
 
 export type WalletStatusUiState =
   | { kind: "loading" }

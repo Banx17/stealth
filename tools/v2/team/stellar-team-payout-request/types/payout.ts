@@ -1,5 +1,10 @@
 export type PayoutStatus =
-  "PENDING" | "VALIDATING" | "APPROVED" | "REJECTED" | "COMPLETED" | "ERROR";
+  | "PENDING"
+  | "VALIDATING"
+  | "APPROVED"
+  | "REJECTED"
+  | "COMPLETED"
+  | "ERROR";
 export type Currency = "XLM" | "USDC";
 
 export interface PayoutRequest {

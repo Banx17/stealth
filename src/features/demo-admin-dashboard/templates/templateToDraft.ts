@@ -26,7 +26,8 @@ export function isTemplateInserted(dataset: Draft[], template: MessageTemplate):
 }
 
 export type InsertResult =
-  { ok: true; dataset: Draft[]; draft: Draft } | { ok: false; reason: string };
+  | { ok: true; dataset: Draft[]; draft: Draft }
+  | { ok: false; reason: string };
 
 /**
  * Insert a template-derived draft into the dataset. Validates against duplicate
