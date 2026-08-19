@@ -37,16 +37,22 @@ export class RecipientKeyResolutionError extends Error {
  * real API path (BETA-027). Returns null when the directory is missing or the
  * request fails so callers can map it to a recoverable error stage.
  */
-export async function fetchKeyDirectory(owner: string): Promise<KeyDirectoryResponse | null> {
+export async function fetchKeyDirectory(
+  owner: string,
+  signal?: AbortSignal,
+): Promise<KeyDirectoryResponse | null> {
   const url = `/api/v1/identity/keys/?owner=${encodeURIComponent(owner.trim().toUpperCase())}`;
   try {
-    const response = await fetch(url, { headers: { accept: "application/json" } });
+    const response = await fetch(url, { headers: { accept: "application/json" }, signal });
     if (!response.ok) return null;
     const json = (await response.json().catch(() => null)) as {
       data?: KeyDirectoryResponse;
     } | null;
     return json?.data ?? null;
-  } catch {
+  } catch (error: any) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
     return null;
   }
 }

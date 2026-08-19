@@ -5,6 +5,7 @@ import { generateRecipientKeyPair } from "../../src/services/crypto/key-wrap";
 const DEMO_SIGNER = `G${"C".repeat(55)}`;
 const ALICE = `G${"B".repeat(55)}`;
 const BOB = `G${"D".repeat(55)}`;
+const SEND_BUTTON_NAME = /^Send(?: \+ .* XLM| free)?$/;
 
 let aliceKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
 let bobKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
@@ -95,11 +96,13 @@ test.describe("send pipeline", () => {
     await page.getByPlaceholder("Subject").fill("Two-recipient pipeline");
     await page
       .getByPlaceholder("Write your message", { exact: false })
-      .fill("Hello Bob — Grüße π ≈ 3.14 ✓ 安全的");
+      .fill("Hello Bob \u2014 Gr\u00fc\u00dfe \u03c0 \u2248 3.14 \u2713 \u5b89\u5168\u7684");
     await expect(page.getByText(ALICE)).toBeVisible();
     await expect(page.getByText(BOB)).toBeVisible();
 
-    await page.getByRole("button", { name: "Send", exact: true }).click();
+    const sendButton = page.getByRole("button", { name: SEND_BUTTON_NAME });
+    await expect(sendButton).toBeEnabled();
+    await sendButton.click();
 
     await expect(page.getByText("New message")).not.toBeVisible();
     await expect(page.getByText(/Encrypted message sent/i)).toBeVisible();
@@ -128,7 +131,10 @@ test.describe("send pipeline", () => {
     await page
       .getByPlaceholder("Write your message", { exact: false })
       .fill("This should not send");
-    await page.getByRole("button", { name: "Send", exact: true }).click();
+
+    const sendButton = page.getByRole("button", { name: SEND_BUTTON_NAME });
+    await expect(sendButton).toBeEnabled();
+    await sendButton.click();
 
     await expect(page.getByText("New message")).toBeVisible();
     await expect(page.getByText(/Send failed/i)).toBeVisible();

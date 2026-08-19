@@ -679,6 +679,8 @@ export class StealthCoordinator extends DurableObjectBase {
   // under runExclusive so concurrent writers for the same userId cannot
   // interleave their read-check-write cycles (the exact double-consumption
   // race this coordinates against).
+  // interleave their read-check-write cycles (the exact double-consumption
+  // race this coordinates against).
   async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
     const set = (await this.ctx.storage.get(`recovery-code-set:${userId}`)) as
       | RecoveryCodeSet
@@ -716,6 +718,31 @@ export class StealthCoordinator extends DurableObjectBase {
       };
       await this.ctx.storage.put(`recovery-code-set:${set.userId}`, next);
       return { updated: true as const, set: next };
+    });
+  }
+
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.runExclusive(`verification-token:user:${userId}:${purpose}`, async () => {
+      const activeHash = (await this.ctx.storage.get(
+        `verification-token:active:${userId}:${purpose}`,
+      )) as string | undefined;
+      if (activeHash) {
+        const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
+          | VerificationToken
+          | undefined;
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+          };
+          await this.ctx.storage.put(`verification-token:hash:${activeHash}`, invalidated);
+        }
+        await this.ctx.storage.delete(`verification-token:active:${userId}:${purpose}`);
+      }
     });
   }
 

@@ -90,6 +90,43 @@ export interface KeyDirectoryRecord {
   version: number;
 }
 
+export interface ResolutionFreshness {
+  resolvedAt: string;
+  cached: boolean;
+  ttlMs: number;
+  source: "stealth_local" | "stellar_federation" | "direct_address" | "negative_cache";
+  expiresAt: string;
+}
+
+export interface ResolutionError {
+  code:
+    | "not_found"
+    | "suspended"
+    | "deactivated"
+    | "pending_verification"
+    | "timeout"
+    | "invalid_format"
+    | "network_error";
+  message: string;
+}
+
+export interface ResolvedIdentity {
+  identifier: string;
+  canonicalAddress: string;
+  account: string | null;
+  resolved: boolean;
+  status: AccountStatus | "unknown";
+  publicKey: string | null;
+  encryptionKeyVersion: number | null;
+  policyEndpoint: string | null;
+  policy?: MailboxPolicy | null;
+  profile?: PublicProfile | null;
+  memo?: string;
+  memoType?: "text" | "id" | "hash";
+  freshness: ResolutionFreshness;
+  error?: ResolutionError;
+}
+
 // ---------------------------------------------------------------------------
 // Mailbox & messages
 // ---------------------------------------------------------------------------
@@ -189,6 +226,24 @@ export interface PostageQuote {
   issuedAt?: string;
   expiresAt?: string;
   digest?: string;
+}
+
+export type PostageStatus =
+  | "pending"
+  | "expired"
+  | "disputed"
+  | "settled"
+  | "refunded"
+  | "reclaimed";
+
+export interface PostageRecord {
+  amount: string;
+  createdAt: string;
+  messageId: string;
+  paymentHash: string;
+  recipient: string;
+  sender: string;
+  status: PostageStatus;
 }
 
 // ---------------------------------------------------------------------------

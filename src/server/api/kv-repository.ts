@@ -317,6 +317,14 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().recordVerificationAttempt(tokenHash, now);
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.getStub().invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   // BETA-006: Session DO stubs
   async getSession(sessionId: string): Promise<Session | null> {
     return this.getStub().getSession(sessionId);

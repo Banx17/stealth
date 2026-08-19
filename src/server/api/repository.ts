@@ -401,6 +401,11 @@ export interface ApiRepository {
   ): Promise<IssueVerificationTokenResult>;
   consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult>;
   recordVerificationAttempt(tokenHash: string, now: Date): Promise<RecordVerificationAttemptResult>;
+  invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void>;
   // Issue #1917 (BETA-010): Recovery code set CAS storage
   getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null>;
   setRecoveryCodeSet(
@@ -1033,6 +1038,14 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.inner.invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -1373,6 +1386,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "releaseUsernameReservation",
   "initializePolicyIfAbsent",
   "getActiveVerificationToken",
+  "invalidateActiveVerificationToken",
   "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
@@ -1705,6 +1719,16 @@ export class RetryableApiRepository implements ApiRepository {
     now: Date,
   ): Promise<RecordVerificationAttemptResult> {
     return this.inner.recordVerificationAttempt(tokenHash, now);
+  }
+
+  invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.withRetry("invalidateActiveVerificationToken", () =>
+      this.inner.invalidateActiveVerificationToken(userId, purpose, now),
+    );
   }
 
   getRelayQueueDepth(relayId: string): Promise<number> {

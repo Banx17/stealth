@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createApiContext } from "../../../../src/server/api/context";
-import type { Session, User } from "../../../../src/server/api/domain";
+import type { RecoveryCodeSet, Session, User } from "../../../../src/server/api/domain";
 import { MemoryApiRepository } from "../../../../src/server/api/memory-repository";
 import { hashPassword } from "../../../../src/server/api/auth/password";
 import {
@@ -249,6 +249,58 @@ describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", () => {
         "exhausted",
       );
     });
+
+    it("conflicts atomically: two simultaneous redemptions of the same code succeed exactly once", async () => {
+      const { first } = await seedCodes();
+
+      const results = await Promise.allSettled([
+        redeemRecoveryCode(createApiContext(repo), {
+          identifier: "recovery_user",
+          code: first,
+        }),
+        redeemRecoveryCode(createApiContext(repo), {
+          identifier: "recovery_user",
+          code: first,
+        }),
+      ]);
+
+      const fulfilled = results.filter((r) => r.status === "fulfilled");
+      const rejected = results.filter((r) => r.status === "rejected");
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      if (rejected[0].status === "rejected") {
+        expect(rejected[0].reason).toMatchObject({ status: 401 });
+      }
+
+      const status = await getRecoveryStatus(createApiContext(repo), testUser.userId);
+      expect(status.remainingCodes).toBe(RECOVERY_CODE_COUNT - 1);
+    });
+
+    it("repository CAS admits exactly one writer for a stale expected version", async () => {
+      const { first } = await seedCodes();
+      const current = await repo.getRecoveryCodeSet(testUser.userId);
+      expect(current).not.toBeNull();
+
+      const stale: RecoveryCodeSet = {
+        ...current!,
+        codes: current!.codes.map((entry) =>
+          entry.salt === current!.codes[0].salt && entry.hash === current!.codes[0].hash
+            ? { ...entry, usedAt: now.toISOString() }
+            : entry,
+        ),
+        updatedAt: now.toISOString(),
+      };
+
+      const writers = await Promise.all([
+        repo.setRecoveryCodeSet(structuredClone(stale), current!.version),
+        repo.setRecoveryCodeSet(structuredClone(stale), current!.version),
+      ]);
+
+      expect(writers.filter((w) => w.updated)).toHaveLength(1);
+      const stored = await repo.getRecoveryCodeSet(testUser.userId);
+      expect(stored?.version).toBe(current!.version + 1);
+      expect(stored?.codes.filter((e) => e.usedAt !== null)).toHaveLength(1);
+    });
   });
 
   describe("regenerateRecoveryCodes", () => {
@@ -298,6 +350,98 @@ describe("BETA-010: One-time recovery codes (/api/v1/auth/recovery)", () => {
 
       const stored = await repo.getRecoveryCodeSet(testUser.userId);
       expect(stored?.version).toBe(2);
+    });
+  });
+
+  describe("audit logging", () => {
+    let infoSpy: ReturnType<typeof vi.spyOn>;
+
+    afterEach(() => {
+      infoSpy?.mockRestore();
+    });
+
+    function auditActions(): Array<Record<string, unknown>> {
+      const events: Array<Record<string, unknown>> = [];
+      for (const call of vi.mocked(console.info).mock.calls) {
+        const line = call[0] as string;
+        if (!line.includes("_audit")) continue;
+        events.push(JSON.parse(line));
+      }
+      return events;
+    }
+
+    it("emits structured events for generation, redemption, rejection, and regeneration", async () => {
+      infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+      const { first } = await seedCodes();
+
+      await expect(
+        redeemRecoveryCode(createApiContext(repo), {
+          identifier: "recovery_user",
+          code: "AAAA-BBBB-CCCC-DDDD",
+        }),
+      ).rejects.toMatchObject({ status: 401 });
+
+      await redeemRecoveryCode(createApiContext(repo), {
+        identifier: "recovery_user",
+        code: first,
+      });
+
+      await expect(
+        regenerateRecoveryCodes(
+          createApiContext(repo),
+          makeSession({ recentLoginAt: "2026-07-01T10:00:00.000Z" }),
+          { now: () => now },
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      await regenerateRecoveryCodes(createApiContext(repo), makeSession(), { now: () => now });
+
+      const events = auditActions();
+      const actions = events.map((e) => e.action);
+
+      expect(actions).toEqual(
+        expect.arrayContaining([
+          "auth.recovery_codes_generated",
+          "auth.recovery_code_redeem_denied",
+          "auth.recovery_code_redeemed",
+          "auth.recovery_regenerate_recent_login_denied",
+          "auth.recovery_codes_regenerated",
+          "auth.user_other_sessions_revoked",
+        ]),
+      );
+
+      const generation = events.find((e) => e.action === "auth.recovery_codes_generated");
+      expect(generation).toMatchObject({ result: "success", actor: testUser.userId });
+
+      const redeem = events.find((e) => e.action === "auth.recovery_code_redeemed");
+      expect(redeem).toMatchObject({ result: "success", actor: testUser.userId });
+
+      const denied = events.find((e) => e.action === "auth.recovery_code_redeem_denied");
+      expect(denied).toMatchObject({ result: "denied" });
+    });
+
+    it("never writes plaintext code material into audit events or logs", async () => {
+      infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+      const { codes } = await generateRecoveryCodes(createApiContext(repo), testUser.userId, {
+        now: () => now,
+      });
+      await redeemRecoveryCode(createApiContext(repo), {
+        identifier: "recovery_user",
+        code: codes[0],
+      });
+
+      const logged = vi
+        .mocked(console.info)
+        .mock.calls.map((call) => call[0] as string)
+        .join("\n");
+
+      for (const code of codes) {
+        const normalized = code.replace(/-/g, "");
+        expect(logged).not.toContain(code);
+        expect(logged).not.toContain(normalized);
+      }
     });
   });
 });

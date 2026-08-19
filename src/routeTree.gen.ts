@@ -18,6 +18,7 @@ import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
@@ -72,6 +73,8 @@ import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/c
 import { Route as ApiV1AuthRecoveryStatusRouteImport } from './routes/api/v1/auth/recovery/status'
 import { Route as ApiV1AuthRecoveryRegenerateRouteImport } from './routes/api/v1/auth/recovery/regenerate'
 import { Route as ApiV1AuthRecoveryRedeemRouteImport } from './routes/api/v1/auth/recovery/redeem'
+import { Route as ApiV1AuthPasswordResetRequestRouteImport } from './routes/api/v1/auth/password-reset/request'
+import { Route as ApiV1AuthPasswordResetCompleteRouteImport } from './routes/api/v1/auth/password-reset/complete'
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
@@ -123,6 +126,11 @@ const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   id: '/api/v1/health',
   path: '/api/v1/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
+  id: '/api/v1/bootstrap',
+  path: '/api/v1/bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
@@ -407,6 +415,18 @@ const ApiV1AuthRecoveryRedeemRoute = ApiV1AuthRecoveryRedeemRouteImport.update({
   path: '/api/v1/auth/recovery/redeem',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuthPasswordResetRequestRoute =
+  ApiV1AuthPasswordResetRequestRouteImport.update({
+    id: '/api/v1/auth/password-reset/request',
+    path: '/api/v1/auth/password-reset/request',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AuthPasswordResetCompleteRoute =
+  ApiV1AuthPasswordResetCompleteRouteImport.update({
+    id: '/api/v1/auth/password-reset/complete',
+    path: '/api/v1/auth/password-reset/complete',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AdminJobsIdRoute = ApiV1AdminJobsIdRouteImport.update({
   id: '/api/v1/admin/jobs/$id',
   path: '/api/v1/admin/jobs/$id',
@@ -453,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -490,6 +511,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
+  '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
+  '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
   '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
   '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
   '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
@@ -525,6 +548,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -562,6 +586,8 @@ export interface FileRoutesByTo {
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
+  '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
+  '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
   '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
   '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
   '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
@@ -598,6 +624,7 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
@@ -635,6 +662,8 @@ export interface FileRoutesById {
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
+  '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
+  '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
   '/api/v1/auth/recovery/redeem': typeof ApiV1AuthRecoveryRedeemRoute
   '/api/v1/auth/recovery/regenerate': typeof ApiV1AuthRecoveryRegenerateRoute
   '/api/v1/auth/recovery/status': typeof ApiV1AuthRecoveryStatusRoute
@@ -672,6 +701,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
+    | '/api/v1/bootstrap'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -709,6 +739,8 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
+    | '/api/v1/auth/password-reset/complete'
+    | '/api/v1/auth/password-reset/request'
     | '/api/v1/auth/recovery/redeem'
     | '/api/v1/auth/recovery/regenerate'
     | '/api/v1/auth/recovery/status'
@@ -744,6 +776,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
+    | '/api/v1/bootstrap'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -781,6 +814,8 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
+    | '/api/v1/auth/password-reset/complete'
+    | '/api/v1/auth/password-reset/request'
     | '/api/v1/auth/recovery/redeem'
     | '/api/v1/auth/recovery/regenerate'
     | '/api/v1/auth/recovery/status'
@@ -816,6 +851,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
+    | '/api/v1/bootstrap'
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
@@ -853,6 +889,8 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
+    | '/api/v1/auth/password-reset/complete'
+    | '/api/v1/auth/password-reset/request'
     | '/api/v1/auth/recovery/redeem'
     | '/api/v1/auth/recovery/regenerate'
     | '/api/v1/auth/recovery/status'
@@ -889,6 +927,7 @@ export interface RootRouteChildren {
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
+  ApiV1BootstrapRoute: typeof ApiV1BootstrapRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
@@ -925,6 +964,8 @@ export interface RootRouteChildren {
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
   ApiV1AdminDlqIdRoute: typeof ApiV1AdminDlqIdRouteWithChildren
   ApiV1AdminJobsIdRoute: typeof ApiV1AdminJobsIdRoute
+  ApiV1AuthPasswordResetCompleteRoute: typeof ApiV1AuthPasswordResetCompleteRoute
+  ApiV1AuthPasswordResetRequestRoute: typeof ApiV1AuthPasswordResetRequestRoute
   ApiV1AuthRecoveryRedeemRoute: typeof ApiV1AuthRecoveryRedeemRoute
   ApiV1AuthRecoveryRegenerateRoute: typeof ApiV1AuthRecoveryRegenerateRoute
   ApiV1AuthRecoveryStatusRoute: typeof ApiV1AuthRecoveryStatusRoute
@@ -1009,6 +1050,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/health'
       fullPath: '/api/v1/health'
       preLoaderRoute: typeof ApiV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bootstrap': {
+      id: '/api/v1/bootstrap'
+      path: '/api/v1/bootstrap'
+      fullPath: '/api/v1/bootstrap'
+      preLoaderRoute: typeof ApiV1BootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/requests/': {
@@ -1389,6 +1437,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AuthRecoveryRedeemRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/password-reset/request': {
+      id: '/api/v1/auth/password-reset/request'
+      path: '/api/v1/auth/password-reset/request'
+      fullPath: '/api/v1/auth/password-reset/request'
+      preLoaderRoute: typeof ApiV1AuthPasswordResetRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/password-reset/complete': {
+      id: '/api/v1/auth/password-reset/complete'
+      path: '/api/v1/auth/password-reset/complete'
+      fullPath: '/api/v1/auth/password-reset/complete'
+      preLoaderRoute: typeof ApiV1AuthPasswordResetCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/jobs/$id': {
       id: '/api/v1/admin/jobs/$id'
       path: '/api/v1/admin/jobs/$id'
@@ -1520,6 +1582,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   AuthVerifyRoute: AuthVerifyRoute,
+  ApiV1BootstrapRoute: ApiV1BootstrapRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
@@ -1556,6 +1619,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,
   ApiV1AdminDlqIdRoute: ApiV1AdminDlqIdRouteWithChildren,
   ApiV1AdminJobsIdRoute: ApiV1AdminJobsIdRoute,
+  ApiV1AuthPasswordResetCompleteRoute: ApiV1AuthPasswordResetCompleteRoute,
+  ApiV1AuthPasswordResetRequestRoute: ApiV1AuthPasswordResetRequestRoute,
   ApiV1AuthRecoveryRedeemRoute: ApiV1AuthRecoveryRedeemRoute,
   ApiV1AuthRecoveryRegenerateRoute: ApiV1AuthRecoveryRegenerateRoute,
   ApiV1AuthRecoveryStatusRoute: ApiV1AuthRecoveryStatusRoute,
