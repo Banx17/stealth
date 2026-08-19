@@ -228,6 +228,24 @@ export interface PostageQuote {
   digest?: string;
 }
 
+export type PostageStatus =
+  | "pending"
+  | "expired"
+  | "disputed"
+  | "settled"
+  | "refunded"
+  | "reclaimed";
+
+export interface PostageRecord {
+  amount: string;
+  createdAt: string;
+  messageId: string;
+  paymentHash: string;
+  recipient: string;
+  sender: string;
+  status: PostageStatus;
+}
+
 // ---------------------------------------------------------------------------
 // Receipts & proof
 // ---------------------------------------------------------------------------

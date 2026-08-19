@@ -73,6 +73,8 @@ import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/ide
 import { Route as ApiV1IdentityKeysKeyIdRouteImport } from './routes/api/v1/identity/keys/$keyId'
 import { Route as ApiV1ContactsImportPreviewRouteImport } from './routes/api/v1/contacts/import/preview'
 import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/contacts/import/commit'
+import { Route as ApiV1AuthPasswordResetRequestRouteImport } from './routes/api/v1/auth/password-reset/request'
+import { Route as ApiV1AuthPasswordResetCompleteRouteImport } from './routes/api/v1/auth/password-reset/complete'
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
@@ -414,6 +416,18 @@ const ApiV1ContactsImportCommitRoute =
     path: '/api/v1/contacts/import/commit',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1AuthPasswordResetRequestRoute =
+  ApiV1AuthPasswordResetRequestRouteImport.update({
+    id: '/api/v1/auth/password-reset/request',
+    path: '/api/v1/auth/password-reset/request',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AuthPasswordResetCompleteRoute =
+  ApiV1AuthPasswordResetCompleteRouteImport.update({
+    id: '/api/v1/auth/password-reset/complete',
+    path: '/api/v1/auth/password-reset/complete',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1AdminJobsIdRoute = ApiV1AdminJobsIdRouteImport.update({
   id: '/api/v1/admin/jobs/$id',
   path: '/api/v1/admin/jobs/$id',
@@ -499,6 +513,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
+  '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
+  '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
   '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
@@ -572,6 +588,8 @@ export interface FileRoutesByTo {
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
+  '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
+  '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
   '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
@@ -646,6 +664,8 @@ export interface FileRoutesById {
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
+  '/api/v1/auth/password-reset/complete': typeof ApiV1AuthPasswordResetCompleteRoute
+  '/api/v1/auth/password-reset/request': typeof ApiV1AuthPasswordResetRequestRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
   '/api/v1/contacts/import/preview': typeof ApiV1ContactsImportPreviewRoute
   '/api/v1/identity/keys/$keyId': typeof ApiV1IdentityKeysKeyIdRoute
@@ -721,6 +741,8 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
+    | '/api/v1/auth/password-reset/complete'
+    | '/api/v1/auth/password-reset/request'
     | '/api/v1/contacts/import/commit'
     | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
@@ -794,6 +816,8 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
+    | '/api/v1/auth/password-reset/complete'
+    | '/api/v1/auth/password-reset/request'
     | '/api/v1/contacts/import/commit'
     | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
@@ -867,6 +891,8 @@ export interface FileRouteTypes {
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
+    | '/api/v1/auth/password-reset/complete'
+    | '/api/v1/auth/password-reset/request'
     | '/api/v1/contacts/import/commit'
     | '/api/v1/contacts/import/preview'
     | '/api/v1/identity/keys/$keyId'
@@ -940,6 +966,8 @@ export interface RootRouteChildren {
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
   ApiV1AdminDlqIdRoute: typeof ApiV1AdminDlqIdRouteWithChildren
   ApiV1AdminJobsIdRoute: typeof ApiV1AdminJobsIdRoute
+  ApiV1AuthPasswordResetCompleteRoute: typeof ApiV1AuthPasswordResetCompleteRoute
+  ApiV1AuthPasswordResetRequestRoute: typeof ApiV1AuthPasswordResetRequestRoute
   ApiV1ContactsImportCommitRoute: typeof ApiV1ContactsImportCommitRoute
   ApiV1ContactsImportPreviewRoute: typeof ApiV1ContactsImportPreviewRoute
   ApiV1IdentityKeysKeyIdRoute: typeof ApiV1IdentityKeysKeyIdRoute
@@ -1408,6 +1436,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ContactsImportCommitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/password-reset/request': {
+      id: '/api/v1/auth/password-reset/request'
+      path: '/api/v1/auth/password-reset/request'
+      fullPath: '/api/v1/auth/password-reset/request'
+      preLoaderRoute: typeof ApiV1AuthPasswordResetRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/auth/password-reset/complete': {
+      id: '/api/v1/auth/password-reset/complete'
+      path: '/api/v1/auth/password-reset/complete'
+      fullPath: '/api/v1/auth/password-reset/complete'
+      preLoaderRoute: typeof ApiV1AuthPasswordResetCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/jobs/$id': {
       id: '/api/v1/admin/jobs/$id'
       path: '/api/v1/admin/jobs/$id'
@@ -1594,6 +1636,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,
   ApiV1AdminDlqIdRoute: ApiV1AdminDlqIdRouteWithChildren,
   ApiV1AdminJobsIdRoute: ApiV1AdminJobsIdRoute,
+  ApiV1AuthPasswordResetCompleteRoute: ApiV1AuthPasswordResetCompleteRoute,
+  ApiV1AuthPasswordResetRequestRoute: ApiV1AuthPasswordResetRequestRoute,
   ApiV1ContactsImportCommitRoute: ApiV1ContactsImportCommitRoute,
   ApiV1ContactsImportPreviewRoute: ApiV1ContactsImportPreviewRoute,
   ApiV1IdentityKeysKeyIdRoute: ApiV1IdentityKeysKeyIdRoute,

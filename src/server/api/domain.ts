@@ -30,7 +30,14 @@ export const stroopAmountSchema = z
   }, "Amount exceeds Soroban i128");
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
-export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);
+export const postageStatusSchema = z.enum([
+  "pending",
+  "expired",
+  "disputed",
+  "settled",
+  "refunded",
+  "reclaimed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
@@ -434,7 +441,15 @@ export const publicProfileSchema = z.object({
 // BETA-005: Verification token lifecycle domain
 // ---------------------------------------------------------------------------
 
-export const verificationPurposeSchema = z.enum(["email_verification"]);
+export const passwordPolicySchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .max(256, "Password is too long")
+  .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter")
+  .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter")
+  .refine((value) => /\d/.test(value), "Password must include a number");
+
+export const verificationPurposeSchema = z.enum(["email_verification", "password_reset"]);
 export type VerificationPurpose = z.infer<typeof verificationPurposeSchema>;
 
 export const verificationTokenHashSchema = z
