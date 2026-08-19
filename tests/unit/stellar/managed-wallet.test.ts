@@ -17,6 +17,7 @@ import {
   Transaction,
   Operation,
   Asset,
+  StrKey,
 } from "@stellar/stellar-sdk";
 
 describe("Managed Wallet Boundary", () => {
@@ -35,9 +36,9 @@ describe("Managed Wallet Boundary", () => {
   // Actually, let's just use dummy valid contract IDs.
   // A valid contract ID starts with C and has a 2-byte checksum.
   // I will just use `new Contract(contractId)` with a known valid ID.
-  const knownContract1 = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4";
-  const knownContract2 = "CBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQWW";
-  const knownContract3 = "CCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH2S";
+  const knownContract1 = StrKey.encodeContract(Buffer.alloc(32, 0));
+  const knownContract2 = StrKey.encodeContract(Buffer.alloc(32, 1));
+  const knownContract3 = StrKey.encodeContract(Buffer.alloc(32, 2));
 
   const mockConfig: BetaRuntimeConfig = {
     network: {
@@ -59,14 +60,25 @@ describe("Managed Wallet Boundary", () => {
 
   const actorAddress = Keypair.random().publicKey();
 
-  function buildMockTx(contractId: string, functionName: string): string {
+  function buildMockTx(contractId: string, functionName: string, args: any[] = []): string {
     const account = new Account(operatorKeypair.publicKey(), "1");
     const contract = new Contract(contractId);
+
+    // Convert native args to ScVals for the mock
+    const scArgs = args.map((arg) => {
+      if (typeof arg === "string" && arg.startsWith("G")) {
+        return xdr.ScVal.scvAddress(
+          xdr.ScAddress.scAddressTypeAccount(Keypair.fromPublicKey(arg).xdrAccountId()),
+        );
+      }
+      return xdr.ScVal.scvVoid(); // Fallback for simple testing
+    });
+
     const tx = new TransactionBuilder(account, {
       fee: "100",
       networkPassphrase: mockConfig.network.networkPassphrase,
     })
-      .addOperation(contract.call(functionName))
+      .addOperation(contract.call(functionName, ...scArgs))
       .setTimeout(30)
       .build();
     return tx.toEnvelope().toXDR("base64");
@@ -76,7 +88,7 @@ describe("Managed Wallet Boundary", () => {
 
   it("signs a valid policy intent and returns XDR", async () => {
     const intent = { type: "policy", ownerAddress: actorAddress } as const;
-    const txXdr = buildMockTx(knownContract1, "set_policy");
+    const txXdr = buildMockTx(knownContract3, "set_policy", [actorAddress]);
 
     const signedXdr = await wallet.signTransaction(intent, actorAddress, txXdr, "req-123");
 
@@ -87,10 +99,29 @@ describe("Managed Wallet Boundary", () => {
 
   it("rejects mismatched function for intent type", async () => {
     const intent = { type: "policy", ownerAddress: actorAddress } as const;
-    const txXdr = buildMockTx(knownContract1, "submit_postage");
+    const txXdr = buildMockTx(knownContract3, "submit");
 
     await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
-      "Function submit_postage is not allowed for policy intents",
+      "Function submit is not allowed for policy intents",
+    );
+  });
+
+  it("rejects invalid contract id", async () => {
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    const txXdr = buildMockTx(knownContract1, "set_policy", [actorAddress]); // knownContract1 is wrong, config has knownContract3
+
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
+      "Invalid contract ID for policy intent",
+    );
+  });
+
+  it("rejects mismatched owner address", async () => {
+    const intent = { type: "policy", ownerAddress: actorAddress } as const;
+    const maliciousActor = Keypair.random().publicKey();
+    const txXdr = buildMockTx(knownContract3, "set_policy", [maliciousActor]);
+
+    await expect(wallet.signTransaction(intent, actorAddress, txXdr, "req-123")).rejects.toThrow(
+      `Transaction alters policy for a different owner: ${maliciousActor}`,
     );
   });
 
@@ -119,7 +150,7 @@ describe("Managed Wallet Boundary", () => {
 });
 
 describe("managed wallet envelope custody", () => {
-  const contractId = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4";
+  const contractId = StrKey.encodeContract(Buffer.alloc(32, 0));
   const networkPassphrase = "Test SDF Network ; September 2015";
 
   async function keys(active = "v2", versions = ["v1", "v2"]) {
@@ -145,8 +176,13 @@ describe("managed wallet envelope custody", () => {
   }
 
   function transaction(source: string) {
+    const scArgs = [
+      xdr.ScVal.scvAddress(
+        xdr.ScAddress.scAddressTypeAccount(Keypair.fromPublicKey(source).xdrAccountId()),
+      ),
+    ];
     return new TransactionBuilder(new Account(source, "1"), { fee: "100", networkPassphrase })
-      .addOperation(new Contract(contractId).call("set_policy"))
+      .addOperation(new Contract(contractId).call("set_policy", ...scArgs))
       .setTimeout(30)
       .build()
       .toXDR();

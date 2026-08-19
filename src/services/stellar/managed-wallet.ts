@@ -5,6 +5,8 @@ import {
   Account,
   TimeoutInfinite,
   Transaction,
+  Address,
+  scValToNative,
 } from "@stellar/stellar-sdk";
 import type { BetaRuntimeConfig } from "../../config/schema";
 import {
@@ -171,27 +173,48 @@ export class ManagedWalletService {
 
     const invoke = func.invokeContract();
 
-    // Address format can vary, but we can verify contract ID
-    // Let's assume we validate the contract based on intent.
+    // Verify contract ID and extract function name and arguments
+    const contractAddress = Address.fromScAddress(invoke.contractAddress()).toString();
     const functionName = invoke.functionName().toString("utf-8");
+    const args = invoke.args().map((arg: any) => scValToNative(arg));
 
-    // For policy, we expect set_policy or set_policy_as or set_sender_rule
     if (intent.type === "policy") {
+      if (contractAddress !== config.contract.registryContractId) {
+        throw new Error("Invalid contract ID for policy intent");
+      }
       const allowedFuncs = ["set_policy", "set_policy_as", "set_sender_rule", "set_sender_rule_as"];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for policy intents`);
       }
-      // Note: Full parameter introspection can be done here.
+      const targetOwner = args[0];
+      if (targetOwner !== intent.ownerAddress) {
+        throw new Error(`Transaction alters policy for a different owner: ${targetOwner}`);
+      }
     } else if (intent.type === "postage") {
-      const allowedFuncs = ["submit_postage", "settle_postage"];
+      if (contractAddress !== config.contract.postageContractId) {
+        throw new Error("Invalid contract ID for postage intent");
+      }
+      const allowedFuncs = ["submit", "settle", "submit_postage", "settle_postage"];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for postage intents`);
       }
+      if (functionName === "submit" || functionName === "submit_postage") {
+        const targetSender = args[1]; // sender is the 2nd argument in submit()
+        if (targetSender !== intent.senderAddress) {
+          throw new Error(`Transaction submits postage for a different sender: ${targetSender}`);
+        }
+      }
     } else if (intent.type === "lifecycle") {
-      // e.g. account setup, delegate setting
+      if (contractAddress !== config.contract.registryContractId) {
+        throw new Error("Invalid contract ID for lifecycle intent");
+      }
       const allowedFuncs = ["set_delegate", "update_account"];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for lifecycle intents`);
+      }
+      const targetUser = args[0];
+      if (targetUser !== intent.userAddress) {
+        throw new Error(`Transaction alters lifecycle for a different user: ${targetUser}`);
       }
     } else if (intent.type === "receipt") {
       const allowedFuncs = ["emit_receipt", "record_delivery"];
