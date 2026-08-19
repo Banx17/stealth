@@ -418,6 +418,117 @@ export const verificationTokenSchema = z.object({
 
 export type VerificationToken = z.infer<typeof verificationTokenSchema>;
 
+// ---------------------------------------------------------------------------
+// BETA-015 (Issue #1922) — system-managed Stellar testnet wallet provisioning
+//
+// Public metadata and encrypted secret material are stored together under a
+// user-scoped record. Plaintext seeds never reach durable storage, API
+// responses, or logs — only the public Stellar address and funding status are
+// exposed to clients.
+// ---------------------------------------------------------------------------
+
+export const managedWalletFundingStatusSchema = z.enum(["pending", "funded", "failed"]);
+export type ManagedWalletFundingStatus = z.infer<typeof managedWalletFundingStatusSchema>;
+
+export const encryptedWalletSecretSchema = z.object({
+  ciphertext: z.string().min(1, "Encrypted ciphertext cannot be empty"),
+  nonce: z.string().min(1, "Encrypted nonce cannot be empty"),
+  tag: z.string().min(1, "Encrypted tag cannot be empty"),
+  keyVersion: z.number().int().positive().default(1),
+});
+
+export type EncryptedWalletSecret = z.infer<typeof encryptedWalletSecretSchema>;
+
+export const managedWalletRecordSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  /** Beta managed wallets are testnet-only. */
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  encryptedSecret: encryptedWalletSecretSchema,
+  fundedAt: z.string().datetime().nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  lastError: z.string().max(300).nullable().default(null),
+});
+
+export type ManagedWalletRecord = z.infer<typeof managedWalletRecordSchema>;
+
+/** Client-safe wallet metadata — never includes seed material. */
+export const publicManagedWalletSchema = z.object({
+  address: stellarAddressSchema,
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  provisioned: z.boolean(),
+  fundedAt: z.string().datetime().nullable().optional(),
+});
+
+export type PublicManagedWallet = z.infer<typeof publicManagedWalletSchema>;
+
+export function toPublicManagedWallet(
+  wallet: ManagedWalletRecord,
+  provisioned: boolean,
+): PublicManagedWallet {
+  return {
+    address: wallet.address,
+    network: wallet.network,
+    fundingStatus: wallet.fundingStatus,
+    provisioned,
+    fundedAt: wallet.fundedAt ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BETA-018 (Issue #1925) — durable testnet funding operations
+//
+// One operation per account. Retries resume the same operationId so worker
+// restarts never double-fund. Queue projections never include seed material.
+// ---------------------------------------------------------------------------
+
+export const fundingErrorClassSchema = z.enum(["transient", "permanent"]);
+export type FundingErrorClass = z.infer<typeof fundingErrorClassSchema>;
+
+export const fundingOperationStatusSchema = z.enum(["pending", "retrying", "succeeded", "failed"]);
+export type FundingOperationStatus = z.infer<typeof fundingOperationStatusSchema>;
+
+export const fundingOperationSchema = z.object({
+  operationId: z.string().min(1, "Funding operation ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  status: fundingOperationStatusSchema,
+  attempt: z.number().int().nonnegative(),
+  maxAttempts: z.number().int().positive(),
+  nextRetryAt: z.string().datetime().nullable().default(null),
+  lastErrorClass: fundingErrorClassSchema.nullable().default(null),
+  lastError: z.string().max(300).nullable().default(null),
+  transactionId: z.string().max(128).nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type FundingOperation = z.infer<typeof fundingOperationSchema>;
+
+/** Administrator-visible queue item — never includes key material. */
+export const publicFundingOperationSchema = fundingOperationSchema.omit({});
+export type PublicFundingOperation = z.infer<typeof publicFundingOperationSchema>;
+
+export function toPublicFundingOperation(operation: FundingOperation): PublicFundingOperation {
+  return {
+    operationId: operation.operationId,
+    userId: operation.userId,
+    address: operation.address,
+    status: operation.status,
+    attempt: operation.attempt,
+    maxAttempts: operation.maxAttempts,
+    nextRetryAt: operation.nextRetryAt,
+    lastErrorClass: operation.lastErrorClass,
+    lastError: operation.lastError,
+    transactionId: operation.transactionId,
+    createdAt: operation.createdAt,
+    updatedAt: operation.updatedAt,
+  };
+}
+
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 export type User = z.infer<typeof userSchema>;
 export type Profile = z.infer<typeof profileSchema>;
