@@ -356,6 +356,9 @@ describe("BETA-025 (Issue #1932): Two-User Identity Acceptance Suite", () => {
         displayName: "Alice Smith",
         avatarUrl: null,
         bio: null,
+        locale: "en",
+        timezone: "UTC",
+        addressDisplay: "truncated",
         createdAt: aliceProfile.createdAt,
         updatedAt: aliceProfile.updatedAt,
       });
