@@ -2814,6 +2814,183 @@ export const openApiDocument = {
         },
       },
     },
+    "/auth/password-reset/request": {
+      post: {
+        operationId: "requestPasswordReset",
+        summary: "Request a password reset email for an account",
+        description:
+          "Issues a hashed, single-use password reset token delivered to the account email. Responds identically for existing and non-existing accounts to prevent enumeration; rate limits and cooldowns are enforced.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic confirmation; the message was sent or intentionally not sent",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Password reset request is on cooldown or rate limited",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "503": {
+            description: "The password reset message could not be delivered",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/password-reset/complete": {
+      post: {
+        operationId: "completePasswordReset",
+        summary: "Complete password reset using a single-use token",
+        description:
+          "Consumes a single-use password reset token, validates password policy, sets the new password, invalidates all other outstanding reset tokens, and revokes all active sessions for the user.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token", "password"],
+                properties: {
+                  token: { type: "string" },
+                  password: { type: "string", minLength: 12, maxLength: 256 },
+                  passwordConfirmation: { type: "string" },
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Password reset completed successfully and all active sessions revoked",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid or expired password reset token",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Password reset token has already been used or superseded",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Password does not meet policy requirements or validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Too many failed attempts. Token is locked",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/contacts": {
       get: {
         operationId: "listContacts",

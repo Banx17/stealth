@@ -729,6 +729,27 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.withVerificationLock(activeTokenKey(userId, purpose), async () => {
+      const activeHash = this.activeVerificationTokens.get(activeTokenKey(userId, purpose));
+      if (activeHash) {
+        const current = this.verificationTokens.get(activeHash);
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+          };
+          this.verificationTokens.set(activeHash, invalidated);
+        }
+        this.activeVerificationTokens.delete(activeTokenKey(userId, purpose));
+      }
+    });
+  }
+
   async getRelayQueueDepth(_relayId: string) {
     return 0;
   }
