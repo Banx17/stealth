@@ -18,7 +18,9 @@ test.describe("App Bootstrap & Failure Recovery Journey", () => {
     });
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Sign in to continue" })).toBeVisible({ timeout: 60000 });
+    await expect(page.getByRole("heading", { name: "Sign in to continue" })).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByRole("link", { name: /Sign in/i })).toBeVisible();
   });
 

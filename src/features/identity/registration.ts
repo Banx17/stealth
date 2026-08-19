@@ -11,7 +11,6 @@ export const usernameSchema = z
     "Username must be 3-30 lowercase alphanumeric characters, underscores, or hyphens",
   );
 
-
 export const CURRENT_TERMS_VERSION = "2026-01";
 export const CURRENT_PRIVACY_POLICY_VERSION = "2026-01";
 
