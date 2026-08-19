@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { usePostageStatus } from "@/features/ledger/usePostageStatus";
 import { sharedTypedApi as api } from "@/lib/api";
@@ -21,7 +21,19 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 
 describe("usePostageStatus", () => {
-  const queryClient = new QueryClient();
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
+  });
+
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
