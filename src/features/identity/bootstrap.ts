@@ -297,11 +297,6 @@ export async function fetchBootstrap(options?: {
       return successState;
     } catch (cause) {
       clearTimeout(timer);
-      if (!import.meta.env.PROD) {
-        const demo = getDemoState();
-        cachedState = demo;
-        return demo;
-      }
       const isAbort = cause instanceof Error && cause.name === "AbortError";
       const errorState: BootstrapState = {
         data: null,

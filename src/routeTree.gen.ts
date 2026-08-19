@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MotionGalleryRouteImport } from './routes/motion-gallery'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as PolicyEditorRouteRouteImport } from './routes/policy-editor/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
@@ -80,9 +82,19 @@ import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
 import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
 
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
   path: '/motion-gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PolicyEditorRouteRoute = PolicyEditorRouteRouteImport.update({
@@ -450,7 +462,9 @@ const ApiV1AccountsUserIdWalletProvisionRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/policy-editor': typeof PolicyEditorRouteRoute
+  '/demo': typeof DemoRoute
   '/motion-gallery': typeof MotionGalleryRoute
+  '/onboarding': typeof OnboardingRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -522,7 +536,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/policy-editor': typeof PolicyEditorRouteRoute
+  '/demo': typeof DemoRoute
   '/motion-gallery': typeof MotionGalleryRoute
+  '/onboarding': typeof OnboardingRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -595,7 +611,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/policy-editor': typeof PolicyEditorRouteRoute
+  '/demo': typeof DemoRoute
   '/motion-gallery': typeof MotionGalleryRoute
+  '/onboarding': typeof OnboardingRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -669,7 +687,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/policy-editor'
+    | '/demo'
     | '/motion-gallery'
+    | '/onboarding'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
@@ -741,7 +761,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/policy-editor'
+    | '/demo'
     | '/motion-gallery'
+    | '/onboarding'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
@@ -813,7 +835,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/policy-editor'
+    | '/demo'
     | '/motion-gallery'
+    | '/onboarding'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/auth/verify'
@@ -886,7 +910,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PolicyEditorRouteRoute: typeof PolicyEditorRouteRoute
+  DemoRoute: typeof DemoRoute
   MotionGalleryRoute: typeof MotionGalleryRoute
+  OnboardingRoute: typeof OnboardingRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
@@ -949,11 +975,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motion-gallery': {
       id: '/motion-gallery'
       path: '/motion-gallery'
       fullPath: '/motion-gallery'
       preLoaderRoute: typeof MotionGalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/policy-editor': {
@@ -1517,7 +1557,9 @@ const ApiV1AdminDlqIdRouteWithChildren = ApiV1AdminDlqIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PolicyEditorRouteRoute: PolicyEditorRouteRoute,
+  DemoRoute: DemoRoute,
   MotionGalleryRoute: MotionGalleryRoute,
+  OnboardingRoute: OnboardingRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   AuthVerifyRoute: AuthVerifyRoute,
