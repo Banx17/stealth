@@ -1,8 +1,8 @@
-import { test, expect } from "./fixtures";
+import { test, expect, openDemoMailbox } from "./fixtures";
 
 test.describe("Account Settings", () => {
-  test.beforeEach(async ({ page, authenticate }) => {
-    await authenticate();
+  test.beforeEach(async ({ page }) => {
+    await openDemoMailbox(page);
     await page.goto("/mail");
   });
 

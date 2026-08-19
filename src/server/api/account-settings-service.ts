@@ -81,7 +81,7 @@ export async function getAccountProfile(
     // If a versioned policy write intent exists, extract the version from there.
     if (policy) {
       const intent = await repo.getPolicyWriteIntent(actor);
-      policyVersion = intent?.version ?? null;
+      policyVersion = null; // intent version removed
     }
   } catch {
     // Policy lookup failure should not block profile reads

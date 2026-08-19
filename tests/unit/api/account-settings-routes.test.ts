@@ -26,6 +26,7 @@ describe("Account Settings Routes", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -47,7 +48,7 @@ describe("Account Settings Routes", () => {
       headers: { [ACTOR_HEADER]: validAddress },
     });
 
-    const handler = ProfileRoute.options.server!.handlers.GET!;
+    const handler = (ProfileRoute as any).options.GET!;
     const response = await handler({ request } as any);
 
     expect(response.status).toBe(200);
@@ -65,6 +66,7 @@ describe("Account Settings Routes", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -92,7 +94,7 @@ describe("Account Settings Routes", () => {
       body: JSON.stringify({ displayName: "Updated Name", version }),
     });
 
-    const handler = ProfileRoute.options.server!.handlers.PATCH!;
+    const handler = (ProfileRoute as any).options.PATCH!;
     const response = await handler({ request } as any);
 
     expect(response.status).toBe(200);
@@ -109,6 +111,7 @@ describe("Account Settings Routes", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -130,7 +133,7 @@ describe("Account Settings Routes", () => {
       headers: { [ACTOR_HEADER]: validAddress },
     });
 
-    const handler = AccountInfoRoute.options.server!.handlers.GET!;
+    const handler = (AccountInfoRoute as any).options.GET!;
     const response = await handler({ request } as any);
 
     expect(response.status).toBe(200);

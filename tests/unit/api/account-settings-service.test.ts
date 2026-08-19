@@ -20,6 +20,7 @@ describe("AccountSettingsService", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -63,6 +64,7 @@ describe("AccountSettingsService", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -107,6 +109,7 @@ describe("AccountSettingsService", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -146,6 +149,7 @@ describe("AccountSettingsService", () => {
       email: "test@example.com",
       username: "testuser",
       status: "active",
+      version: 1,
       createdAt: now,
       updatedAt: now,
     };
