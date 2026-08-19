@@ -563,11 +563,11 @@ export function Compose({
                       recipient.state === "blocked" ||
                       recipient.state === "invalid" ||
                       recipient.state === "resolving" ||
-                      (recipient.expiresAt && new Date() > new Date(recipient.expiresAt)) ||
+                      Boolean(recipient.expiresAt && new Date() > new Date(recipient.expiresAt)) ||
                       recipient.keyStatus === "revoked" ||
                       recipient.keyStatus === "retired",
                   ) ||
-                  (quoteState.status === "quoted" &&
+                  Boolean(quoteState.status === "quoted" &&
                     quoteState.quote.expiresAt &&
                     new Date() > new Date(quoteState.quote.expiresAt))
                 }
@@ -588,11 +588,11 @@ export function Compose({
                 const recipientResolving = resolvedRecipients.some((r) => r.state === "resolving");
                 const isBlocked = policyBlocked || recipientBlocked;
                 const trusted = isTrustedSender(quoteState);
-                const isStale =
+                const isStale: boolean =
                   resolvedRecipients.some(
                     (r) => r.expiresAt && new Date() > new Date(r.expiresAt),
                   ) ||
-                  (quoteState.status === "quoted" &&
+                  Boolean(quoteState.status === "quoted" &&
                     quoteState.quote.expiresAt &&
                     new Date() > new Date(quoteState.quote.expiresAt));
 
