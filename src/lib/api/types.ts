@@ -54,10 +54,16 @@ export interface PublicProfile {
   username: string;
   displayName: string;
   avatarUrl?: string | null;
+  avatarMetadata?: Record<string, unknown> | null;
   bio?: string | null;
   locale?: string;
   timezone?: string;
   addressDisplay?: "full" | "truncated";
+  notifications?: {
+    email: boolean;
+    desktop: boolean;
+    sound: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -267,9 +273,15 @@ export interface ProfileUpdateInput {
   displayName?: string;
   bio?: string | null;
   avatarUrl?: string | null;
+  avatarMetadata?: Record<string, unknown> | null;
   locale?: string;
   timezone?: string;
   addressDisplay?: AddressDisplay;
+  notifications?: {
+    email?: boolean;
+    desktop?: boolean;
+    sound?: boolean;
+  };
   version: number;
 }
 

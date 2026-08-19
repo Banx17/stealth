@@ -188,9 +188,19 @@ export async function updateAccountProfile(
     ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
     ...(input.bio !== undefined ? { bio: input.bio } : {}),
     ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+    ...(input.avatarMetadata !== undefined ? { avatarMetadata: input.avatarMetadata } : {}),
     ...(input.locale !== undefined ? { locale: input.locale } : {}),
     ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
     ...(input.addressDisplay !== undefined ? { addressDisplay: input.addressDisplay } : {}),
+    ...(input.notifications !== undefined
+      ? {
+          notifications: {
+            email: input.notifications.email ?? currentProfile.notifications?.email ?? true,
+            desktop: input.notifications.desktop ?? currentProfile.notifications?.desktop ?? true,
+            sound: input.notifications.sound ?? currentProfile.notifications?.sound ?? false,
+          },
+        }
+      : {}),
     updatedAt: now,
   };
 

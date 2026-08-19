@@ -496,6 +496,17 @@ function AccountSettings() {
             tooltip="Email changes require identity verification (not yet available)"
           />
           <SettingsField label="Stellar address" value={account.address} immutable copyable />
+          <div className="pt-2">
+            <SegmentedSetting
+              label="Stellar address display"
+              value={profile.addressDisplay ?? "truncated"}
+              options={[
+                ["truncated", "Truncated (G...4A)"],
+                ["full", "Full address"],
+              ]}
+              onSelect={(val) => handleSave("addressDisplay", val)}
+            />
+          </div>
         </div>
       </div>
 
@@ -757,8 +768,113 @@ function NotificationSettings({
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
 }) {
+  const queryClient = useQueryClient();
+  const {
+    data: profileData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (updates: { [key: string]: any; version: number }) =>
+      sharedTypedApi.account.updateProfile(updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.account.profile });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-4 w-24 bg-white/10 rounded mb-2" />
+        <div className="space-y-4 mt-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 bg-white/5 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !profileData) {
+    const isAuthError = isApiClientError(error) && error.status === 401;
+    return (
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+          <div>
+            <p className="font-medium text-rose-300">Could not load notifications</p>
+            <p className="mt-1 opacity-80">
+              {isAuthError
+                ? "Your session has expired. Please sign in again."
+                : "There was a problem loading your settings. Please try again."}
+            </p>
+            {!isAuthError && (
+              <button
+                onClick={() => refetch()}
+                className="mt-3 rounded border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-xs font-medium hover:bg-rose-500/30 transition"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { profile } = profileData;
+  const version = new Date(profile.updatedAt).getTime();
+  const notifications = profile.notifications ?? { email: true, desktop: true, sound: false };
+
+  const handleToggle = async (field: keyof typeof notifications, value: boolean) => {
+    try {
+      await mutation.mutateAsync({
+        notifications: { ...notifications, [field]: value },
+        version,
+      });
+    } catch (err) {
+      // Errors handled by UI components below
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Settings updated elsewhere</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              These settings were modified from another session or tab.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+            >
+              Reload latest changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 403 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <Lock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Authentication required</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              For your security, please sign out and sign back in to make this change.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h3 className="text-sm font-medium text-foreground">Notifications</h3>
         <p className="mt-1 text-xs text-muted-foreground">Configure how you receive alerts</p>
@@ -767,20 +883,20 @@ function NotificationSettings({
         <SettingsToggle
           label="Email notifications"
           description="Receive email for new messages"
-          checked={preferences.emailNotifications}
-          onChange={(checked) => onChange({ ...preferences, emailNotifications: checked })}
+          checked={notifications.email}
+          onChange={(checked) => handleToggle("email", checked)}
         />
         <SettingsToggle
           label="Desktop notifications"
           description="Show browser notifications"
-          checked={preferences.desktopNotifications}
-          onChange={(checked) => onChange({ ...preferences, desktopNotifications: checked })}
+          checked={notifications.desktop}
+          onChange={(checked) => handleToggle("desktop", checked)}
         />
         <SettingsToggle
           label="Sound"
           description="Play a sound for new messages"
-          checked={preferences.sound}
-          onChange={(checked) => onChange({ ...preferences, sound: checked })}
+          checked={notifications.sound}
+          onChange={(checked) => handleToggle("sound", checked)}
         />
       </div>
     </div>

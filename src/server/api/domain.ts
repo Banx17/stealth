@@ -363,6 +363,7 @@ export const profileSchema = z.object({
   username: usernameSchema,
   displayName: z.string().trim().min(1, "Display name cannot be empty"),
   avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
+  avatarMetadata: z.record(z.unknown()).nullable().optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
   // BETA-069: locale, timezone, and address display preferences
   locale: z
@@ -375,6 +376,13 @@ export const profileSchema = z.object({
     .default("en"),
   timezone: z.string().trim().min(1).max(64).optional().default("UTC"),
   addressDisplay: addressDisplaySchema.optional().default("truncated"),
+  notifications: z
+    .object({
+      email: z.boolean().default(true),
+      desktop: z.boolean().default(true),
+      sound: z.boolean().default(false),
+    })
+    .optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -390,6 +398,7 @@ export const profileUpdateSchema = z.object({
     .optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
   avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
+  avatarMetadata: z.record(z.unknown()).nullable().optional(),
   locale: z
     .string()
     .trim()
@@ -399,6 +408,13 @@ export const profileUpdateSchema = z.object({
     .optional(),
   timezone: z.string().trim().min(1).max(64).optional(),
   addressDisplay: z.enum(["full", "truncated"]).optional(),
+  notifications: z
+    .object({
+      email: z.boolean().optional(),
+      desktop: z.boolean().optional(),
+      sound: z.boolean().optional(),
+    })
+    .optional(),
   version: z.number().int().positive("Version must be a positive integer"),
 });
 
@@ -436,10 +452,18 @@ export const publicProfileSchema = z.object({
   username: usernameSchema,
   displayName: z.string(),
   avatarUrl: z.string().nullable().optional(),
+  avatarMetadata: z.record(z.unknown()).nullable().optional(),
   bio: z.string().nullable().optional(),
   locale: z.string().optional().default("en"),
   timezone: z.string().optional().default("UTC"),
   addressDisplay: z.enum(["full", "truncated"]).optional().default("truncated"),
+  notifications: z
+    .object({
+      email: z.boolean().default(true),
+      desktop: z.boolean().default(true),
+      sound: z.boolean().default(false),
+    })
+    .optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -713,10 +737,12 @@ export function toPublicProfile(profile: Profile): PublicProfile {
     username: profile.username,
     displayName: profile.displayName,
     avatarUrl: profile.avatarUrl ?? null,
+    avatarMetadata: profile.avatarMetadata ?? null,
     bio: profile.bio ?? null,
     locale: profile.locale ?? "en",
     timezone: profile.timezone ?? "UTC",
     addressDisplay: profile.addressDisplay ?? "truncated",
+    notifications: profile.notifications ?? { email: true, desktop: true, sound: false },
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
   };
