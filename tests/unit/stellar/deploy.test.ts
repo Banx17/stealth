@@ -15,7 +15,9 @@ describe("Deployment Script Constraints", () => {
       );
       expect.fail("Should have failed on mainnet without --release-mode");
     } catch (err: any) {
-      expect(err.stderr || err.stdout).toContain("Refusing to deploy to mainnet without --release-mode flag");
+      expect(err.stderr || err.stdout).toContain(
+        "Refusing to deploy to mainnet without --release-mode flag",
+      );
       expect(err.code).toBe(1);
     }
   });
