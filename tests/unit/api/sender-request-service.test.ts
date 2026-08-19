@@ -21,6 +21,8 @@ function pendingRequest(overrides: Record<string, unknown> = {}) {
     },
     createdAt: new Date(Date.now() - 60_000).toISOString(),
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 86400000).toISOString(),
     status: "pending" as const,
     ...overrides,
   };

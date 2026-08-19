@@ -8,6 +8,7 @@ import { hashPassword } from "./password";
 import { provisionManagedStellarWallet } from "../account-provisioning";
 import { prepareManagedWalletSecret } from "@/services/stellar/account-provision";
 import { createFundingAdapter } from "@/services/stellar/funding-adapter";
+import { checkIpLimit } from "../abuse-service";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_SIGNUPS_PER_IP = 10;
@@ -16,11 +17,18 @@ export async function registerWithPassword(
   apiContext: ApiContext,
   input: RegistrationRequest,
   ip = "unknown",
+  deviceFingerprint = "unknown",
 ): Promise<RegistrationResponse> {
-  const rateLimitKey = `signup:${ip}`;
-  if ((await apiContext.repository.getCounter(rateLimitKey)) >= MAX_SIGNUPS_PER_IP) {
-    throw new ApiError("too_many_requests", {
-      retryAfterSeconds: SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+  const ipCheck = await checkIpLimit(
+    apiContext.repository,
+    ip,
+    "registration",
+    5,
+    SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
+  );
+  if (!ipCheck.allowed) {
+    throw new ApiError(429, "too_many_requests", "Registration rate limit exceeded for IP", {
+      retryAfterSeconds: ipCheck.retryAfterSeconds ?? SIGNUP_RATE_LIMIT_WINDOW_SECONDS,
     });
   }
 
@@ -84,7 +92,6 @@ export async function registerWithPassword(
     origin: ip,
   });
 
-  await apiContext.repository.incrementCounter(rateLimitKey, SIGNUP_RATE_LIMIT_WINDOW_SECONDS, 1);
   return {
     accountStatus: "pending_verification",
     email: user.email,
