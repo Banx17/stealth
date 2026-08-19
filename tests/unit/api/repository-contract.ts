@@ -346,11 +346,11 @@ export function runRepositoryContractTests(
         username: "alice_stealth",
         displayName: "Alice Stealth",
         avatarUrl: "https://stealth.mail/avatars/alice.png",
-      bio: "Crypto privacy enthusiast",
-      locale: "en-US",
-      timezone: "UTC",
-      addressDisplay: "full" as const,
-      createdAt: "2026-01-01T00:00:00.000Z",
+        bio: "Crypto privacy enthusiast",
+        locale: "en-US",
+        timezone: "UTC",
+        addressDisplay: "full" as const,
+        createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       };
 
