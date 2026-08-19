@@ -259,6 +259,8 @@ export class RelayService {
         });
       } catch {
         // Best-effort; the durable anchor record owns the outcome.
+      }
+    }
     if (this.config.onIngestedReceipt) {
       try {
         await this.config.onIngestedReceipt({

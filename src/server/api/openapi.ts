@@ -670,6 +670,8 @@ export const openApiDocument = {
             nullable: true,
             description: "On-chain transaction hash reference.",
           },
+        },
+      },
       Contact: {
         type: "object",
         required: [

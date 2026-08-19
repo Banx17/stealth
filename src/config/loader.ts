@@ -277,6 +277,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     if (isPlaceholderContractId(lifecycleContractId) || !lifecycleContractId) {
       throw new Error(
         "Configuration error: STEALTH_LIFECYCLE_CONTRACT_ID is required and cannot be a placeholder in production.",
+      );
+    }
     if (isPlaceholderContractId(receiptsContractId) || !receiptsContractId) {
       throw new Error(
         "Configuration error: STEALTH_RECEIPTS_CONTRACT_ID is required and cannot be a placeholder in production.",

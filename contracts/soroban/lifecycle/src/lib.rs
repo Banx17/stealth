@@ -825,7 +825,7 @@ mod test {
         BytesN::from_array(env, &[byte; 32])
     }
 
-    fn setup(env: &Env) -> (Address, Address, Address) {
+    fn setup(env: &Env) -> (Address, Address, Address, Address) {
         let policies = env.register(PoliciesContract, ());
         let policies_client = PoliciesContractClient::new(env, &policies);
         let recipient = Address::generate(env);
@@ -842,7 +842,7 @@ mod test {
         let receipts = Address::generate(env);
         let lifecycle = env.register(LifecycleContract, ());
         LifecycleContractClient::new(env, &lifecycle).initialize(&policies, &postage, &receipts);
-        (lifecycle, postage, receipts)
+        (lifecycle, recipient, postage, receipts)
     }
 
     fn bind(
@@ -922,9 +922,8 @@ mod test {
         let env = Env::default();
         env.mock_all_auths();
         env.ledger().set_timestamp(1_000);
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
 
         let record = bind(&env, &lifecycle, &message_id, &sender, &recipient);
@@ -950,9 +949,8 @@ mod test {
     fn bind_rejects_duplicate_commitment() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -975,9 +973,8 @@ mod test {
     fn bind_rejects_owner_recipient_mismatch() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let other_owner = Address::generate(&env);
         let message_id = hash(&env, 1);
 
@@ -1076,9 +1073,8 @@ mod test {
     fn verify_settle_transitions_open_to_settled() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1098,9 +1094,8 @@ mod test {
     fn verify_terminal_rejects_amount_mismatch() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1118,9 +1113,8 @@ mod test {
     fn verify_terminal_rejects_core_party_mismatch() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let stranger = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
@@ -1139,9 +1133,8 @@ mod test {
     fn verify_expire_requires_pending_status() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1165,9 +1158,8 @@ mod test {
     fn verify_dispute_requires_pending_or_expired_status() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1191,9 +1183,8 @@ mod test {
     fn verify_reclaim_rejects_terminal_postage_statuses() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1218,9 +1209,8 @@ mod test {
         let env = Env::default();
         env.mock_all_auths();
         env.ledger().set_timestamp(1_000);
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1243,9 +1233,8 @@ mod test {
     fn verify_delivered_rejects_receipt_mismatch() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1263,9 +1252,8 @@ mod test {
     fn verify_delivered_rejects_already_delivered() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1282,9 +1270,8 @@ mod test {
     fn verify_read_requires_prior_delivery() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1303,9 +1290,8 @@ mod test {
         let env = Env::default();
         env.mock_all_auths();
         env.ledger().set_timestamp(1_000);
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         bind(&env, &lifecycle, &message_id, &sender, &recipient);
 
@@ -1328,9 +1314,8 @@ mod test {
     fn verify_terminal_fails_when_receipt_required_and_not_delivered() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
         LifecycleContractClient::new(&env, &lifecycle).bind(
             &message_id,
@@ -1356,7 +1341,7 @@ mod test {
     fn get_missing_lifecycle_errors() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, _, _, _) = setup(&env);
         let client = LifecycleContractClient::new(&env, &lifecycle);
         assert_eq!(
             client.try_get(&hash(&env, 99)),
@@ -1368,9 +1353,8 @@ mod test {
     fn verify_terminal_errors_on_missing_lifecycle() {
         let env = Env::default();
         env.mock_all_auths();
-        let (lifecycle, _, _) = setup(&env);
+        let (lifecycle, recipient, _, _) = setup(&env);
         let sender = Address::generate(&env);
-        let recipient = Address::generate(&env);
         let message_id = hash(&env, 1);
 
         let client = LifecycleContractClient::new(&env, &lifecycle);

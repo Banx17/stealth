@@ -23,6 +23,7 @@ import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
+import { Route as ApiV1WalletStatusRouteImport } from './routes/api/v1/wallet/status'
 import { Route as ApiV1WalletManagedRouteImport } from './routes/api/v1/wallet/managed'
 import { Route as ApiV1SendCoordinateRouteImport } from './routes/api/v1/send/coordinate'
 import { Route as ApiV1RelayVersionRouteImport } from './routes/api/v1/relay/version'
@@ -36,6 +37,7 @@ import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/polic
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
+import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
 import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
@@ -54,18 +56,16 @@ import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/j
 import { Route as ApiV1AdminFundingIndexRouteImport } from './routes/api/v1/admin/funding/index'
 import { Route as ApiV1AdminDlqIndexRouteImport } from './routes/api/v1/admin/dlq/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
-import { Route as ApiV1WalletStatusRouteImport } from './routes/api/v1/wallet/status'
 import { Route as ApiV1WalletLinkChallengeRouteImport } from './routes/api/v1/wallet/link/challenge'
 import { Route as ApiV1WalletLinkAddressRouteImport } from './routes/api/v1/wallet/link/$address'
 import { Route as ApiV1RequestsRequestIdDecisionsRouteImport } from './routes/api/v1/requests/$requestId/decisions'
 import { Route as ApiV1ReceiptsMessageIdReadRouteImport } from './routes/api/v1/receipts/$messageId/read'
-import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
-import { Route as ApiV1LifecycleMessageIdAnchorRouteImport } from './routes/api/v1/lifecycle/$messageId/anchor'
-import { Route as ApiV1LifecycleMessageIdReconcileRouteImport } from './routes/api/v1/lifecycle/$messageId/reconcile'
 import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1/postage/$messageId/settle'
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
 import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
 import { Route as ApiV1PoliciesOwnerProvisionRouteImport } from './routes/api/v1/policies/$owner/provision'
+import { Route as ApiV1LifecycleMessageIdReconcileRouteImport } from './routes/api/v1/lifecycle/$messageId/reconcile'
+import { Route as ApiV1LifecycleMessageIdAnchorRouteImport } from './routes/api/v1/lifecycle/$messageId/anchor'
 import { Route as ApiV1IdentityKeysRotateRouteImport } from './routes/api/v1/identity/keys/rotate'
 import { Route as ApiV1IdentityKeysRevokeRouteImport } from './routes/api/v1/identity/keys/revoke'
 import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/identity/keys/retire'
@@ -75,10 +75,10 @@ import { Route as ApiV1ContactsImportCommitRouteImport } from './routes/api/v1/c
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
-import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
+import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
 
 const MotionGalleryRoute = MotionGalleryRouteImport.update({
   id: '/motion-gallery',
@@ -150,6 +150,11 @@ const ApiV1AccountsIndexRoute = ApiV1AccountsIndexRouteImport.update({
   path: '/api/v1/accounts/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1WalletStatusRoute = ApiV1WalletStatusRouteImport.update({
+  id: '/api/v1/wallet/status',
+  path: '/api/v1/wallet/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1WalletManagedRoute = ApiV1WalletManagedRouteImport.update({
   id: '/api/v1/wallet/managed',
   path: '/api/v1/wallet/managed',
@@ -213,6 +218,11 @@ const ApiV1MailboxQueueRoute = ApiV1MailboxQueueRouteImport.update({
 const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
   id: '/api/v1/mailbox/$messageId',
   path: '/api/v1/mailbox/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
+  id: '/api/v1/lifecycle/$messageId',
+  path: '/api/v1/lifecycle/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
@@ -307,11 +317,6 @@ const ApiV1WalletLinkVerifyRoute = ApiV1WalletLinkVerifyRouteImport.update({
   path: '/api/v1/wallet/link/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1WalletStatusRoute = ApiV1WalletStatusRouteImport.update({
-  id: '/api/v1/wallet/status',
-  path: '/api/v1/wallet/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1WalletLinkChallengeRoute =
   ApiV1WalletLinkChallengeRouteImport.update({
     id: '/api/v1/wallet/link/challenge',
@@ -323,22 +328,6 @@ const ApiV1WalletLinkAddressRoute = ApiV1WalletLinkAddressRouteImport.update({
   path: '/api/v1/wallet/link/$address',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
-  id: '/api/v1/lifecycle/$messageId',
-  path: '/api/v1/lifecycle/$messageId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1LifecycleMessageIdAnchorRoute =
-  ApiV1LifecycleMessageIdAnchorRouteImport.update({
-    id: '/anchor',
-    path: '/anchor',
-    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
-  } as any)
-const ApiV1LifecycleMessageIdReconcileRoute =
-  ApiV1LifecycleMessageIdReconcileRouteImport.update({
-    id: '/reconcile',
-    path: '/reconcile',
-    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
 const ApiV1RequestsRequestIdDecisionsRoute =
   ApiV1RequestsRequestIdDecisionsRouteImport.update({
     id: '/api/v1/requests/$requestId/decisions',
@@ -374,6 +363,18 @@ const ApiV1PoliciesOwnerProvisionRoute =
     id: '/provision',
     path: '/provision',
     getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
+const ApiV1LifecycleMessageIdReconcileRoute =
+  ApiV1LifecycleMessageIdReconcileRouteImport.update({
+    id: '/reconcile',
+    path: '/reconcile',
+    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
+  } as any)
+const ApiV1LifecycleMessageIdAnchorRoute =
+  ApiV1LifecycleMessageIdAnchorRouteImport.update({
+    id: '/anchor',
+    path: '/anchor',
+    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
   } as any)
 const ApiV1IdentityKeysRotateRoute = ApiV1IdentityKeysRotateRouteImport.update({
   id: '/api/v1/identity/keys/rotate',
@@ -423,12 +424,6 @@ const ApiV1AccountsProvisioningRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiV1AccountsProvisioningRoute,
   } as any)
-const ApiV1AccountsUserIdWalletProvisionRoute =
-  ApiV1AccountsUserIdWalletProvisionRouteImport.update({
-    id: '/api/v1/accounts/$userId/wallet/provision',
-    path: '/api/v1/accounts/$userId/wallet/provision',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -445,6 +440,12 @@ const ApiV1AdminDlqIdAbandonRoute = ApiV1AdminDlqIdAbandonRouteImport.update({
   path: '/abandon',
   getParentRoute: () => ApiV1AdminDlqIdRoute,
 } as any)
+const ApiV1AccountsUserIdWalletProvisionRoute =
+  ApiV1AccountsUserIdWalletProvisionRouteImport.update({
+    id: '/api/v1/accounts/$userId/wallet/provision',
+    path: '/api/v1/accounts/$userId/wallet/provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -482,13 +483,13 @@ export interface FileRoutesByFullPath {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
   '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
-  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -497,23 +498,23 @@ export interface FileRoutesByFullPath {
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
   '/api/v1/identity/keys/rotate': typeof ApiV1IdentityKeysRotateRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
-  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
-  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
   '/api/v1/requests/$requestId/decisions': typeof ApiV1RequestsRequestIdDecisionsRoute
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
-  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
-  '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
+  '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -554,13 +555,13 @@ export interface FileRoutesByTo {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
   '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
-  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -569,23 +570,23 @@ export interface FileRoutesByTo {
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
   '/api/v1/identity/keys/rotate': typeof ApiV1IdentityKeysRotateRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
-  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
-  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
   '/api/v1/requests/$requestId/decisions': typeof ApiV1RequestsRequestIdDecisionsRoute
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
-  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq': typeof ApiV1AdminDlqIndexRoute
-  '/api/v1/admin/jobs': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/admin/funding': typeof ApiV1AdminFundingIndexRoute
+  '/api/v1/admin/jobs': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/identity/keys': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link': typeof ApiV1WalletLinkIndexRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -627,13 +628,13 @@ export interface FileRoutesById {
   '/api/v1/relay/version': typeof ApiV1RelayVersionRoute
   '/api/v1/send/coordinate': typeof ApiV1SendCoordinateRoute
   '/api/v1/wallet/managed': typeof ApiV1WalletManagedRoute
+  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
-  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
   '/api/v1/contacts/import/commit': typeof ApiV1ContactsImportCommitRoute
@@ -642,23 +643,23 @@ export interface FileRoutesById {
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
   '/api/v1/identity/keys/rotate': typeof ApiV1IdentityKeysRotateRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
   '/api/v1/postage/$messageId/settle': typeof ApiV1PostageMessageIdSettleRoute
-  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
-  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/receipts/$messageId/read': typeof ApiV1ReceiptsMessageIdReadRoute
   '/api/v1/requests/$requestId/decisions': typeof ApiV1RequestsRequestIdDecisionsRoute
   '/api/v1/wallet/link/$address': typeof ApiV1WalletLinkAddressRoute
   '/api/v1/wallet/link/challenge': typeof ApiV1WalletLinkChallengeRoute
   '/api/v1/wallet/link/verify': typeof ApiV1WalletLinkVerifyRoute
-  '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/admin/dlq/': typeof ApiV1AdminDlqIndexRoute
-  '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/admin/funding/': typeof ApiV1AdminFundingIndexRoute
+  '/api/v1/admin/jobs/': typeof ApiV1AdminJobsIndexRoute
   '/api/v1/identity/keys/': typeof ApiV1IdentityKeysIndexRoute
   '/api/v1/wallet/link/': typeof ApiV1WalletLinkIndexRoute
+  '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
   '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
@@ -701,13 +702,13 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/send/coordinate'
     | '/api/v1/wallet/managed'
+    | '/api/v1/wallet/status'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
-    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -716,23 +717,23 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
     | '/api/v1/identity/keys/rotate'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/policies/$owner/provision'
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
-    | '/api/v1/lifecycle/$messageId/anchor'
-    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/receipts/$messageId/read'
     | '/api/v1/requests/$requestId/decisions'
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
-    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq/'
-    | '/api/v1/admin/jobs/'
     | '/api/v1/admin/funding/'
+    | '/api/v1/admin/jobs/'
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
@@ -773,13 +774,13 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/send/coordinate'
     | '/api/v1/wallet/managed'
+    | '/api/v1/wallet/status'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
     | '/api/v1/accounts/provisioning/retry'
-    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -788,23 +789,23 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
     | '/api/v1/identity/keys/rotate'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/policies/$owner/provision'
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
-    | '/api/v1/lifecycle/$messageId/anchor'
-    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/receipts/$messageId/read'
     | '/api/v1/requests/$requestId/decisions'
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
-    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq'
-    | '/api/v1/admin/jobs'
     | '/api/v1/admin/funding'
+    | '/api/v1/admin/jobs'
     | '/api/v1/identity/keys'
     | '/api/v1/wallet/link'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
@@ -845,13 +846,13 @@ export interface FileRouteTypes {
     | '/api/v1/relay/version'
     | '/api/v1/send/coordinate'
     | '/api/v1/wallet/managed'
+    | '/api/v1/wallet/status'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
     | '/api/v1/accounts/provisioning/retry'
-    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
     | '/api/v1/contacts/import/commit'
@@ -860,23 +861,23 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
     | '/api/v1/identity/keys/rotate'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/policies/$owner/provision'
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
     | '/api/v1/postage/$messageId/settle'
-    | '/api/v1/lifecycle/$messageId/anchor'
-    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/receipts/$messageId/read'
     | '/api/v1/requests/$requestId/decisions'
     | '/api/v1/wallet/link/$address'
     | '/api/v1/wallet/link/challenge'
     | '/api/v1/wallet/link/verify'
-    | '/api/v1/wallet/status'
     | '/api/v1/admin/dlq/'
-    | '/api/v1/admin/jobs/'
     | '/api/v1/admin/funding/'
+    | '/api/v1/admin/jobs/'
     | '/api/v1/identity/keys/'
     | '/api/v1/wallet/link/'
+    | '/api/v1/accounts/$userId/wallet/provision'
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
@@ -918,8 +919,8 @@ export interface RootRouteChildren {
   ApiV1RelayVersionRoute: typeof ApiV1RelayVersionRoute
   ApiV1SendCoordinateRoute: typeof ApiV1SendCoordinateRoute
   ApiV1WalletManagedRoute: typeof ApiV1WalletManagedRoute
+  ApiV1WalletStatusRoute: typeof ApiV1WalletStatusRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
-  ApiV1AccountsUserIdWalletProvisionRoute: typeof ApiV1AccountsUserIdWalletProvisionRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
@@ -936,12 +937,12 @@ export interface RootRouteChildren {
   ApiV1WalletLinkAddressRoute: typeof ApiV1WalletLinkAddressRoute
   ApiV1WalletLinkChallengeRoute: typeof ApiV1WalletLinkChallengeRoute
   ApiV1WalletLinkVerifyRoute: typeof ApiV1WalletLinkVerifyRoute
-  ApiV1WalletStatusRoute: typeof ApiV1WalletStatusRoute
   ApiV1AdminDlqIndexRoute: typeof ApiV1AdminDlqIndexRoute
-  ApiV1AdminJobsIndexRoute: typeof ApiV1AdminJobsIndexRoute
   ApiV1AdminFundingIndexRoute: typeof ApiV1AdminFundingIndexRoute
+  ApiV1AdminJobsIndexRoute: typeof ApiV1AdminJobsIndexRoute
   ApiV1IdentityKeysIndexRoute: typeof ApiV1IdentityKeysIndexRoute
   ApiV1WalletLinkIndexRoute: typeof ApiV1WalletLinkIndexRoute
+  ApiV1AccountsUserIdWalletProvisionRoute: typeof ApiV1AccountsUserIdWalletProvisionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1044,6 +1045,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/wallet/status': {
+      id: '/api/v1/wallet/status'
+      path: '/api/v1/wallet/status'
+      fullPath: '/api/v1/wallet/status'
+      preLoaderRoute: typeof ApiV1WalletStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/wallet/managed': {
       id: '/api/v1/wallet/managed'
       path: '/api/v1/wallet/managed'
@@ -1135,6 +1143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1MailboxMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/lifecycle/$messageId': {
+      id: '/api/v1/lifecycle/$messageId'
+      path: '/api/v1/lifecycle/$messageId'
+      fullPath: '/api/v1/lifecycle/$messageId'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/identity/resolve': {
       id: '/api/v1/identity/resolve'
       path: '/api/v1/identity/resolve'
@@ -1142,11 +1157,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/lifecycle/$messageId': {
-      id: '/api/v1/lifecycle/$messageId'
-      path: '/api/v1/lifecycle/$messageId'
-      fullPath: '/api/v1/lifecycle/$messageId'
-      preLoaderRoute: typeof ApiV1LifecycleMessageIdRouteImport
     '/api/v1/delivery/$messageId': {
       id: '/api/v1/delivery/$messageId'
       path: '/api/v1/delivery/$messageId'
@@ -1266,13 +1276,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1WalletLinkVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/wallet/status': {
-      id: '/api/v1/wallet/status'
-      path: '/api/v1/wallet/status'
-      fullPath: '/api/v1/wallet/status'
-      preLoaderRoute: typeof ApiV1WalletStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/wallet/link/challenge': {
       id: '/api/v1/wallet/link/challenge'
       path: '/api/v1/wallet/link/challenge'
@@ -1308,20 +1311,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PostageMessageIdSettleRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
-    '/api/v1/lifecycle/$messageId/anchor': {
-      id: '/anchor'
-      path: '/anchor'
-      fullPath: '/api/v1/lifecycle/$messageId/anchor'
-      preLoaderRoute: typeof ApiV1LifecycleMessageIdAnchorRouteImport
-      parentRoute: typeof ApiV1LifecycleMessageIdRoute
-    }
-    '/api/v1/lifecycle/$messageId/reconcile': {
-      id: '/reconcile'
-      path: '/reconcile'
-      fullPath: '/api/v1/lifecycle/$messageId/reconcile'
-      preLoaderRoute: typeof ApiV1LifecycleMessageIdReconcileRouteImport
-      parentRoute: typeof ApiV1LifecycleMessageIdRoute
-    }
     '/api/v1/postage/$messageId/refund': {
       id: '/api/v1/postage/$messageId/refund'
       path: '/refund'
@@ -1342,6 +1331,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/policies/$owner/provision'
       preLoaderRoute: typeof ApiV1PoliciesOwnerProvisionRouteImport
       parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
+    '/api/v1/lifecycle/$messageId/reconcile': {
+      id: '/api/v1/lifecycle/$messageId/reconcile'
+      path: '/reconcile'
+      fullPath: '/api/v1/lifecycle/$messageId/reconcile'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdReconcileRouteImport
+      parentRoute: typeof ApiV1LifecycleMessageIdRoute
+    }
+    '/api/v1/lifecycle/$messageId/anchor': {
+      id: '/api/v1/lifecycle/$messageId/anchor'
+      path: '/anchor'
+      fullPath: '/api/v1/lifecycle/$messageId/anchor'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdAnchorRouteImport
+      parentRoute: typeof ApiV1LifecycleMessageIdRoute
     }
     '/api/v1/identity/keys/rotate': {
       id: '/api/v1/identity/keys/rotate'
@@ -1406,13 +1409,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
       parentRoute: typeof ApiV1AccountsProvisioningRoute
     }
-    '/api/v1/accounts/$userId/wallet/provision': {
-      id: '/api/v1/accounts/$userId/wallet/provision'
-      path: '/api/v1/accounts/$userId/wallet/provision'
-      fullPath: '/api/v1/accounts/$userId/wallet/provision'
-      preLoaderRoute: typeof ApiV1AccountsUserIdWalletProvisionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -1434,6 +1430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminDlqIdAbandonRouteImport
       parentRoute: typeof ApiV1AdminDlqIdRoute
     }
+    '/api/v1/accounts/$userId/wallet/provision': {
+      id: '/api/v1/accounts/$userId/wallet/provision'
+      path: '/api/v1/accounts/$userId/wallet/provision'
+      fullPath: '/api/v1/accounts/$userId/wallet/provision'
+      preLoaderRoute: typeof ApiV1AccountsUserIdWalletProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1449,6 +1452,23 @@ const ApiV1AccountsProvisioningRouteChildren: ApiV1AccountsProvisioningRouteChil
 const ApiV1AccountsProvisioningRouteWithChildren =
   ApiV1AccountsProvisioningRoute._addFileChildren(
     ApiV1AccountsProvisioningRouteChildren,
+  )
+
+interface ApiV1LifecycleMessageIdRouteChildren {
+  ApiV1LifecycleMessageIdAnchorRoute: typeof ApiV1LifecycleMessageIdAnchorRoute
+  ApiV1LifecycleMessageIdReconcileRoute: typeof ApiV1LifecycleMessageIdReconcileRoute
+}
+
+const ApiV1LifecycleMessageIdRouteChildren: ApiV1LifecycleMessageIdRouteChildren =
+  {
+    ApiV1LifecycleMessageIdAnchorRoute: ApiV1LifecycleMessageIdAnchorRoute,
+    ApiV1LifecycleMessageIdReconcileRoute:
+      ApiV1LifecycleMessageIdReconcileRoute,
+  }
+
+const ApiV1LifecycleMessageIdRouteWithChildren =
+  ApiV1LifecycleMessageIdRoute._addFileChildren(
+    ApiV1LifecycleMessageIdRouteChildren,
   )
 
 interface ApiV1PoliciesOwnerRouteChildren {
@@ -1495,20 +1515,6 @@ const ApiV1ReceiptsMessageIdRouteWithChildren =
     ApiV1ReceiptsMessageIdRouteChildren,
   )
 
-interface ApiV1LifecycleMessageIdRouteChildren {
-  ApiV1LifecycleMessageIdAnchorRoute: typeof ApiV1LifecycleMessageIdAnchorRoute
-  ApiV1LifecycleMessageIdReconcileRoute: typeof ApiV1LifecycleMessageIdReconcileRoute
-}
-
-const ApiV1LifecycleMessageIdRouteChildren: ApiV1LifecycleMessageIdRouteChildren = {
-  ApiV1LifecycleMessageIdAnchorRoute: ApiV1LifecycleMessageIdAnchorRoute,
-  ApiV1LifecycleMessageIdReconcileRoute: ApiV1LifecycleMessageIdReconcileRoute,
-}
-
-const ApiV1LifecycleMessageIdRouteWithChildren =
-  ApiV1LifecycleMessageIdRoute._addFileChildren(
-    ApiV1LifecycleMessageIdRouteChildren,
-  )
 interface ApiV1AdminDlqIdRouteChildren {
   ApiV1AdminDlqIdAbandonRoute: typeof ApiV1AdminDlqIdAbandonRoute
   ApiV1AdminDlqIdRetryRoute: typeof ApiV1AdminDlqIdRetryRoute
@@ -1559,8 +1565,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RelayVersionRoute: ApiV1RelayVersionRoute,
   ApiV1SendCoordinateRoute: ApiV1SendCoordinateRoute,
   ApiV1WalletManagedRoute: ApiV1WalletManagedRoute,
+  ApiV1WalletStatusRoute: ApiV1WalletStatusRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
-  ApiV1AccountsUserIdWalletProvisionRoute: ApiV1AccountsUserIdWalletProvisionRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
@@ -1577,12 +1583,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletLinkAddressRoute: ApiV1WalletLinkAddressRoute,
   ApiV1WalletLinkChallengeRoute: ApiV1WalletLinkChallengeRoute,
   ApiV1WalletLinkVerifyRoute: ApiV1WalletLinkVerifyRoute,
-  ApiV1WalletStatusRoute: ApiV1WalletStatusRoute,
   ApiV1AdminDlqIndexRoute: ApiV1AdminDlqIndexRoute,
-  ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
   ApiV1AdminFundingIndexRoute: ApiV1AdminFundingIndexRoute,
+  ApiV1AdminJobsIndexRoute: ApiV1AdminJobsIndexRoute,
   ApiV1IdentityKeysIndexRoute: ApiV1IdentityKeysIndexRoute,
   ApiV1WalletLinkIndexRoute: ApiV1WalletLinkIndexRoute,
+  ApiV1AccountsUserIdWalletProvisionRoute:
+    ApiV1AccountsUserIdWalletProvisionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
