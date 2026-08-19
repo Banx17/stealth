@@ -365,7 +365,14 @@ export const profileSchema = z.object({
   avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
   // BETA-069: locale, timezone, and address display preferences
-  locale: z.string().trim().min(2).max(35).regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag").optional().default("en"),
+  locale: z
+    .string()
+    .trim()
+    .min(2)
+    .max(35)
+    .regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag")
+    .optional()
+    .default("en"),
   timezone: z.string().trim().min(1).max(64).optional().default("UTC"),
   addressDisplay: addressDisplaySchema.optional().default("truncated"),
   createdAt: z.string().datetime(),
@@ -375,10 +382,21 @@ export const profileSchema = z.object({
 // BETA-069: Input schema for profile PATCH updates. Username is intentionally
 // excluded — it is immutable unless a separately governed migration exists.
 export const profileUpdateSchema = z.object({
-  displayName: z.string().trim().min(1, "Display name cannot be empty").max(80, "Display name cannot exceed 80 characters").optional(),
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Display name cannot be empty")
+    .max(80, "Display name cannot exceed 80 characters")
+    .optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
   avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
-  locale: z.string().trim().min(2).max(35).regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag").optional(),
+  locale: z
+    .string()
+    .trim()
+    .min(2)
+    .max(35)
+    .regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag")
+    .optional(),
   timezone: z.string().trim().min(1).max(64).optional(),
   addressDisplay: z.enum(["full", "truncated"]).optional(),
   version: z.number().int().positive("Version must be a positive integer"),

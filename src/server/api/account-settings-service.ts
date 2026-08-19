@@ -149,7 +149,11 @@ export async function updateAccountProfile(
   if (sessionAuthenticatedAt) {
     const ageMs = Date.now() - sessionAuthenticatedAt.getTime();
     if (ageMs > RECENT_AUTH_THRESHOLD_MS) {
-      throw new ApiError(403, "recent_auth_required", "Please re-authenticate to update your profile. Your session is older than 15 minutes.");
+      throw new ApiError(
+        403,
+        "recent_auth_required",
+        "Please re-authenticate to update your profile. Your session is older than 15 minutes.",
+      );
     }
   }
 
@@ -167,9 +171,14 @@ export async function updateAccountProfile(
   // Optimistic concurrency check: version must match current updatedAt-derived version
   const currentVersion = profileVersion(currentProfile);
   if (input.version !== currentVersion) {
-    throw new ApiError(409, "conflict", "Profile has been modified since you last loaded it. Please reload and try again.", {
-      details: { currentVersion, suppliedVersion: input.version },
-    });
+    throw new ApiError(
+      409,
+      "conflict",
+      "Profile has been modified since you last loaded it. Please reload and try again.",
+      {
+        details: { currentVersion, suppliedVersion: input.version },
+      },
+    );
   }
 
   // Build the merged profile

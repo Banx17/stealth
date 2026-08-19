@@ -86,7 +86,7 @@ describe("AccountSettingsService", () => {
       repo,
       validAddress,
       { displayName: "New Name", locale: "en-GB", version },
-      "req2"
+      "req2",
     );
 
     expect(result.profile.displayName).toBe("New Name");
@@ -131,8 +131,8 @@ describe("AccountSettingsService", () => {
         repo,
         validAddress,
         { displayName: "New Name", version: staleVersion },
-        "req2"
-      )
+        "req2",
+      ),
     ).rejects.toThrow(/Profile has been modified/);
   });
 
@@ -164,7 +164,7 @@ describe("AccountSettingsService", () => {
     await repo.setProfile(profile);
 
     const version = new Date(profile.updatedAt).getTime();
-    
+
     // Create an authenticated time 20 minutes ago
     const staleAuthTime = new Date(Date.now() - 20 * 60 * 1000);
 
@@ -174,8 +174,8 @@ describe("AccountSettingsService", () => {
         validAddress,
         { displayName: "New Name", version },
         "req2",
-        staleAuthTime
-      )
+        staleAuthTime,
+      ),
     ).rejects.toThrow(/re-authenticate/);
   });
 });

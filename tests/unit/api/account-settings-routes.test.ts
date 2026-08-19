@@ -49,7 +49,7 @@ describe("Account Settings Routes", () => {
 
     const handler = ProfileRoute.options.server!.handlers.GET!;
     const response = await handler({ request } as any);
-    
+
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data.profile.displayName).toBe("Test User");
@@ -85,7 +85,7 @@ describe("Account Settings Routes", () => {
 
     const request = new Request("https://stealth.test/api/v1/accounts/profile", {
       method: "PATCH",
-      headers: { 
+      headers: {
         [ACTOR_HEADER]: validAddress,
         "content-type": "application/json",
       },
@@ -94,12 +94,12 @@ describe("Account Settings Routes", () => {
 
     const handler = ProfileRoute.options.server!.handlers.PATCH!;
     const response = await handler({ request } as any);
-    
+
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data.profile.displayName).toBe("Updated Name");
   });
-  
+
   it("GET /account-info returns only account identifiers", async () => {
     const now = new Date().toISOString();
 
@@ -132,7 +132,7 @@ describe("Account Settings Routes", () => {
 
     const handler = AccountInfoRoute.options.server!.handlers.GET!;
     const response = await handler({ request } as any);
-    
+
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data.account.username).toBe("testuser");

@@ -14,10 +14,7 @@ import { getApiContext } from "@/server/api/context";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { profileUpdateSchema } from "@/server/api/domain";
-import {
-  getAccountProfile,
-  updateAccountProfile,
-} from "@/server/api/account-settings-service";
+import { getAccountProfile, updateAccountProfile } from "@/server/api/account-settings-service";
 
 export const Route = createFileRoute("/api/v1/accounts/profile")({
   server: {
@@ -28,11 +25,7 @@ export const Route = createFileRoute("/api/v1/accounts/profile")({
           const actor = requireActor(context);
           const requestId = context.requestId ?? crypto.randomUUID();
 
-          const result = await getAccountProfile(
-            context.repository,
-            actor,
-            requestId,
-          );
+          const result = await getAccountProfile(context.repository, actor, requestId);
 
           return apiSuccess(request, result);
         }),

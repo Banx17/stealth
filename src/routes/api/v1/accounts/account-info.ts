@@ -21,11 +21,7 @@ export const Route = createFileRoute("/api/v1/accounts/account-info")({
           const actor = requireActor(context);
           const requestId = context.requestId ?? crypto.randomUUID();
 
-          const result = await getAccountProfile(
-            context.repository,
-            actor,
-            requestId,
-          );
+          const result = await getAccountProfile(context.repository, actor, requestId);
 
           // Return only the immutable account info portion
           return apiSuccess(request, { account: result.account });
