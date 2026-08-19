@@ -24,6 +24,7 @@ import type {
   PublicProfile,
   PublicWalletStatus,
   RegistrationResponse,
+  ResolvedIdentity,
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
@@ -111,6 +112,22 @@ export class IdentityClient {
     return this.client.get<KeyDirectoryRecord>(`/identity/keys/${encodeURIComponent(owner)}`, {
       signal,
     });
+  }
+
+  resolve(
+    identifier: string,
+    options?: { timeoutMs?: number; bypassCache?: boolean },
+    signal?: AbortSignal,
+  ): Promise<ResolvedIdentity> {
+    return this.client.post<ResolvedIdentity>(
+      "/identity/resolve",
+      {
+        identifier,
+        timeoutMs: options?.timeoutMs,
+        bypassCache: options?.bypassCache,
+      },
+      { signal },
+    );
   }
 }
 

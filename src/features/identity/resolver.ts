@@ -213,6 +213,68 @@ export class IdentityResolverService {
       }
     }
 
+    // In browser client path
+    if (typeof window !== "undefined") {
+      const timeoutMs = options.timeoutMs ?? 2000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      if (options.signal) {
+        options.signal.addEventListener("abort", () => controller.abort());
+      }
+
+      try {
+        const queryParams = new URLSearchParams({
+          identifier: normalized,
+        });
+        if (options.bypassCache) {
+          queryParams.set("bypassCache", "true");
+        }
+
+        const url = `/api/v1/identity/resolve?${queryParams.toString()}`;
+        const response = await fetch(url, {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+
+        const body = await response.json();
+        const result = body.data as ResolvedIdentity;
+
+        // Cache according to resolved status
+        if (result.resolved && result.status === "active") {
+          this.setPositiveCache(cacheKey, result);
+          if (result.account) {
+            this.indexAddress(result.account, cacheKey);
+          }
+        } else {
+          this.setNegativeCache(cacheKey, result);
+        }
+
+        return result;
+      } catch (err: any) {
+        const isTimeout = err?.message === "Resolution timeout" || controller.signal.aborted;
+        const errorResult = this.createErrorResult(
+          rawIdentifier,
+          normalized,
+          isTimeout ? "timeout" : "network_error",
+          isTimeout ? "Resolution timed out" : "Identity resolution failed",
+          "negative_cache",
+          this.defaultNegativeTtlMs,
+        );
+        this.setNegativeCache(cacheKey, errorResult);
+        return errorResult;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     // Setup timeout controller
     const timeoutMs = options.timeoutMs ?? 2000;
     const controller = new AbortController();
