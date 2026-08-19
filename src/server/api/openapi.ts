@@ -465,10 +465,12 @@ export const openApiDocument = {
             description: "Number of flow runs attempted so far.",
           },
           failure: {
-            nullable: true,
             allOf: [
               {
                 $ref: "#/components/schemas/ProvisioningFailure",
+              },
+              {
+                nullable: true,
               },
             ],
           },
