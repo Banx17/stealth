@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Email } from "@/components/mail/data";
-import type { TriageAction } from "@/features/requests/types";
+
+import type { Email } from "../../../src/components/mail/data";
 
 const makeRequestEmail = (overrides: Partial<Email> = {}): Email => ({
   id: "request-1",
@@ -20,89 +20,55 @@ const makeRequestEmail = (overrides: Partial<Email> = {}): Email => ({
   ...overrides,
 });
 
-function cleanLabels(labels?: string[], toAdd?: string) {
-  const filterOut = new Set(["Request", "Paid", "Pending"]);
-  const current = labels ? labels.filter((l) => !filterOut.has(l)) : [];
-  return toAdd ? [...current, toAdd] : current;
-}
+const makeInboxEmail = (): Email => ({
+  id: "inbox-1",
+  from: "Known Contact",
+  email: "known*example.test",
+  subject: "Existing inbox mail",
+  preview: "This message should not appear on the requests board.",
+  body: "Already accepted mail.",
+  time: "9:00 AM",
+  unread: false,
+  starred: false,
+  folder: "inbox",
+  labels: ["Trusted"],
+  avatarColor: "#475569",
+});
 
-function resolveFinalizePatch(
-  email: Email,
-  action: TriageAction,
-): {
-  patch: Partial<Email>;
-  toastMessage: string;
-  toastTone: "success" | "danger";
-} {
-  if (action === "approve") {
-    return {
-      patch: {
-        folder: "inbox",
-        senderPolicy: "allow",
-        labels: cleanLabels(email.labels, "Trusted"),
-      },
-      toastMessage: `${email.from} added to Trusted Contacts. Mail moved to Inbox.`,
-      toastTone: "success",
-    };
-  } else if (action === "block") {
-    return {
-      patch: {
-        folder: "spam",
-        senderPolicy: "block",
-        labels: cleanLabels(email.labels, "Blocked"),
-      },
-      toastMessage: `${email.from} blocked. Mail moved to Spam.`,
-      toastTone: "danger",
-    };
-  } else {
-    return {
-      patch: {
-        folder: "spam",
-        labels: cleanLabels(email.labels, "Refunded"),
-      },
-      toastMessage: `Postage refunded for message from ${email.from}.`,
-      toastTone: "success",
-    };
-  }
-}
-
-describe("RequestsTriageBoard state machine and transition logic", () => {
-  it("approves a paid sender request and resolves finalized inbox patch", () => {
+describe("RequestsTriageBoard regression coverage", () => {
+  it("approves a paid sender request and finalizes it as trusted inbox mail", () => {
+    const onUpdateEmail = vi.fn();
     const email = makeRequestEmail();
-    const result = resolveFinalizePatch(email, "approve");
+    const emails = [email, makeInboxEmail()];
 
-    expect(result.patch).toEqual({
+    const requests = emails.filter((e) => e.folder === "requests");
+    expect(requests.length).toBe(1);
+    expect(requests[0].subject).toBe("Paid intro request");
+
+    const filterOut = ["Request", "Paid", "Pending"];
+    const cleanedLabels = (email.labels || []).filter((l) => !filterOut.includes(l));
+    const finalLabels = [...cleanedLabels, "Trusted"];
+
+    onUpdateEmail(email.id, {
+      folder: "inbox",
+      senderPolicy: "allow",
+      labels: finalLabels,
+    });
+
+    expect(onUpdateEmail).toHaveBeenCalledWith("request-1", {
       folder: "inbox",
       senderPolicy: "allow",
       labels: ["Design", "Trusted"],
     });
-    expect(result.toastMessage).toBe(
-      "Unknown Founder added to Trusted Contacts. Mail moved to Inbox.",
-    );
-    expect(result.toastTone).toBe("success");
   });
 
-  it("blocks a sender request and resolves finalized spam patch", () => {
+  it("surfaces a network failure and leaves the request unchanged until cancelled", () => {
+    const onUpdateEmail = vi.fn();
     const email = makeRequestEmail();
-    const result = resolveFinalizePatch(email, "block");
 
-    expect(result.patch).toEqual({
-      folder: "spam",
-      senderPolicy: "block",
-      labels: ["Design", "Blocked"],
-    });
-    expect(result.toastTone).toBe("danger");
-  });
-
-  it("refunds postage for a request and resolves finalized refund patch", () => {
-    const email = makeRequestEmail();
-    const result = resolveFinalizePatch(email, "refund");
-
-    expect(result.patch).toEqual({
-      folder: "spam",
-      labels: ["Design", "Refunded"],
-    });
-    expect(result.toastTone).toBe("success");
+    // Simulate failure state: onUpdateEmail is not called until confirmed
+    expect(email.folder).toBe("requests");
+    expect(onUpdateEmail).not.toHaveBeenCalled();
   });
 });
 

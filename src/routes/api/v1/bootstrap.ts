@@ -111,9 +111,7 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
             | "suspended"
             | "unauthorized"
             | "outage"
-            | "maintenance";
-
-          let branch: BootstrapBranch = "active";
+            | "maintenance" = "active";
 
           if (!readiness.ready) {
             branch = "outage";

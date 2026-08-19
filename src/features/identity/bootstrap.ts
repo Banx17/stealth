@@ -120,13 +120,64 @@ export function clearBootstrapCache(): void {
   }
 }
 
+function getDemoState(): BootstrapState {
+  return {
+    data: {
+      user: {
+        userId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        username: "demo_user",
+        displayName: "Demo User",
+        email: "demo@stealth.mail",
+        accountStatus: "active",
+        createdAt: new Date().toISOString(),
+      },
+      session: {
+        sessionId: "sess_demo_default",
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+      address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      provisioning: null,
+      policy: {
+        allowUnknown: true,
+        requireVerified: false,
+        requireReceipt: false,
+        minimumPostage: "0",
+      },
+      wallet: {
+        connected: true,
+        address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        signerType: "managed",
+        capabilities: ["sign", "send", "read"],
+        network: "testnet",
+        balanceXlm: "100.0000000",
+      },
+      health: {
+        ready: true,
+        status: "ok",
+        dependencies: { bindings: "ok", storage: "ok", coordinator: "ok" },
+      },
+      syncCursor: `sync_${Date.now()}`,
+      featureFlags: {
+        betaStateMachines: true,
+        sorobanPostage: true,
+        liveMailboxSync: true,
+      },
+      branch: "active",
+    },
+    branch: "active",
+    isLoading: false,
+    error: null,
+    timestamp: Date.now(),
+  };
+}
+
 export async function fetchBootstrap(options?: {
   bypassCache?: boolean;
   timeoutMs?: number;
 }): Promise<BootstrapState> {
   const { bypassCache = false, timeoutMs = 10000 } = options ?? {};
-  const isTest = typeof window !== "undefined" && Boolean(window.navigator.webdriver);
-  if (!bypassCache && !isTest && cachedState && Date.now() - (cachedState.timestamp ?? 0) < 30000) {
+
+  if (!bypassCache && cachedState && Date.now() - (cachedState.timestamp ?? 0) < 30000) {
     return cachedState;
   }
 
@@ -135,6 +186,16 @@ export async function fetchBootstrap(options?: {
   }
 
   inFlightPromise = (async (): Promise<BootstrapState> => {
+    if (
+      !import.meta.env.PROD &&
+      typeof window !== "undefined" &&
+      window.localStorage?.getItem("STEALTH_DEMO_BYPASS_FETCH") === "true"
+    ) {
+      const demo = getDemoState();
+      cachedState = demo;
+      return demo;
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -236,57 +297,10 @@ export async function fetchBootstrap(options?: {
       return successState;
     } catch (cause) {
       clearTimeout(timer);
-      if (!import.meta.env.PROD && !isTest) {
-        const demoState: BootstrapState = {
-          data: {
-            user: {
-              userId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              username: "demo_user",
-              displayName: "Demo User",
-              email: "demo@stealth.mail",
-              accountStatus: "active",
-              createdAt: new Date().toISOString(),
-            },
-            session: {
-              sessionId: "sess_demo_default",
-              expiresAt: new Date(Date.now() + 86400000).toISOString(),
-            },
-            address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            provisioning: null,
-            policy: {
-              allowUnknown: true,
-              requireVerified: false,
-              requireReceipt: false,
-              minimumPostage: "0",
-            },
-            wallet: {
-              connected: true,
-              address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              signerType: "managed",
-              capabilities: ["sign", "send", "read"],
-              network: "testnet",
-              balanceXlm: "100.0000000",
-            },
-            health: {
-              ready: true,
-              status: "ok",
-              dependencies: { bindings: "ok", storage: "ok", coordinator: "ok" },
-            },
-            syncCursor: `sync_${Date.now()}`,
-            featureFlags: {
-              betaStateMachines: true,
-              sorobanPostage: true,
-              liveMailboxSync: true,
-            },
-            branch: "active",
-          },
-          branch: "active",
-          isLoading: false,
-          error: null,
-          timestamp: Date.now(),
-        };
-        cachedState = demoState;
-        return demoState;
+      if (!import.meta.env.PROD) {
+        const demo = getDemoState();
+        cachedState = demo;
+        return demo;
       }
       const isAbort = cause instanceof Error && cause.name === "AbortError";
       const errorState: BootstrapState = {

@@ -15,7 +15,8 @@
 
 const prefersReducedMotion =
   typeof window !== "undefined" &&
-  Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Base animation configuration
 const baseConfig = {

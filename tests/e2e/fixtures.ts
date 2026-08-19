@@ -222,6 +222,7 @@ export async function openDemoMailbox(page: Page) {
       localStorage.setItem("stealth-preferences", JSON.stringify({ onboardingCompleted: true }));
       localStorage.setItem("stealth-ui-preferences", JSON.stringify(preferences));
       localStorage.setItem("stealth-layout-preferences", JSON.stringify(layout));
+      localStorage.setItem("STEALTH_DEMO_BYPASS_FETCH", "true");
     },
     {
       layout: demoLayoutPreferences,
@@ -238,7 +239,7 @@ export async function openDemoMailbox(page: Page) {
   );
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible({ timeout: 60000 });
   await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }
 

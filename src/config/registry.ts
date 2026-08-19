@@ -1,9 +1,10 @@
 import { readFileSync, existsSync } from "node:fs";
-import { resolve, join, dirname } from "node:path";
+import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BetaRuntimeConfig } from "./schema";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = resolve(__filename, "..");
 
 export interface ContractManifest {
   network: string;

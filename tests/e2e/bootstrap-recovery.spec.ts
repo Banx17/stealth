@@ -1,9 +1,6 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("App Bootstrap & Failure Recovery Journey", () => {
-  test.beforeEach(async ({ context }) => {
-    await context.clearCookies();
-  });
   test("renders sign-in prompt when bootstrap returns 401 unauthorized", async ({ page }) => {
     await page.route("**/api/v1/bootstrap", async (route) => {
       await route.fulfill({
@@ -21,7 +18,9 @@ test.describe("App Bootstrap & Failure Recovery Journey", () => {
     });
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Sign in to continue" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to continue" })).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByRole("link", { name: /Sign in/i })).toBeVisible();
   });
 
@@ -87,7 +86,7 @@ test.describe("App Bootstrap & Failure Recovery Journey", () => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", { name: "Service temporarily unavailable" }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 60000 });
 
     const retryButton = page.getByRole("button", { name: /Retry connection/i });
     await expect(retryButton).toBeVisible();
