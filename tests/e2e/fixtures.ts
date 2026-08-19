@@ -180,7 +180,10 @@ export async function openDemoMailbox(page: Page) {
     },
   );
 
-  await page.goto("/");
+  // Demo mode lives on the isolated `/demo` route behind the explicit
+  // development-only flag set above (BETA-012). The production root never
+  // serves demo or seeded mail data.
+  await page.goto("/demo");
   await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible({ timeout: 60000 });
   await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }

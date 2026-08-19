@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("App Bootstrap & Failure Recovery Journey", () => {
-  test("renders sign-in prompt when bootstrap returns 401 unauthorized", async ({ page }) => {
+  test("redirects anonymous visitors to sign-in with a validated return-to when bootstrap returns 401", async ({
+    page,
+  }) => {
     await page.route("**/api/v1/bootstrap", async (route) => {
       await route.fulfill({
         status: 401,
@@ -17,11 +19,31 @@ test.describe("App Bootstrap & Failure Recovery Journey", () => {
       });
     });
 
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Sign in to continue" })).toBeVisible({
+    await page.goto("/mail/123?tab=preview");
+    await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 60000 });
+    const redirected = new URL(page.url());
+    expect(redirected.searchParams.get("next")).toBe("/mail/123?tab=preview");
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible({
       timeout: 60000,
     });
-    await expect(page.getByRole("link", { name: /Sign in/i })).toBeVisible();
+  });
+
+  test("never lands an anonymous visitor on demo data in production mode", async ({ page }) => {
+    await page.route("**/api/v1/bootstrap", async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: false,
+          error: { code: "unauthorized", message: "No session." },
+          branch: "unauthorized",
+        }),
+      });
+    });
+
+    await page.goto("/demo");
+    await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 60000 });
+    await expect(page.getByText(/Demo Mode/i)).toHaveCount(0);
   });
 
   test("renders service outage branch and recovers via retry button", async ({ page }) => {
