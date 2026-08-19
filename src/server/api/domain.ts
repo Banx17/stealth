@@ -353,15 +353,38 @@ export const managedWalletStatusSchema = z.object({
 export type ManagedWalletStatus = z.infer<typeof managedWalletStatusSchema>;
 
 export const networkPassphraseSchema = z.string().min(1);
+
+// BETA-069 (Issue #1976): address display preference for Stellar address rendering.
+export const addressDisplaySchema = z.enum(["full", "truncated"]).default("truncated");
+export type AddressDisplay = z.infer<typeof addressDisplaySchema>;
+
 export const profileSchema = z.object({
   userId: z.string().min(1, "User ID cannot be empty"),
   username: usernameSchema,
   displayName: z.string().trim().min(1, "Display name cannot be empty"),
   avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
+  // BETA-069: locale, timezone, and address display preferences
+  locale: z.string().trim().min(2).max(35).regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag").optional().default("en"),
+  timezone: z.string().trim().min(1).max(64).optional().default("UTC"),
+  addressDisplay: addressDisplaySchema.optional().default("truncated"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+
+// BETA-069: Input schema for profile PATCH updates. Username is intentionally
+// excluded — it is immutable unless a separately governed migration exists.
+export const profileUpdateSchema = z.object({
+  displayName: z.string().trim().min(1, "Display name cannot be empty").max(80, "Display name cannot exceed 80 characters").optional(),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
+  avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
+  locale: z.string().trim().min(2).max(35).regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag").optional(),
+  timezone: z.string().trim().min(1).max(64).optional(),
+  addressDisplay: z.enum(["full", "truncated"]).optional(),
+  version: z.number().int().positive("Version must be a positive integer"),
+});
+
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
 export const credentialAuthMethodSchema = z.enum([
   "stellar_header",
@@ -396,9 +419,27 @@ export const publicProfileSchema = z.object({
   displayName: z.string(),
   avatarUrl: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
+  locale: z.string().optional().default("en"),
+  timezone: z.string().optional().default("UTC"),
+  addressDisplay: z.enum(["full", "truncated"]).optional().default("truncated"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+
+// BETA-069: Immutable account information composite for settings display.
+export const accountInfoSchema = z.object({
+  userId: z.string(),
+  username: z.string(),
+  address: stellarAddressSchema,
+  email: emailSchema,
+  status: accountStatusSchema,
+  createdAt: z.string().datetime(),
+  network: z.string(),
+  policyVersion: z.number().int().nonnegative().nullable(),
+  betaLimitations: z.array(z.string()),
+});
+
+export type AccountInfo = z.infer<typeof accountInfoSchema>;
 
 // ---------------------------------------------------------------------------
 // BETA-005: Verification token lifecycle domain
@@ -655,6 +696,9 @@ export function toPublicProfile(profile: Profile): PublicProfile {
     displayName: profile.displayName,
     avatarUrl: profile.avatarUrl ?? null,
     bio: profile.bio ?? null,
+    locale: profile.locale ?? "en",
+    timezone: profile.timezone ?? "UTC",
+    addressDisplay: profile.addressDisplay ?? "truncated",
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
   };

@@ -8,6 +8,11 @@
 // ---------------------------------------------------------------------------
 
 export const queryKeys = {
+  account: {
+    all: ["account"] as const,
+    profile: ["account", "profile"] as const,
+    info: ["account", "info"] as const,
+  },
   auth: {
     all: ["auth"] as const,
     session: ["auth", "session"] as const,
@@ -58,6 +63,7 @@ export const queryKeys = {
 export const cacheInvalidations = {
   sessionLogout: () => [queryKeys.auth.session],
   sessionRenew: () => [queryKeys.auth.session],
+  updateProfile: () => [queryKeys.account.profile, queryKeys.account.info],
   updateMailboxPolicy: (owner: string) => [
     queryKeys.policies.policy(owner),
     queryKeys.policies.evaluate(owner),

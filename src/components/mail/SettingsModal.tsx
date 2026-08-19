@@ -22,7 +22,9 @@ import {
 import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
 import { Surface } from "@/features/design-system";
 import { cn } from "@/lib/utils";
-import { sharedTypedApi } from "@/lib/api";
+import { sharedTypedApi, queryKeys } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { isApiClientError } from "@/lib/api/errors";
 import { SHORTCUT_DEFINITIONS } from "@/features/command-palette";
 import type { ReceiptPreference, UiPreferences, LayoutPreferences } from "@/features/preferences";
 import {
@@ -296,29 +298,239 @@ export function SettingsModal({
 }
 
 function AccountSettings() {
+  const queryClient = useQueryClient();
+  const {
+    data: profileData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (updates: { [key: string]: any; version: number }) =>
+      sharedTypedApi.account.updateProfile(updates),
+    onSuccess: () => {
+      // Invalidate both profile and account info queries to refresh data
+      queryClient.invalidateQueries({ queryKey: queryKeys.account.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.account.info });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div>
+          <div className="h-4 w-16 bg-white/10 rounded mb-2" />
+          <div className="h-3 w-40 bg-white/5 rounded" />
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-white/10" />
+            <div className="space-y-2">
+              <div className="h-4 w-24 bg-white/10 rounded" />
+              <div className="h-3 w-32 bg-white/5 rounded" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-14 bg-white/5 rounded-lg border border-white/5" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !profileData) {
+    const isAuthError = isApiClientError(error) && error.status === 401;
+    return (
+      <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+          <div>
+            <p className="font-medium text-rose-300">Could not load profile</p>
+            <p className="mt-1 opacity-80">
+              {isAuthError
+                ? "Your session has expired. Please sign in again."
+                : "There was a problem loading your account settings. Please try again later."}
+            </p>
+            {!isAuthError && (
+              <button
+                onClick={() => refetch()}
+                className="mt-3 rounded border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-xs font-medium hover:bg-rose-500/30 transition"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { profile, account } = profileData;
+  const version = new Date(profile.updatedAt).getTime();
+
+  const handleSave = async (field: string, value: string) => {
+    try {
+      await mutation.mutateAsync({ [field]: value, version });
+    } catch (err) {
+      if (isApiClientError(err) && err.status === 409) {
+        // Optimistic concurrency conflict
+        throw new Error("Conflict");
+      }
+      if (isApiClientError(err) && err.status === 403) {
+        // Recent auth required
+        throw new Error("RecentAuth");
+      }
+      throw err; // Field-level error handled by SettingsField
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 409 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Profile updated elsewhere</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              These settings were modified from another session or tab.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+            >
+              Reload latest changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mutation.isError && isApiClientError(mutation.error) && mutation.error.status === 403 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm flex items-start gap-3">
+          <Lock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-amber-200">
+            <p className="font-medium">Authentication required</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              For your security, please sign out and sign back in to make this change.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h3 className="text-sm font-medium text-foreground">Profile</h3>
         <p className="mt-1 text-xs text-muted-foreground">Manage your account details</p>
       </div>
+
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center">
-            <span className="text-lg font-medium text-white/90">EN</span>
-          </div>
+        <div className="flex items-center gap-4 mb-2">
+          {profile.avatarUrl ? (
+            <img
+              src={profile.avatarUrl}
+              alt={profile.displayName}
+              className="h-16 w-16 rounded-full object-cover border border-white/10"
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#4d5560] to-[#232326] flex items-center justify-center border border-white/5">
+              <span className="text-lg font-medium text-white/90">
+                {profile.displayName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
           <div>
-            <p className="text-sm font-medium text-foreground">Eve Navarro</p>
-            <p className="text-xs text-muted-foreground">eve@aether.app</p>
+            <p className="text-sm font-medium text-foreground">{profile.displayName}</p>
+            <p className="text-xs text-muted-foreground">{account.email}</p>
           </div>
         </div>
+
         <div className="space-y-3">
-          <SettingsField label="Display name" value="Eve Navarro" />
-          <SettingsField label="Email" value="eve@aether.app" />
-          <SettingsField label="Stellar address" value="GDQ...X4KJ" />
+          <SettingsField
+            label="Display name"
+            value={profile.displayName}
+            onSave={(val) => handleSave("displayName", val)}
+            editable
+          />
+          <SettingsField
+            label="Username"
+            value={`@${profile.username}`}
+            immutable
+            tooltip="Usernames cannot be changed"
+          />
+          <SettingsField
+            label="Bio"
+            value={profile.bio ?? ""}
+            onSave={(val) => handleSave("bio", val)}
+            editable
+            placeholder="Tell us a little about yourself"
+          />
+          <SettingsField
+            label="Locale"
+            value={profile.locale ?? "en"}
+            onSave={(val) => handleSave("locale", val)}
+            editable
+            placeholder="e.g. en-US"
+          />
+          <SettingsField
+            label="Timezone"
+            value={profile.timezone ?? "UTC"}
+            onSave={(val) => handleSave("timezone", val)}
+            editable
+            placeholder="e.g. America/Los_Angeles"
+          />
         </div>
       </div>
-      <ManagedWalletStatus />
+
+      <div className="pt-2">
+        <h3 className="text-sm font-medium text-foreground mb-3">Identifiers</h3>
+        <div className="space-y-3">
+          <SettingsField
+            label="Email address"
+            value={account.email}
+            immutable
+            tooltip="Email changes require identity verification (not yet available)"
+          />
+          <SettingsField label="Stellar address" value={account.address} immutable copyable />
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-white/5 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+          <Check className="w-3 h-3" />
+          {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-white/5">
+          {account.network}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs text-muted-foreground border border-white/5">
+          Member since {new Date(account.createdAt).toLocaleDateString()}
+        </span>
+      </div>
+
+      {account.betaLimitations.length > 0 && (
+        <div className="mt-6 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
+          <h4 className="text-xs font-medium text-indigo-300 mb-2 flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Beta Limitations
+          </h4>
+          <ul className="list-disc pl-4 space-y-1">
+            {account.betaLimitations.map((limitation, i) => (
+              <li key={i} className="text-[11px] text-indigo-200/80">
+                {limitation}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="pt-4">
+        <ManagedWalletStatus />
+      </div>
     </div>
   );
 }
@@ -1205,14 +1417,181 @@ function ShortcutSettings() {
   );
 }
 
-function SettingsField({ label, value }: { label: string; value: string }) {
+function SettingsField({
+  label,
+  value,
+  editable,
+  immutable,
+  copyable,
+  tooltip,
+  placeholder,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  editable?: boolean;
+  immutable?: boolean;
+  copyable?: boolean;
+  tooltip?: string;
+  placeholder?: string;
+  onSave?: (value: string) => Promise<void>;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  const handleEdit = () => {
+    if (immutable) return;
+    setEditValue(value);
+    setIsEditing(true);
+    setError(null);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditValue(value);
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    if (editValue.trim() === value.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    if (onSave) {
+      setIsSaving(true);
+      setError(null);
+      try {
+        await onSave(editValue);
+        setIsEditing(false);
+      } catch (err: unknown) {
+        if (err instanceof Error && (err.message === "Conflict" || err.message === "RecentAuth")) {
+          // Surfaced at the component level
+          setIsEditing(false);
+        } else if (isApiClientError(err) && err.details && typeof err.details === "object") {
+          // Extract field-level validation error
+          const fieldErrors = Object.values(err.details).flat();
+          if (fieldErrors.length > 0) {
+            setError(String(fieldErrors[0]));
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError("Failed to save changes. Please try again.");
+        }
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") handleCancel();
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div>
-      <label className="text-xs text-muted-foreground">{label}</label>
-      <input
-        defaultValue={value}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground focus:border-white/20 focus:outline-none"
-      />
+    <div className="group relative rounded-lg border border-white/5 bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 pr-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">{label}</label>
+            {immutable && (
+              <Lock
+                className="w-3 h-3 text-muted-foreground/60"
+                aria-label={tooltip || "Immutable"}
+              />
+            )}
+          </div>
+
+          {isEditing ? (
+            <div className="mt-1.5 space-y-2">
+              <input
+                ref={inputRef}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isSaving}
+                placeholder={placeholder}
+                className={cn(
+                  "w-full rounded-md border bg-black/20 px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-colors",
+                  error ? "border-rose-500/50" : "border-white/10",
+                )}
+              />
+              {error && <p className="text-[11px] text-rose-400">{error}</p>}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="rounded bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/30 disabled:opacity-50"
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  className="rounded px-3 py-1 text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p
+              className={cn(
+                "mt-1 text-sm text-foreground",
+                !value && placeholder && "text-muted-foreground/50 italic",
+              )}
+            >
+              {value || placeholder || "Not set"}
+            </p>
+          )}
+        </div>
+
+        {!isEditing && (
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            {copyable && (
+              <button
+                onClick={handleCopy}
+                aria-label={`Copy ${label}`}
+                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            {editable && (
+              <button
+                onClick={handleEdit}
+                aria-label={`Edit ${label}`}
+                className="rounded p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

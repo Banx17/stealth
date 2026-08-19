@@ -55,6 +55,9 @@ export interface PublicProfile {
   displayName: string;
   avatarUrl?: string | null;
   bio?: string | null;
+  locale?: string;
+  timezone?: string;
+  addressDisplay?: "full" | "truncated";
   createdAt: string;
   updatedAt: string;
 }
@@ -240,6 +243,44 @@ export interface ContactListResponse {
 export interface MailboxSettings {
   policy: MailboxPolicy;
   requireReceipt: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// BETA-069 — account settings DTOs
+// ---------------------------------------------------------------------------
+
+export type AddressDisplay = "full" | "truncated";
+
+export interface AccountInfo {
+  userId: string;
+  username: string;
+  address: string;
+  email: string;
+  status: AccountStatus;
+  createdAt: string;
+  network: string;
+  policyVersion: number | null;
+  betaLimitations: string[];
+}
+
+export interface ProfileUpdateInput {
+  displayName?: string;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  locale?: string;
+  timezone?: string;
+  addressDisplay?: AddressDisplay;
+  version: number;
+}
+
+export interface AccountProfileResponse {
+  user: PublicUser;
+  profile: PublicProfile;
+  account: AccountInfo;
+}
+
+export interface ProfileUpdateResponse {
+  profile: PublicProfile;
 }
 
 // ---------------------------------------------------------------------------

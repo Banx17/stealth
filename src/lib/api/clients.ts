@@ -27,6 +27,10 @@ import type {
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
+  AccountInfo,
+  AccountProfileResponse,
+  ProfileUpdateInput,
+  ProfileUpdateResponse,
 } from "./types";
 
 export interface ApiContext {
@@ -35,6 +39,7 @@ export interface ApiContext {
 }
 
 export interface TypedApi {
+  account: AccountClient;
   auth: AuthClient;
   identity: IdentityClient;
   mailbox: MailboxClient;
@@ -270,6 +275,26 @@ export class SettingsClient {
 }
 
 // ---------------------------------------------------------------------------
+// BETA-069 — Account Profile & Settings
+// ---------------------------------------------------------------------------
+
+export class AccountClient {
+  constructor(private readonly client: ApiClient) {}
+
+  getProfile(signal?: AbortSignal): Promise<AccountProfileResponse> {
+    return this.client.get<AccountProfileResponse>("/accounts/profile", { signal });
+  }
+
+  updateProfile(input: ProfileUpdateInput, signal?: AbortSignal): Promise<ProfileUpdateResponse> {
+    return this.client.patch<ProfileUpdateResponse>("/accounts/profile", input, { signal });
+  }
+
+  getAccountInfo(signal?: AbortSignal): Promise<{ account: AccountInfo }> {
+    return this.client.get<{ account: AccountInfo }>("/accounts/account-info", { signal });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // BETA-019 — managed wallet status (owner-only, no custody fields)
 // ---------------------------------------------------------------------------
 
@@ -298,6 +323,7 @@ export function createTypedApi(options: CreateTypedApiOptions = {}): TypedApi {
   const client = new ApiClient(options);
   const policies = new PoliciesClient(client);
   return {
+    account: new AccountClient(client),
     auth: new AuthClient(client),
     identity: new IdentityClient(client),
     mailbox: new MailboxClient(client),
