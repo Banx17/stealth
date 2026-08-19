@@ -76,4 +76,9 @@ export const cacheInvalidations = {
     queryKeys.contacts.detail(owner, contactId),
   ],
   deleteContact: (owner: string) => [queryKeys.contacts.list(owner)],
+  settlePostage: (messageId: string) => [queryKeys.postage.byMessage(messageId)],
+  refundPostage: (messageId: string) => [queryKeys.postage.byMessage(messageId)],
+  disputePostage: (messageId: string) => [queryKeys.postage.byMessage(messageId)],
+  expirePostage: (messageId: string) => [queryKeys.postage.byMessage(messageId)],
+  reclaimPostage: (messageId: string) => [queryKeys.postage.byMessage(messageId)],
 } as const;
