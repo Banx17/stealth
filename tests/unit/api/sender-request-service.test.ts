@@ -11,6 +11,7 @@ const sender = `G${"B".repeat(55)}`;
 const otherRecipient = `G${"C".repeat(55)}`;
 
 function pendingRequest(overrides: Record<string, unknown> = {}) {
+  const now = Date.now();
   return {
     requestId: "00000000-0000-4000-8000-000000000001",
     recipient,
@@ -21,6 +22,8 @@ function pendingRequest(overrides: Record<string, unknown> = {}) {
     },
     createdAt: new Date(Date.now() - 60_000).toISOString(),
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + 86_400_000).toISOString(),
     status: "pending" as const,
     ...overrides,
   };
