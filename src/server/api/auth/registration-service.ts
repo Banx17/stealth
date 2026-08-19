@@ -8,6 +8,7 @@ import { hashPassword } from "./password";
 import { provisionManagedStellarWallet } from "../account-provisioning";
 import { prepareManagedWalletSecret } from "@/services/stellar/account-provision";
 import { createFundingAdapter } from "@/services/stellar/funding-adapter";
+import { checkIpLimit } from "../abuse-service";
 
 const SIGNUP_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 const MAX_SIGNUPS_PER_IP = 10;
@@ -91,7 +92,6 @@ export async function registerWithPassword(
     origin: ip,
   });
 
-  await apiContext.repository.incrementCounter(rateLimitKey, SIGNUP_RATE_LIMIT_WINDOW_SECONDS, 1);
   return {
     accountStatus: "pending_verification",
     email: user.email,
