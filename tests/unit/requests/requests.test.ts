@@ -95,6 +95,12 @@ describe("Requests triage board unit helpers", () => {
     expect(formatPostage(undefined)).toBe("0.0 XLM");
     expect(formatPostage("invalid")).toBe("invalid stroops");
   });
+  const cleanLabels = (labels: string[], newPolicy: string) => {
+    return [
+      ...(labels || []).filter((l) => l !== "Request" && l !== "Paid" && l !== "Pending"),
+      newPolicy,
+    ];
+  };
 
   it("cleans temporary triage labels and appends final policy badge", () => {
     const originalLabels = ["Request", "Paid", "Design"];

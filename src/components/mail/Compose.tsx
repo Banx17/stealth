@@ -186,21 +186,42 @@ export function Compose({
     // Show initial "resolving" state immediately
     setResolvedRecipients(getRecipientReadiness(to, postage, blockedRecipients));
 
+    // AbortController for cancelling in-flight resolution requests
+    const controller = new AbortController();
+
     // Debounce resolution to avoid excessive API calls
     const timer = setTimeout(async () => {
-      const resolved = await resolveRecipients(addresses, blockedRecipients, resolutionContext);
+      try {
+        const resolved = await resolveRecipients(
+          addresses,
+          blockedRecipients,
+          resolutionContext,
+          controller.signal,
+        );
 
-      // Update postage state based on current postage value
-      const postageReady = Number.parseFloat(postage) > 0;
-      const withPostage = resolved.map((r) => ({
-        ...r,
-        postage: postageReady ? ("ready" as const) : ("required" as const),
-      }));
+        if (controller.signal.aborted) return;
 
-      setResolvedRecipients(withPostage);
+        // Update postage state based on current postage value
+        const postageReady = Number.parseFloat(postage) > 0;
+        const withPostage = resolved.map((r) => ({
+          ...r,
+          postage: postageReady ? ("ready" as const) : ("required" as const),
+        }));
+
+        setResolvedRecipients(withPostage);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          // Request was intentionally aborted — don't update state
+          return;
+        }
+        console.warn("Recipient resolution failed:", err);
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [to, blockedRecipients, postage, resolutionContext, resolvedRecipients.length]);
 
   useEffect(() => {
@@ -541,7 +562,15 @@ export function Compose({
                     (recipient) =>
                       recipient.state === "blocked" ||
                       recipient.state === "invalid" ||
-                      recipient.state === "resolving",
+                      recipient.state === "resolving" ||
+                      Boolean(recipient.expiresAt && new Date() > new Date(recipient.expiresAt)) ||
+                      recipient.keyStatus === "revoked" ||
+                      recipient.keyStatus === "retired",
+                  ) ||
+                  Boolean(
+                    quoteState.status === "quoted" &&
+                    quoteState.quote.expiresAt &&
+                    new Date() > new Date(quoteState.quote.expiresAt),
                   )
                 }
                 className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/6 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -552,14 +581,27 @@ export function Compose({
               {(() => {
                 const policyBlocked = isPolicyBlocking(quoteState);
                 const recipientBlocked = resolvedRecipients.some(
-                  (r) => r.state === "blocked" || r.state === "invalid",
+                  (r) =>
+                    r.state === "blocked" ||
+                    r.state === "invalid" ||
+                    r.keyStatus === "revoked" ||
+                    r.keyStatus === "retired",
                 );
                 const recipientResolving = resolvedRecipients.some((r) => r.state === "resolving");
                 const isBlocked = policyBlocked || recipientBlocked;
                 const trusted = isTrustedSender(quoteState);
+                const isStale: boolean =
+                  resolvedRecipients.some(
+                    (r) => r.expiresAt && new Date() > new Date(r.expiresAt),
+                  ) ||
+                  Boolean(
+                    quoteState.status === "quoted" &&
+                    quoteState.quote.expiresAt &&
+                    new Date() > new Date(quoteState.quote.expiresAt),
+                  );
 
                 // Determine send CTA disabled state
-                const isSendDisabled = isSending || isBlocked || recipientResolving;
+                const isSendDisabled = isSending || isBlocked || recipientResolving || isStale;
 
                 // Determine button label and style
                 let sendLabel: string;
@@ -572,6 +614,10 @@ export function Compose({
                   sendLabel = "Blocked";
                   sendButtonClass =
                     "inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-300/[0.08] px-3 py-1.5 text-xs font-medium text-red-200 opacity-70 cursor-not-allowed";
+                } else if (isStale) {
+                  sendLabel = "Stale";
+                  sendButtonClass =
+                    "inline-flex items-center gap-2 rounded-lg border border-yellow-300/20 bg-yellow-300/[0.08] px-3 py-1.5 text-xs font-medium text-yellow-200 opacity-70 cursor-not-allowed";
                 } else if (trusted) {
                   sendLabel = "Send free";
                   sendButtonClass =
@@ -586,7 +632,7 @@ export function Compose({
                     "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.14]";
                 }
 
-                const disabledReason = getDisabledReason(isBlocked, recipientResolving);
+                const disabledReason = getDisabledReason(isBlocked, recipientResolving, isStale);
 
                 return (
                   <motion.button
@@ -670,8 +716,52 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
             </span>
           )}
 
-          {/* Show encryption key availability */}
-          {recipient.encryptionKey && (
+          {/* Cache provenance badge */}
+          {recipient.provenance && recipient.cached && (
+            <span className="shrink-0 rounded-sm bg-white/8 px-1 py-0.5 text-[8px] uppercase tracking-wider opacity-60">
+              cached
+            </span>
+          )}
+          {recipient.provenance === "stellar_federation" && (
+            <span className="shrink-0 rounded-sm bg-blue-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-blue-300">
+              federation
+            </span>
+          )}
+
+          {/* Key status indicators */}
+          {recipient.keyStatus === "active" && (
+            <span
+              className="shrink-0 inline-block w-2 h-2 rounded-full bg-emerald-400 opacity-70"
+              title="Encryption key active"
+            />
+          )}
+          {recipient.keyStatus === "revoked" && (
+            <span
+              className="shrink-0 rounded-sm bg-red-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-red-300"
+              title="Key revoked"
+            >
+              key revoked
+            </span>
+          )}
+          {recipient.keyStatus === "retired" && (
+            <span
+              className="shrink-0 rounded-sm bg-amber-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-amber-300"
+              title="Key retired"
+            >
+              key retired
+            </span>
+          )}
+          {recipient.keyStatus === "unavailable" && (
+            <span
+              className="shrink-0 rounded-sm bg-zinc-400/15 px-1 py-0.5 text-[8px] uppercase tracking-wider text-zinc-400"
+              title="Key directory unavailable"
+            >
+              key pending
+            </span>
+          )}
+
+          {/* Fallback: show encryption key dot for legacy (no keyStatus) */}
+          {!recipient.keyStatus && recipient.encryptionKey && (
             <span className="shrink-0 inline-block w-2 h-2 rounded-full bg-current opacity-50" />
           )}
         </div>
@@ -767,6 +857,40 @@ function validateSendRequest({
     onShowToast?.("Please add at least one recipient");
     return false;
   }
+
+  // Check for stale resolution
+  const now = new Date();
+  if (
+    resolvedRecipients.some(
+      (recipient) => recipient.expiresAt && now > new Date(recipient.expiresAt),
+    )
+  ) {
+    onShowToast?.("Recipient resolution is stale — re-resolving…");
+    return false;
+  }
+
+  // Check if policy quote is expired
+  if (
+    quoteState.status === "quoted" &&
+    quoteState.quote.expiresAt &&
+    now > new Date(quoteState.quote.expiresAt)
+  ) {
+    onShowToast?.("Policy quote is expired — re-quoting…");
+    return false;
+  }
+
+  // Check for key status
+  if (
+    resolvedRecipients.some(
+      (recipient) =>
+        recipient.state === "verified" &&
+        (recipient.keyStatus === "revoked" || recipient.keyStatus === "retired"),
+    )
+  ) {
+    onShowToast?.("Recipient encryption key has been revoked");
+    return false;
+  }
+
   if (resolvedRecipients.some((r) => r.state === "resolving" || r.state === "invalid")) {
     onShowToast?.("All recipients must be verified before sending");
     return false;
@@ -810,9 +934,10 @@ function getHeaderTitle(mode: string) {
   return mode.replace("-", " ");
 }
 
-function getDisabledReason(isBlocked: boolean, recipientResolving: boolean) {
-  if (isBlocked) return "Recipient has blocked this sender";
+function getDisabledReason(isBlocked: boolean, recipientResolving: boolean, isStale: boolean) {
+  if (isBlocked) return "Recipient has blocked this sender or key is revoked";
   if (recipientResolving) return "Waiting for recipient verification";
+  if (isStale) return "Recipient resolution or policy quote is stale";
   return undefined;
 }
 

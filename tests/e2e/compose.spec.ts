@@ -88,6 +88,29 @@ test.describe("compose flow", () => {
       route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
     );
 
+    await page.route("**/api/v1/identity/resolve*", (route) => {
+      const url = new URL(route.request().url());
+      const identifier = (url.searchParams.get("identifier") ?? "").toUpperCase();
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            resolved: true,
+            status: "active",
+            canonicalAddress: identifier,
+            account: identifier,
+            publicKey: identifier,
+            freshness: {
+              source: "live",
+              cached: false,
+              expiresAt: new Date(Date.now() + 60000).toISOString(),
+            },
+          },
+        }),
+      });
+    });
+
     await page.route("**/api/v1/identity/keys/**", (route) => {
       const url = new URL(route.request().url());
       const owner = (url.searchParams.get("owner") ?? "").toUpperCase();
@@ -139,5 +162,61 @@ test.describe("compose flow", () => {
 
     await expect(page.getByText("New message")).not.toBeVisible();
     await expect(page.getByText(/Message scheduled with postage reserved/i)).toBeVisible();
+  });
+
+  test("prevents sending if recipient encryption key is revoked", async ({ page }) => {
+    const REVOKED_RECIPIENT = `G${"D".repeat(55)}`;
+    await page.route("**/api/v1/identity/keys/**", (route) => {
+      const url = new URL(route.request().url());
+      const owner = (url.searchParams.get("owner") ?? "").toUpperCase();
+      if (owner === REVOKED_RECIPIENT) {
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            data: {
+              owner: REVOKED_RECIPIENT,
+              version: 1,
+              currentKeys: {
+                encryption: {
+                  keyId: "enc-e2e-0002",
+                  algorithm: "ecdh",
+                  publicKey: recipientKey.publicKeySpkiBase64,
+                  version: 1,
+                  notBefore: new Date(Date.now() - 60_000).toISOString(),
+                  notAfter: new Date(Date.now() + 86_400_000).toISOString(),
+                  status: "revoked",
+                  signature: "e2e",
+                },
+              },
+              historicalKeys: [],
+              allKeys: [],
+            },
+          }),
+        });
+      } else {
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(keyDirectoryBody(owner, recipientKey.publicKeySpkiBase64)),
+        });
+      }
+    });
+
+    await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
+    await expect(page.getByText("New message")).toBeVisible();
+
+    await page.getByPlaceholder("recipients@", { exact: false }).fill(REVOKED_RECIPIENT);
+    await page.getByPlaceholder("Subject").fill("E2E revoked key test");
+    await page.getByPlaceholder("Write your message", { exact: false }).fill("Should be blocked");
+
+    // Wait for the chip to show the key revoked status
+    await expect(page.getByText("key revoked")).toBeVisible();
+
+    // Check that button is blocked/disabled
+    const sendBtn = page.getByRole("button", {
+      name: /Recipient has blocked this sender or key is revoked/i,
+    });
+    await expect(sendBtn).toBeDisabled();
   });
 });

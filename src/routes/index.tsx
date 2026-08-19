@@ -103,10 +103,9 @@ function IndexPage() {
   // shell has no route to `initialEmails` or the demo adapter.
   const isDemo = import.meta.env.DEV;
   const isTest = typeof window !== "undefined" && Boolean(window.navigator.webdriver);
-  const bootstrap = useBootstrap();
 
   if (!isDemo || isTest) {
-    if (bootstrap.branch !== "active") {
+    if (branch !== "active") {
       return <BootstrapStateView />;
     }
   }
