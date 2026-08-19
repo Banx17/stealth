@@ -30,7 +30,14 @@ export const stroopAmountSchema = z
   }, "Amount exceeds Soroban i128");
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
-export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);
+export const postageStatusSchema = z.enum([
+  "pending",
+  "expired",
+  "disputed",
+  "settled",
+  "refunded",
+  "reclaimed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),

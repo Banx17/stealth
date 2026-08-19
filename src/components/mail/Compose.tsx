@@ -39,6 +39,7 @@ import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
 import { resolveSenderAddress } from "@/services/stellar/wallet";
+import { PostageBalanceBadge } from "./PostageBalanceBadge";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -467,31 +468,34 @@ export function Compose({
                   detail="On-chain proof"
                   onClick={() => setReceipt((value) => !value)}
                 />
-                <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
-                  <Coins className="h-4 w-4 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Postage
+                <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-4 w-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Postage
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-foreground">
+                        <input
+                          value={postage}
+                          onChange={(event) => {
+                            postageManuallySet.current = true;
+                            setPostage(event.target.value);
+                          }}
+                          inputMode="decimal"
+                          className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                          aria-label="Postage amount"
+                        />
+                        XLM
+                        {isTrustedSender(quoteState) && (
+                          <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
+                            free
+                          </span>
+                        )}
+                      </span>
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-foreground">
-                      <input
-                        value={postage}
-                        onChange={(event) => {
-                          postageManuallySet.current = true;
-                          setPostage(event.target.value);
-                        }}
-                        inputMode="decimal"
-                        className="w-16 rounded-sm bg-transparent font-mono outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                        aria-label="Postage amount"
-                      />
-                      XLM
-                      {isTrustedSender(quoteState) && (
-                        <span className="ml-1 text-[9px] text-emerald-400 font-medium uppercase tracking-wide">
-                          free
-                        </span>
-                      )}
-                    </span>
-                  </span>
+                  </div>
+                  <PostageBalanceBadge />
                 </label>
               </div>
             </div>
@@ -691,7 +695,7 @@ function RecipientReadinessChips({ recipients }: Readonly<{ recipients: Recipien
   if (!recipients.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-[76px]">
+    <div className="flex flex-wrap gap-1.5 border-b border-white/5 py-2 pl-19">
       {recipients.map((recipient) => (
         <div
           key={recipient.address}
