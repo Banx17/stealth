@@ -48,7 +48,7 @@ describe("Account Settings Routes", () => {
       headers: { [ACTOR_HEADER]: validAddress },
     });
 
-    const handler = (ProfileRoute as any).options.GET!;
+    const handler = (ProfileRoute as any).options.server?.handlers?.GET;
     const response = await handler({ request } as any);
 
     expect(response.status).toBe(200);
@@ -94,7 +94,7 @@ describe("Account Settings Routes", () => {
       body: JSON.stringify({ displayName: "Updated Name", version }),
     });
 
-    const handler = (ProfileRoute as any).options.PATCH!;
+    const handler = (ProfileRoute as any).options.server?.handlers?.PATCH;
     const response = await handler({ request } as any);
 
     expect(response.status).toBe(200);
@@ -133,7 +133,7 @@ describe("Account Settings Routes", () => {
       headers: { [ACTOR_HEADER]: validAddress },
     });
 
-    const handler = (AccountInfoRoute as any).options.GET!;
+    const handler = (AccountInfoRoute as any).options.server?.handlers?.GET;
     const response = await handler({ request } as any);
 
     expect(response.status).toBe(200);
