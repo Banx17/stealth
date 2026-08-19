@@ -103,6 +103,12 @@ export interface RelayServiceConfig {
    * anchor record owns retries and reconciliation.
    */
   onAccepted?: (envelope: RelayAcceptedEnvelope) => void | Promise<void>;
+  onIngestedReceipt?: (input: {
+    messageId: string;
+    sender: string;
+    recipient: string;
+    payload: string;
+  }) => Promise<unknown>;
 }
 
 export interface RelaySubmitResult {
@@ -253,6 +259,16 @@ export class RelayService {
         });
       } catch {
         // Best-effort; the durable anchor record owns the outcome.
+    if (this.config.onIngestedReceipt) {
+      try {
+        await this.config.onIngestedReceipt({
+          messageId: envelope.messageId,
+          sender: envelope.sender,
+          recipient: envelope.recipient,
+          payload: envelope.payload,
+        });
+      } catch {
+        // Log / fail-soft: receipt publication error does not fail queue enqueue
       }
     }
     return {

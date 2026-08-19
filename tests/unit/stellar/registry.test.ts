@@ -77,7 +77,10 @@ describe("Runtime Registry Drift Validation", () => {
     vi.mocked(readFileSync).mockReturnValue(
       JSON.stringify({
         ...mockManifest,
-        contracts: { ...mockManifest.contracts, postage: { contractId: "CBBBB2" } },
+        contracts: {
+          ...mockManifest.contracts,
+          postage: { contractId: "CBBBB2" },
+        },
       }),
     );
 
@@ -89,7 +92,10 @@ describe("Runtime Registry Drift Validation", () => {
     vi.mocked(readFileSync).mockReturnValue(
       JSON.stringify({
         ...mockManifest,
-        contracts: { ...mockManifest.contracts, lifecycle: { contractId: "CAAAA2" } },
+        contracts: {
+          ...mockManifest.contracts,
+          lifecycle: { contractId: "CAAAA2" },
+        },
       }),
     );
 
