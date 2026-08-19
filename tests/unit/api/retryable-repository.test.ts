@@ -27,6 +27,22 @@ const owner = `G${"A".repeat(55)}`;
 const sender = `G${"B".repeat(55)}`;
 const messageId = "a".repeat(64);
 
+function sampleRecoveryCodeSet(
+  userId: string,
+): import("../../../src/server/api/domain").RecoveryCodeSet {
+  return {
+    userId,
+    status: "active",
+    codes: [
+      { hash: "h".repeat(64), salt: "s".repeat(32), usedAt: null },
+      { hash: "i".repeat(64), salt: "t".repeat(32), usedAt: null },
+    ],
+    generatedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    version: 0,
+  };
+}
+
 class FailingRepository implements ApiRepository {
   public readonly inner = new MemoryApiRepository();
   private readonly failCounts = new Map<string, number>();
@@ -104,6 +120,14 @@ class FailingRepository implements ApiRepository {
   async setReceipt(receipt: Receipt): Promise<Receipt> {
     this.maybeFail("setReceipt");
     return this.inner.setReceipt(receipt);
+  }
+  async getLifecycleAnchor(messageId: string) {
+    this.maybeFail("getLifecycleAnchor");
+    return this.inner.getLifecycleAnchor(messageId);
+  }
+  async setLifecycleAnchor(anchor: import("../../../src/server/api/domain").LifecycleAnchor) {
+    this.maybeFail("setLifecycleAnchor");
+    return this.inner.setLifecycleAnchor(anchor);
   }
   async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
     this.maybeFail("getMessageDeliveryStatus");
@@ -286,6 +310,17 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("createRetiredSession");
     return this.inner.createRetiredSession(retiredSession);
   }
+  async getRecoveryCodeSet(userId: string) {
+    this.maybeFail("getRecoveryCodeSet");
+    return this.inner.getRecoveryCodeSet(userId);
+  }
+  async setRecoveryCodeSet(
+    set: import("../../../src/server/api/domain").RecoveryCodeSet,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("setRecoveryCodeSet");
+    return this.inner.setRecoveryCodeSet(set, expectedVersion);
+  }
   async getEnvelope(messageId: string) {
     this.maybeFail("getEnvelope");
     return this.inner.getEnvelope(messageId);
@@ -335,6 +370,14 @@ class FailingRepository implements ApiRepository {
   async recordVerificationAttempt(tokenHash: string, now: Date) {
     this.maybeFail("recordVerificationAttempt");
     return this.inner.recordVerificationAttempt(tokenHash, now);
+  }
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: import("../../../src/server/api/domain").VerificationPurpose,
+    now: Date,
+  ) {
+    this.maybeFail("invalidateActiveVerificationToken");
+    return this.inner.invalidateActiveVerificationToken(userId, purpose, now);
   }
   async getExternalWallets(owner: string) {
     this.maybeFail("getExternalWallets");
@@ -812,5 +855,23 @@ describe("RetryableApiRepository", () => {
 
     await expect(repo.insertEnvelope(envelope)).rejects.toThrow();
     expect(failing.getCallCount("insertEnvelope")).toBe(1);
+  });
+
+  it("retries getRecoveryCodeSet (safe read) on transient failure", async () => {
+    failing.setFailCount("getRecoveryCodeSet", 1);
+    const set = sampleRecoveryCodeSet("1".repeat(64));
+    await failing.inner.setRecoveryCodeSet(set, 0);
+
+    const result = await repo.getRecoveryCodeSet(set.userId);
+    expect(result?.userId).toBe(set.userId);
+    expect(failing.getCallCount("getRecoveryCodeSet")).toBe(2);
+  });
+
+  it("does not retry setRecoveryCodeSet (CAS write)", async () => {
+    failing.setFailCount("setRecoveryCodeSet", 2);
+    const set = sampleRecoveryCodeSet("2".repeat(64));
+
+    await expect(repo.setRecoveryCodeSet(set, 0)).rejects.toThrow();
+    expect(failing.getCallCount("setRecoveryCodeSet")).toBe(1);
   });
 });

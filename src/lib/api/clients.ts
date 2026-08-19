@@ -22,9 +22,11 @@ import type {
   MailboxSettings,
   PolicyReconciliation,
   PostageQuote,
+  PostageRecord,
   PublicProfile,
   PublicWalletStatus,
   RegistrationResponse,
+  ResolvedIdentity,
   SenderRule,
   SessionBundle,
   UnknownSenderDecision,
@@ -118,6 +120,22 @@ export class IdentityClient {
     return this.client.get<KeyDirectoryRecord>(`/identity/keys/${encodeURIComponent(owner)}`, {
       signal,
     });
+  }
+
+  resolve(
+    identifier: string,
+    options?: { timeoutMs?: number; bypassCache?: boolean },
+    signal?: AbortSignal,
+  ): Promise<ResolvedIdentity> {
+    return this.client.post<ResolvedIdentity>(
+      "/identity/resolve",
+      {
+        identifier,
+        timeoutMs: options?.timeoutMs,
+        bypassCache: options?.bypassCache,
+      },
+      { signal },
+    );
   }
 }
 
@@ -254,6 +272,50 @@ export class PostageClient {
 
   quote(query: PostageQuoteQuery, signal?: AbortSignal): Promise<PostageQuote> {
     return this.client.post<PostageQuote>("/postage/quote", query, { signal });
+  }
+
+  get(messageId: string, signal?: AbortSignal): Promise<PostageRecord> {
+    return this.client.get<PostageRecord>(`/postage/${encodeURIComponent(messageId)}`, { signal });
+  }
+
+  settle(messageId: string, signal?: AbortSignal): Promise<PostageRecord> {
+    return this.client.post<PostageRecord>(
+      `/postage/${encodeURIComponent(messageId)}/settle`,
+      undefined,
+      { signal },
+    );
+  }
+
+  refund(messageId: string, signal?: AbortSignal): Promise<PostageRecord> {
+    return this.client.post<PostageRecord>(
+      `/postage/${encodeURIComponent(messageId)}/refund`,
+      undefined,
+      { signal },
+    );
+  }
+
+  dispute(messageId: string, signal?: AbortSignal): Promise<PostageRecord> {
+    return this.client.post<PostageRecord>(
+      `/postage/${encodeURIComponent(messageId)}/dispute`,
+      undefined,
+      { signal },
+    );
+  }
+
+  expire(messageId: string, signal?: AbortSignal): Promise<PostageRecord> {
+    return this.client.post<PostageRecord>(
+      `/postage/${encodeURIComponent(messageId)}/expire`,
+      undefined,
+      { signal },
+    );
+  }
+
+  reclaim(messageId: string, signal?: AbortSignal): Promise<PostageRecord> {
+    return this.client.post<PostageRecord>(
+      `/postage/${encodeURIComponent(messageId)}/reclaim`,
+      undefined,
+      { signal },
+    );
   }
 }
 

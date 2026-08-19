@@ -46,6 +46,9 @@ describe("OpenAPI route coverage", () => {
         "/contacts/merge",
         "/contacts/import/preview",
         "/contacts/import/commit",
+        "/auth/recovery/status",
+        "/auth/recovery/regenerate",
+        "/auth/recovery/redeem",
       ]),
     );
   });
@@ -53,7 +56,13 @@ describe("OpenAPI route coverage", () => {
   it("documents security on every mutating operation", () => {
     const mutating = new Set(["post", "put", "delete", "patch"]);
     // Read-only decision endpoints that intentionally do not require actor auth.
-    const readOnlyPosts = new Set(["/policies/evaluate", "/postage/quote"]);
+    const readOnlyPosts = new Set([
+      "/policies/evaluate",
+      "/postage/quote",
+      // BETA-010: one-code recovery is unauthenticated by design — the code
+      // itself is the credential (see docs/api/RECOVERY_CODES.md).
+      "/auth/recovery/redeem",
+    ]);
     for (const path of pathKeys) {
       const methods = Object.keys(paths[path as keyof typeof paths]);
       for (const method of methods) {

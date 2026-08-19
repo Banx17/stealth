@@ -2,7 +2,7 @@
 // Source: contracts/soroban/policies/spec.json
 // Regenerate: npm run generate:bindings
 
-import { contract } from "@stellar/stellar-sdk";
+import { contract, Keypair } from "@stellar/stellar-sdk";
 
 export interface MailboxPolicy {
   allow_unknown: boolean;
@@ -83,6 +83,8 @@ export interface PoliciesClientOptions {
   rpcUrl: string;
   /** Public key of the transaction source account. */
   publicKey?: string;
+  /** Secret seed of the signing keypair (e.g. the operator keypair). */
+  signer?: string;
 }
 
 /** Map a contract error code to an actionable PoliciesError variant. */
@@ -99,6 +101,7 @@ export function createPoliciesClient(opts: PoliciesClientOptions): contract.Clie
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
+    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
   });
 }
 
