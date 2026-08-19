@@ -135,7 +135,8 @@ export const API_ERROR_REGISTRY = {
     status: 403,
     message: "Recent authentication is required",
     retryable: false,
-    description: "The requested operation requires the user to have authenticated recently. The current session has expired for sensitive operations.",
+    description:
+      "The requested operation requires the user to have authenticated recently. The current session has expired for sensitive operations.",
   },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
