@@ -170,6 +170,27 @@ export interface MailboxPolicyWrite {
   minimumPostage: string;
   requireVerified: boolean;
   requireReceipt?: boolean;
+  version?: number;
+}
+
+export type SenderRule = "default" | "allow" | "block";
+
+export type PolicyReconciliationState = "synced" | "pending_write" | "failed" | "diverged";
+
+export interface PolicyReconciliation {
+  owner: string;
+  state: PolicyReconciliationState;
+  offchain: {
+    policy: MailboxPolicy | null;
+    version: number;
+    intentStatus: "pending" | "submitted" | "confirmed" | "failed" | null;
+    intentUpdatedAt: string | null;
+    intentError: string | null;
+  };
+  chain: {
+    policy: MailboxPolicy | null;
+    version: number | null;
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -48,6 +48,11 @@ export const mailboxPolicyWriteSchema = z.object({
   minimumPostage: stroopAmountSchema,
   requireVerified: z.boolean(),
   requireReceipt: z.boolean().default(false),
+  version: z.number().int().nonnegative().optional(),
+});
+
+export const senderRuleWriteSchema = z.object({
+  rule: senderRuleSchema,
 });
 
 // ---------------------------------------------------------------------------

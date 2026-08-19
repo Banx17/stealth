@@ -20,10 +20,12 @@ import type {
   MailboxPolicyWrite,
   MailboxQueueResponse,
   MailboxSettings,
+  PolicyReconciliation,
   PostageQuote,
   PublicProfile,
   PublicWalletStatus,
   RegistrationResponse,
+  SenderRule,
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
@@ -196,6 +198,44 @@ export class PoliciesClient {
 
   update(owner: string, policy: MailboxPolicyWrite, signal?: AbortSignal): Promise<MailboxPolicy> {
     return this.client.put(`/policies/${encodeURIComponent(owner)}`, policy, { signal });
+  }
+
+  getReconciliation(
+    owner: string,
+    chainVersion?: number,
+    signal?: AbortSignal,
+  ): Promise<PolicyReconciliation> {
+    return this.client.get<PolicyReconciliation>(
+      `/policies/${encodeURIComponent(owner)}/reconciliation`,
+      {
+        query: chainVersion !== undefined ? { chainVersion: String(chainVersion) } : undefined,
+        signal,
+      },
+    );
+  }
+
+  getRule(
+    owner: string,
+    sender: string,
+    signal?: AbortSignal,
+  ): Promise<{ owner: string; rule: SenderRule }> {
+    return this.client.get<{ owner: string; rule: SenderRule }>(
+      `/policies/${encodeURIComponent(owner)}/senders/${encodeURIComponent(sender)}`,
+      { signal },
+    );
+  }
+
+  setRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    signal?: AbortSignal,
+  ): Promise<{ owner: string; rule: SenderRule }> {
+    return this.client.put(
+      `/policies/${encodeURIComponent(owner)}/senders/${encodeURIComponent(sender)}`,
+      { rule },
+      { signal },
+    );
   }
 }
 
