@@ -18,57 +18,7 @@ export const Route = createFileRoute("/api/v1/bootstrap")({
           const sessionId = parseSessionCookie(request.headers.get("cookie"));
 
           if (!sessionId) {
-            if (import.meta.env.PROD || process.env.VITEST === "true") {
-              throw new ApiError(401, "unauthorized", "No active session cookie found");
-            }
-
-            return apiSuccess(request, {
-              user: {
-                userId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                email: "demo@stealth.mail",
-                username: "demo_user",
-                status: "active",
-                accountStatus: "active",
-                displayName: "Demo User",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-              session: {
-                sessionId: "sess_demo_default",
-                userId: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                createdAt: new Date().toISOString(),
-                expiresAt: new Date(Date.now() + 86400000).toISOString(),
-              },
-              address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              provisioning: null,
-              policy: {
-                allowUnknown: true,
-                requireVerified: false,
-                requireReceipt: false,
-                minimumPostage: "0",
-              },
-              wallet: {
-                connected: true,
-                address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                signerType: "managed",
-                capabilities: ["sign", "send", "read"],
-                network: "testnet",
-                balanceXlm: "100.0000000",
-              },
-              health: {
-                ready: true,
-                status: "ok",
-                dependencies: { bindings: "ok", storage: "ok", coordinator: "ok" },
-              },
-              syncCursor: `sync_${Date.now()}`,
-              featureFlags: {
-                betaStateMachines: true,
-                sorobanPostage: true,
-                liveMailboxSync: true,
-              },
-              branch: "active",
-            });
+            throw new ApiError(401, "unauthorized", "No active session cookie found");
           }
 
           const sessionRecord = await apiContext.repository.getSession(sessionId);

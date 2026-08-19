@@ -10,6 +10,7 @@ import type {
   IdempotencyRecord,
   JobStatus,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
   MessageDeliveryStatusRecord,
   PolicyWriteIntent,
@@ -20,6 +21,7 @@ import type {
   PublishedKey,
   Receipt,
   ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -77,6 +79,24 @@ export type AcquireIdempotencyResult =
    * block behind, or replay the response of, an unrelated request.
    */
   | { status: "conflict" };
+
+/**
+ * Outcome of a compare-and-swap write to the account's recovery code set.
+ *
+ * Issue #1917 (BETA-010): recovery codes are single-use secrets; redemption
+ * and regeneration must never lose an update to a racing writer. `expectedVersion`
+ * is the version observed on the read that preceded this write:
+ *
+ * - `expectedVersion === 0` is a create-only reservation: it succeeds only when
+ *   no set exists yet, and reports `current` (never the caller's new set) when
+ *   another generation won.
+ * - `expectedVersion >= 1` is a strict compare-and-swap against the stored
+ *   version. A mismatch reports `current` so the caller can re-read and retry
+ *   (or fail) deterministically; a match bumps the stored version by 1.
+ */
+export type UpdateRecoveryCodeSetResult =
+  | { updated: true; set: RecoveryCodeSet }
+  | { updated: false; current: RecoveryCodeSet | null };
 
 /**
  * Outcome of an atomic read-receipt publication.
@@ -227,6 +247,11 @@ export interface ApiRepository {
   // version) for an already-scheduled policy.
   getPolicyWriteIntent(owner: string): Promise<PolicyWriteIntent | null>;
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent>;
+  // BETA-043 (Issue #1950): durable anchor record for the on-chain Lifecycle
+  // contract. Read back during sync/reconciliation so a retry never re-anchors
+  // an already-confirmed commitment; writes are idempotent per messageId.
+  getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null>;
+  setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
   getPostage(messageId: string): Promise<Postage | null>;
@@ -382,6 +407,17 @@ export interface ApiRepository {
   ): Promise<IssueVerificationTokenResult>;
   consumeVerificationToken(tokenHash: string, now: Date): Promise<ConsumeVerificationTokenResult>;
   recordVerificationAttempt(tokenHash: string, now: Date): Promise<RecordVerificationAttemptResult>;
+  invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void>;
+  // Issue #1917 (BETA-010): Recovery code set CAS storage
+  getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null>;
+  setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult>;
 
   getRelayQueueDepth(relayId: string): Promise<number>;
   getRelayRetryCount(relayId: string): Promise<number>;
@@ -620,6 +656,16 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     return this.inner.setPolicyWriteIntent(versionRecord("policyWriteIntent", intent));
+  }
+
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const raw = await this.inner.getLifecycleAnchor(messageId);
+    return raw ? validateRecord<LifecycleAnchor>("lifecycleAnchor", raw) : null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    const result = await this.inner.setLifecycleAnchor(versionRecord("lifecycleAnchor", anchor));
+    return validateRecord<LifecycleAnchor>("lifecycleAnchor", result);
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -987,6 +1033,35 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    const raw = await this.inner.getRecoveryCodeSet(userId);
+    return raw ? validateRecord<RecoveryCodeSet>("recoveryCodeSet", raw) : null;
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    const result = await this.inner.setRecoveryCodeSet(
+      versionRecord("recoveryCodeSet", set),
+      expectedVersion,
+    );
+    if (result.updated) {
+      result.set = validateRecord<RecoveryCodeSet>("recoveryCodeSet", result.set);
+    } else if (result.current) {
+      result.current = validateRecord<RecoveryCodeSet>("recoveryCodeSet", result.current);
+    }
+    return result;
+  }
+
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.inner.invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.inner.getRelayQueueDepth(relayId);
   }
@@ -1290,6 +1365,7 @@ export const DEFAULT_RETRY_POLICY: RetryPolicy = {
 const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicy",
   "getPolicyWriteIntent",
+  "getLifecycleAnchor",
   "getSenderRule",
   "getPostage",
   "getReceipt",
@@ -1302,6 +1378,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getCounter",
   "setPolicy",
   "setPolicyWriteIntent",
+  "setLifecycleAnchor",
   "setSenderRule",
   "setPostage",
   "setReceipt",
@@ -1327,6 +1404,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "releaseUsernameReservation",
   "initializePolicyIfAbsent",
   "getActiveVerificationToken",
+  "invalidateActiveVerificationToken",
   "listRecipientEnvelopes",
   "getExternalWallets",
   "findExternalWalletOwner",
@@ -1350,6 +1428,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getSendOperation",
   "setSendOperation",
   "createSendOperationIfAbsent",
+  "getRecoveryCodeSet",
 ]);
 
 function isRetryableError(error: unknown): boolean {
@@ -1420,6 +1499,14 @@ export class RetryableApiRepository implements ApiRepository {
 
   setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     return this.withRetry("setPolicyWriteIntent", () => this.inner.setPolicyWriteIntent(intent));
+  }
+
+  getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    return this.withRetry("getLifecycleAnchor", () => this.inner.getLifecycleAnchor(messageId));
+  }
+
+  setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    return this.withRetry("setLifecycleAnchor", () => this.inner.setLifecycleAnchor(anchor));
   }
 
   getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -1660,6 +1747,16 @@ export class RetryableApiRepository implements ApiRepository {
     return this.inner.recordVerificationAttempt(tokenHash, now);
   }
 
+  invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.withRetry("invalidateActiveVerificationToken", () =>
+      this.inner.invalidateActiveVerificationToken(userId, purpose, now),
+    );
+  }
+
   getRelayQueueDepth(relayId: string): Promise<number> {
     return this.withRetry("getRelayQueueDepth", () => this.inner.getRelayQueueDepth(relayId));
   }
@@ -1697,6 +1794,22 @@ export class RetryableApiRepository implements ApiRepository {
   // Issue #1936: reads are retry-safe; inserts are not (insert-once semantics).
   getEnvelope(messageId: string): Promise<StoredEnvelope | null> {
     return this.withRetry("getEnvelope", () => this.inner.getEnvelope(messageId));
+  }
+
+  getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    // Read-only: a stale read is harmless (and eventually consistent), so
+    // transient failures are retried.
+    return this.withRetry("getRecoveryCodeSet", () => this.inner.getRecoveryCodeSet(userId));
+  }
+
+  setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    // Never retried automatically: the CAS version is authoritative, and a
+    // transparent retry could double-bump the version or mask a legitimate
+    // conflict. The caller owns the read-check-write cycle (issue #1917).
+    return this.inner.setRecoveryCodeSet(set, expectedVersion);
   }
 
   insertEnvelope(envelope: StoredEnvelope): Promise<InsertEnvelopeResult> {

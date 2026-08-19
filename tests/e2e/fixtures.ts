@@ -230,15 +230,10 @@ export async function openDemoMailbox(page: Page) {
     },
   );
 
-  await page.route("**/api/v1/bootstrap", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(demoBootstrapBody()),
-    }),
-  );
-
-  await page.goto("/");
+  // Demo mode lives on the isolated `/demo` route behind the explicit
+  // development-only flag set above (BETA-012). The production root never
+  // serves demo or seeded mail data.
+  await page.goto("/demo");
   await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible({ timeout: 60000 });
   await page.waitForFunction(() => Boolean(document.documentElement.dataset.theme));
 }

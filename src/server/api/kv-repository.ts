@@ -5,6 +5,7 @@ import type {
   PostageTransitionResult,
   UpdateContactResult,
   UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
   UsernameReservationResult,
   WalletCreationResult,
@@ -21,6 +22,7 @@ import type {
   IdempotencyRecord,
   JobStatus,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
   MessageDeliveryStatusRecord,
   PolicyWriteIntent,
@@ -31,6 +33,7 @@ import type {
   PublishedKey,
   Receipt,
   ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -73,6 +76,16 @@ export class HybridApiRepository implements ApiRepository {
   async setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     await this.kv.put(this.key("policy-write", intent.owner), JSON.stringify(intent));
     return intent;
+  }
+
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const anchor = await this.kv.get(this.key("lifecycle-anchor", messageId), "json");
+    return (anchor as LifecycleAnchor) ?? null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    await this.kv.put(this.key("lifecycle-anchor", anchor.messageId), JSON.stringify(anchor));
+    return anchor;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -315,6 +328,14 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().recordVerificationAttempt(tokenHash, now);
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.getStub().invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   // BETA-006: Session DO stubs
   async getSession(sessionId: string): Promise<Session | null> {
     return this.getStub().getSession(sessionId);
@@ -342,6 +363,19 @@ export class HybridApiRepository implements ApiRepository {
 
   async createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession> {
     return this.getStub().createRetiredSession(retiredSession);
+  }
+
+  // Issue #1917 (BETA-010): CAS semantics live in the Durable Object (the
+  // runExclusive critical section), so KV delegation is a plain RPC passthrough.
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return this.getStub().getRecoveryCodeSet(userId);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.getStub().setRecoveryCodeSet(set, expectedVersion);
   }
 
   // Consistent layer delegated to Durable Object via RPC

@@ -176,6 +176,8 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
   const postageContractId =
     (env.STEALTH_POSTAGE_CONTRACT_ID as string) ??
     "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+  const lifecycleContractId =
+    (env.STEALTH_LIFECYCLE_CONTRACT_ID as string) ?? "C_DEV_LIFECYCLE_CONTRACT";
   const receiptsContractId =
     (env.STEALTH_RECEIPTS_CONTRACT_ID as string) ??
     "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
@@ -272,6 +274,11 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
         "Configuration error: STEALTH_POSTAGE_CONTRACT_ID is required and cannot be a placeholder in production.",
       );
     }
+    if (isPlaceholderContractId(lifecycleContractId) || !lifecycleContractId) {
+      throw new Error(
+        "Configuration error: STEALTH_LIFECYCLE_CONTRACT_ID is required and cannot be a placeholder in production.",
+      );
+    }
     if (isPlaceholderContractId(receiptsContractId) || !receiptsContractId) {
       throw new Error(
         "Configuration error: STEALTH_RECEIPTS_CONTRACT_ID is required and cannot be a placeholder in production.",
@@ -326,6 +333,7 @@ export function loadRuntimeConfig(options: LoadConfigOptions = {}): BetaRuntimeC
     contract: {
       registryContractId,
       postageContractId,
+      lifecycleContractId,
       receiptsContractId,
       domainTag,
       protocolVersion,
@@ -495,6 +503,7 @@ export function formatConfigMatrix(config: BetaRuntimeConfig): string {
     `[Contract]`,
     `  Registry Contract:     ${config.contract.registryContractId}`,
     `  Postage Contract:      ${config.contract.postageContractId}`,
+    `  Lifecycle Contract:    ${config.contract.lifecycleContractId}`,
     `  Receipts Contract:     ${config.contract.receiptsContractId}`,
     `  Domain Tag:            ${config.contract.domainTag}`,
     `  Protocol Version:      ${config.contract.protocolVersion}`,

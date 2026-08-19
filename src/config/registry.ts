@@ -104,6 +104,21 @@ export function validateRegistryDrift(config: BetaRuntimeConfig) {
     }
   }
 
+  // 3. Lifecycle contract ID drift
+  if (
+    config.contract.lifecycleContractId !== "placeholder" &&
+    config.contract.lifecycleContractId !== manifest.contracts.lifecycle?.contractId
+  ) {
+    if (
+      config.profile === "production" ||
+      !config.contract.lifecycleContractId.startsWith("C_DEV")
+    ) {
+      throw new Error(
+        `Drift Validation Error: STEALTH_LIFECYCLE_CONTRACT_ID '${config.contract.lifecycleContractId}' does not match deployed manifest ID '${manifest.contracts.lifecycle?.contractId}'`,
+      );
+    }
+  }
+
   // If we reach here, validation passed.
   console.log(
     `[Registry] Successfully validated runtime config against signed deployment manifest (Deployed At: ${manifest.deployedAt})`,

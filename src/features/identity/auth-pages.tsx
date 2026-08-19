@@ -7,10 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 
 import { sharedTypedApi as api, errorLabel, ApiClientError } from "@/lib/api";
-
-function safeDestination(destination?: string) {
-  return destination?.startsWith("/") && !destination.startsWith("//") ? destination : "/";
-}
+import { safeReturnTo } from "./returnTo";
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -60,7 +57,7 @@ export function SignUpPage({ destination }: { destination?: string }) {
         to: "/auth/verify",
         search: {
           email: registration.maskedEmail ?? "your email",
-          next: safeDestination(destination),
+          next: safeReturnTo(destination),
         },
       });
     } catch (cause) {
@@ -129,7 +126,7 @@ export function SignUpPage({ destination }: { destination?: string }) {
           <Link
             className="text-primary underline-offset-4 hover:underline"
             to="/auth/sign-in"
-            search={{ next: safeDestination(destination) }}
+            search={{ next: safeReturnTo(destination) }}
           >
             Sign in
           </Link>
@@ -152,7 +149,7 @@ export function SignInPage({ destination }: { destination?: string }) {
         identifier: String(form.get("identifier") ?? ""),
         password: String(form.get("password") ?? ""),
       });
-      window.location.assign(safeDestination(destination));
+      window.location.assign(safeReturnTo(destination));
     } catch (cause) {
       setError(
         cause instanceof ApiClientError
@@ -197,7 +194,7 @@ export function SignInPage({ destination }: { destination?: string }) {
           <Link
             className="text-primary underline-offset-4 hover:underline"
             to="/auth/sign-up"
-            search={{ next: safeDestination(destination) }}
+            search={{ next: safeReturnTo(destination) }}
           >
             Create an account
           </Link>

@@ -70,7 +70,6 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
 import { AuthModal } from "@/components/mail/AuthModal";
-import { BootstrapStateView, useBootstrap } from "@/features/identity";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,33 +90,18 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { branch } = useBootstrap();
-
-  if (branch !== "active") {
-    return <BootstrapStateView />;
-  }
-
-  // Demo mode is a development-only escape hatch: `import.meta.env.DEV` is
-  // statically false in production builds, so the demo branch (and its dynamic
-  // import of the mock fixtures) is removed by the bundler. The production app
-  // shell has no route to `initialEmails` or the demo adapter.
-  const isDemo = import.meta.env.DEV;
-  const isTest = typeof window !== "undefined" && Boolean(window.navigator.webdriver);
-
-  if (!isDemo || isTest) {
-    if (branch !== "active") {
-      return <BootstrapStateView />;
-    }
-  }
-
-  return <MailApp isDemoMode={isDemo && !isTest} />;
+  // BETA-012: the root route is a protected route. The root route guard
+  // (RouteGate) only ever lets authenticated, active visitors reach this page,
+  // so the app shell never renders in demo mode here. Demo mode lives on the
+  // isolated `/demo` route behind an explicit development-only flag.
+  return <MailApp isDemoMode={false} />;
 }
 
 function delay(ms: number) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
-function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
+export function MailApp({ isDemoMode = false }: { isDemoMode?: boolean }) {
   const [showSenderJourney, setShowSenderJourney] = useState(false);
   const [folder, setFolder] = useState<MailFolder>("inbox");
   const [emails, setEmails] = useState<Email[]>([]);
@@ -173,7 +157,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
   const mailboxHydrated = useRef(false);
 
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
+    if (!import.meta.env.DEV || !isDemoMode) return;
     if (mailboxHydrated.current) return;
     let cancelled = false;
     void import("@/features/mail/demo/demo-data").then(({ getDemoEmails }) => {
@@ -186,7 +170,7 @@ function MailApp({ isDemoMode }: { isDemoMode?: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;

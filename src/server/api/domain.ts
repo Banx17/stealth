@@ -30,7 +30,14 @@ export const stroopAmountSchema = z
   }, "Amount exceeds Soroban i128");
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
-export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);
+export const postageStatusSchema = z.enum([
+  "pending",
+  "expired",
+  "disputed",
+  "settled",
+  "refunded",
+  "reclaimed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
@@ -86,6 +93,34 @@ export const policyWriteIntentSchema = z.object({
   policy: chainMailboxPolicySchema,
   offchainVersion: z.number().int().nonnegative(),
   status: policyWriteStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+});
+
+// ---------------------------------------------------------------------------
+// BETA-043 (Issue #1950) — message lifecycle anchoring
+//
+// Durable record of a message commitment anchored to the on-chain Lifecycle
+// contract on testnet. `messageId` is the message commitment (hash32); no
+// plaintext or private metadata ever appears here. Anchoring is idempotent per
+// message commitment: duplicate submissions collapse onto the stored anchor
+// and map to the contract's DuplicateLifecycle as a success. `amount` is the
+// on-chain postage amount in stroops carried verbatim into the bind call.
+// ---------------------------------------------------------------------------
+
+export const lifecycleAnchorStatusSchema = z.enum(["pending", "submitted", "confirmed", "failed"]);
+
+export const lifecycleAnchorSchema = z.object({
+  messageId: hash32Schema,
+  sender: stellarAddressSchema,
+  recipient: stellarAddressSchema,
+  amount: stroopAmountSchema,
+  verified: z.boolean(),
+  receiptRequired: z.boolean(),
+  status: lifecycleAnchorStatusSchema,
   scheduledAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   failureCount: z.number().int().nonnegative().default(0),
@@ -174,6 +209,8 @@ export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
+export type LifecycleAnchor = z.infer<typeof lifecycleAnchorSchema>;
+export type LifecycleAnchorStatus = z.infer<typeof lifecycleAnchorStatusSchema>;
 
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({
@@ -404,7 +441,15 @@ export const publicProfileSchema = z.object({
 // BETA-005: Verification token lifecycle domain
 // ---------------------------------------------------------------------------
 
-export const verificationPurposeSchema = z.enum(["email_verification"]);
+export const passwordPolicySchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .max(256, "Password is too long")
+  .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter")
+  .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter")
+  .refine((value) => /\d/.test(value), "Password must include a number");
+
+export const verificationPurposeSchema = z.enum(["email_verification", "password_reset"]);
 export type VerificationPurpose = z.infer<typeof verificationPurposeSchema>;
 
 export const verificationTokenHashSchema = z
@@ -675,6 +720,11 @@ export const sessionSchema = z.object({
   ipAddress: z.string().optional().nullable(),
   userAgent: z.string().optional().nullable(),
   deviceFingerprint: z.string().optional().nullable(),
+  // Issue #1917 (BETA-010): the last time the account holder authenticated
+  // with a password (or via a one-code recovery). Optional so sessions
+  // created before this feature remains valid; recovery-code regeneration
+  // requires a session whose recentLoginAt is fresh.
+  recentLoginAt: z.string().datetime().optional(),
 });
 
 export const publicSessionSchema = z.object({
@@ -708,6 +758,47 @@ export function toPublicSession(session: Session): PublicSession {
     absoluteExpiresAt: session.absoluteExpiresAt,
   };
 }
+
+// ---------------------------------------------------------------------------
+// BETA-010 (Issue #1917): One-time recovery code sets
+//
+// Recovery codes are single-use secrets for restoring account access. Only
+// PBKDF2 hashes of the codes are ever persisted — the plaintext code is
+// returned to the user exactly once, at generation time, and cannot be
+// retrieved afterwards.
+// ---------------------------------------------------------------------------
+
+export const recoveryCodeStatusSchema = z.enum(["active", "exhausted"]);
+
+export const recoveryCodeEntrySchema = z.object({
+  hash: z.string().min(1, "Recovery code hash cannot be empty"),
+  salt: z.string().min(1, "Recovery code salt cannot be empty"),
+  usedAt: z.string().datetime().nullable(),
+});
+
+export const recoveryCodeSetSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  status: recoveryCodeStatusSchema,
+  codes: z.array(recoveryCodeEntrySchema).min(1, "Recovery code set cannot be empty"),
+  generatedAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export type RecoveryCodeEntry = z.infer<typeof recoveryCodeEntrySchema>;
+export type RecoveryCodeSet = z.infer<typeof recoveryCodeSetSchema>;
+
+/**
+ * Safety-model view of a recovery set. Deliberately carries no hash material,
+ * no codes, and no identifiers — only state and aggregate counters, so UI
+ * surfaces can answer "is recovery ready?" without exposing secrets.
+ */
+export type RecoveryCodeSetStatusView = {
+  status: "none" | "active" | "exhausted";
+  totalCodes: number;
+  remainingCodes: number;
+  generatedAt: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // StoredEnvelope — durable encrypted-message record (Issue #1936 / BETA-029)
