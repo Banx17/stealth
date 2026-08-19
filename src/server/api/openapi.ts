@@ -493,6 +493,7 @@ export const openApiDocument = {
               code: {
                 type: "string",
                 description: "Stable domain-specific error code.",
+                "x-optic-ignore": true,
                 enum: API_ERROR_CODES,
               },
               message: {
