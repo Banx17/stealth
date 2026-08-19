@@ -40,6 +40,7 @@ import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/polic
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
+import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
 import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
@@ -66,6 +67,8 @@ import { Route as ApiV1PostageMessageIdSettleRouteImport } from './routes/api/v1
 import { Route as ApiV1PostageMessageIdRefundRouteImport } from './routes/api/v1/postage/$messageId/refund'
 import { Route as ApiV1PoliciesOwnerReconciliationRouteImport } from './routes/api/v1/policies/$owner/reconciliation'
 import { Route as ApiV1PoliciesOwnerProvisionRouteImport } from './routes/api/v1/policies/$owner/provision'
+import { Route as ApiV1LifecycleMessageIdReconcileRouteImport } from './routes/api/v1/lifecycle/$messageId/reconcile'
+import { Route as ApiV1LifecycleMessageIdAnchorRouteImport } from './routes/api/v1/lifecycle/$messageId/anchor'
 import { Route as ApiV1IdentityKeysRotateRouteImport } from './routes/api/v1/identity/keys/rotate'
 import { Route as ApiV1IdentityKeysRevokeRouteImport } from './routes/api/v1/identity/keys/revoke'
 import { Route as ApiV1IdentityKeysRetireRouteImport } from './routes/api/v1/identity/keys/retire'
@@ -240,6 +243,11 @@ const ApiV1MailboxMessageIdRoute = ApiV1MailboxMessageIdRouteImport.update({
   path: '/api/v1/mailbox/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
+  id: '/api/v1/lifecycle/$messageId',
+  path: '/api/v1/lifecycle/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   id: '/api/v1/identity/resolve',
   path: '/api/v1/identity/resolve',
@@ -379,6 +387,18 @@ const ApiV1PoliciesOwnerProvisionRoute =
     path: '/provision',
     getParentRoute: () => ApiV1PoliciesOwnerRoute,
   } as any)
+const ApiV1LifecycleMessageIdReconcileRoute =
+  ApiV1LifecycleMessageIdReconcileRouteImport.update({
+    id: '/reconcile',
+    path: '/reconcile',
+    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
+  } as any)
+const ApiV1LifecycleMessageIdAnchorRoute =
+  ApiV1LifecycleMessageIdAnchorRouteImport.update({
+    id: '/anchor',
+    path: '/anchor',
+    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
+  } as any)
 const ApiV1IdentityKeysRotateRoute = ApiV1IdentityKeysRotateRouteImport.update({
   id: '/api/v1/identity/keys/rotate',
   path: '/api/v1/identity/keys/rotate',
@@ -503,6 +523,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -536,6 +557,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
   '/api/v1/identity/keys/rotate': typeof ApiV1IdentityKeysRotateRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
@@ -580,6 +603,7 @@ export interface FileRoutesByTo {
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -613,6 +637,8 @@ export interface FileRoutesByTo {
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
   '/api/v1/identity/keys/rotate': typeof ApiV1IdentityKeysRotateRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
@@ -658,6 +684,7 @@ export interface FileRoutesById {
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
+  '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -691,6 +718,8 @@ export interface FileRoutesById {
   '/api/v1/identity/keys/retire': typeof ApiV1IdentityKeysRetireRoute
   '/api/v1/identity/keys/revoke': typeof ApiV1IdentityKeysRevokeRoute
   '/api/v1/identity/keys/rotate': typeof ApiV1IdentityKeysRotateRoute
+  '/api/v1/lifecycle/$messageId/anchor': typeof ApiV1LifecycleMessageIdAnchorRoute
+  '/api/v1/lifecycle/$messageId/reconcile': typeof ApiV1LifecycleMessageIdReconcileRoute
   '/api/v1/policies/$owner/provision': typeof ApiV1PoliciesOwnerProvisionRoute
   '/api/v1/policies/$owner/reconciliation': typeof ApiV1PoliciesOwnerReconciliationRoute
   '/api/v1/postage/$messageId/refund': typeof ApiV1PostageMessageIdRefundRoute
@@ -737,6 +766,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
+    | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
     | '/api/v1/policies/$owner'
@@ -770,6 +800,8 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
     | '/api/v1/identity/keys/rotate'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/policies/$owner/provision'
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
@@ -814,6 +846,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
+    | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
     | '/api/v1/policies/$owner'
@@ -847,6 +880,8 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
     | '/api/v1/identity/keys/rotate'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/policies/$owner/provision'
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
@@ -891,6 +926,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
     | '/api/v1/identity/resolve'
+    | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/queue'
     | '/api/v1/policies/$owner'
@@ -924,6 +960,8 @@ export interface FileRouteTypes {
     | '/api/v1/identity/keys/retire'
     | '/api/v1/identity/keys/revoke'
     | '/api/v1/identity/keys/rotate'
+    | '/api/v1/lifecycle/$messageId/anchor'
+    | '/api/v1/lifecycle/$messageId/reconcile'
     | '/api/v1/policies/$owner/provision'
     | '/api/v1/policies/$owner/reconciliation'
     | '/api/v1/postage/$messageId/refund'
@@ -969,6 +1007,7 @@ export interface RootRouteChildren {
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
   ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
+  ApiV1LifecycleMessageIdRoute: typeof ApiV1LifecycleMessageIdRouteWithChildren
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -1232,6 +1271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1MailboxMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/lifecycle/$messageId': {
+      id: '/api/v1/lifecycle/$messageId'
+      path: '/api/v1/lifecycle/$messageId'
+      fullPath: '/api/v1/lifecycle/$messageId'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/identity/resolve': {
       id: '/api/v1/identity/resolve'
       path: '/api/v1/identity/resolve'
@@ -1414,6 +1460,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerProvisionRouteImport
       parentRoute: typeof ApiV1PoliciesOwnerRoute
     }
+    '/api/v1/lifecycle/$messageId/reconcile': {
+      id: '/api/v1/lifecycle/$messageId/reconcile'
+      path: '/reconcile'
+      fullPath: '/api/v1/lifecycle/$messageId/reconcile'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdReconcileRouteImport
+      parentRoute: typeof ApiV1LifecycleMessageIdRoute
+    }
+    '/api/v1/lifecycle/$messageId/anchor': {
+      id: '/api/v1/lifecycle/$messageId/anchor'
+      path: '/anchor'
+      fullPath: '/api/v1/lifecycle/$messageId/anchor'
+      preLoaderRoute: typeof ApiV1LifecycleMessageIdAnchorRouteImport
+      parentRoute: typeof ApiV1LifecycleMessageIdRoute
+    }
     '/api/v1/identity/keys/rotate': {
       id: '/api/v1/identity/keys/rotate'
       path: '/api/v1/identity/keys/rotate'
@@ -1557,6 +1617,23 @@ const ApiV1AccountsProvisioningRouteWithChildren =
     ApiV1AccountsProvisioningRouteChildren,
   )
 
+interface ApiV1LifecycleMessageIdRouteChildren {
+  ApiV1LifecycleMessageIdAnchorRoute: typeof ApiV1LifecycleMessageIdAnchorRoute
+  ApiV1LifecycleMessageIdReconcileRoute: typeof ApiV1LifecycleMessageIdReconcileRoute
+}
+
+const ApiV1LifecycleMessageIdRouteChildren: ApiV1LifecycleMessageIdRouteChildren =
+  {
+    ApiV1LifecycleMessageIdAnchorRoute: ApiV1LifecycleMessageIdAnchorRoute,
+    ApiV1LifecycleMessageIdReconcileRoute:
+      ApiV1LifecycleMessageIdReconcileRoute,
+  }
+
+const ApiV1LifecycleMessageIdRouteWithChildren =
+  ApiV1LifecycleMessageIdRoute._addFileChildren(
+    ApiV1LifecycleMessageIdRouteChildren,
+  )
+
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
   ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
@@ -1640,6 +1717,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
   ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
+  ApiV1LifecycleMessageIdRoute: ApiV1LifecycleMessageIdRouteWithChildren,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,

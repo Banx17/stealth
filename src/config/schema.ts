@@ -77,6 +77,7 @@ export type RelayConfig = z.infer<typeof relayConfigSchema>;
 export const contractConfigSchema = z.object({
   registryContractId: z.string().min(1, "Registry contract ID cannot be empty"),
   postageContractId: z.string().min(1, "Postage contract ID cannot be empty"),
+  lifecycleContractId: z.string().min(1, "Lifecycle contract ID cannot be empty"),
   receiptsContractId: z.string().min(1, "Receipts contract ID cannot be empty"),
   domainTag: z.string().min(1, "Domain tag cannot be empty"),
   protocolVersion: z.string().min(1, "Protocol version cannot be empty"),

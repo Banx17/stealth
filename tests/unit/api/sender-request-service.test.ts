@@ -20,7 +20,7 @@ function pendingRequest(overrides: Record<string, unknown> = {}) {
       messageId: "a".repeat(64),
       ciphertextHash: "b".repeat(64),
     },
-    createdAt: new Date(now).toISOString(),
+    createdAt: new Date(now - 60_000).toISOString(),
     expiresAt: new Date(now + 86_400_000).toISOString(),
     status: "pending" as const,
     ...overrides,

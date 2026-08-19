@@ -10,6 +10,7 @@ import type {
   IdempotencyRecord,
   JobStatus,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
   MessageDeliveryStatusRecord,
   PolicyWriteIntent,
@@ -64,6 +65,7 @@ function activeTokenKey(userId: string, purpose: string) {
 export class MemoryApiRepository implements ApiRepository {
   private readonly policies = new Map<string, MailboxPolicy>();
   private readonly policyWriteIntents = new Map<string, PolicyWriteIntent>();
+  private readonly lifecycleAnchors = new Map<string, LifecycleAnchor>();
   private readonly postage = new Map<string, Postage>();
   private readonly receipts = new Map<string, Receipt>();
   private readonly deliveryStatuses = new Map<string, MessageDeliveryStatusRecord>();
@@ -258,6 +260,15 @@ export class MemoryApiRepository implements ApiRepository {
   async setPolicyWriteIntent(intent: PolicyWriteIntent) {
     this.policyWriteIntents.set(intent.owner, structuredClone(intent));
     return structuredClone(intent);
+  }
+
+  async getLifecycleAnchor(messageId: string) {
+    return structuredClone(this.lifecycleAnchors.get(messageId) ?? null);
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor) {
+    this.lifecycleAnchors.set(anchor.messageId, structuredClone(anchor));
+    return structuredClone(anchor);
   }
 
   async getSenderRule(owner: string, sender: string) {
