@@ -465,12 +465,10 @@ export const openApiDocument = {
             description: "Number of flow runs attempted so far.",
           },
           failure: {
+            nullable: true,
             allOf: [
               {
                 $ref: "#/components/schemas/ProvisioningFailure",
-              },
-              {
-                nullable: true,
               },
             ],
           },
@@ -494,7 +492,7 @@ export const openApiDocument = {
                 type: "string",
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
-                enum: API_ERROR_CODES,
+                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
               },
               message: {
                 type: "string",
