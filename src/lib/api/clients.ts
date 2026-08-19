@@ -22,6 +22,7 @@ import type {
   MailboxSettings,
   PostageQuote,
   PublicProfile,
+  PublicWalletStatus,
   RegistrationResponse,
   SessionBundle,
   UnknownSenderDecision,
@@ -43,6 +44,7 @@ export interface TypedApi {
   receipts: ReceiptsClient;
   contacts: ContactsClient;
   settings: SettingsClient;
+  wallet: WalletClient;
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +270,21 @@ export class SettingsClient {
 }
 
 // ---------------------------------------------------------------------------
+// BETA-019 — managed wallet status (owner-only, no custody fields)
+// ---------------------------------------------------------------------------
+
+export class WalletClient {
+  constructor(private readonly client: ApiClient) {}
+
+  getStatus(address?: string, signal?: AbortSignal): Promise<PublicWalletStatus> {
+    return this.client.get<PublicWalletStatus>("/wallet/status", {
+      query: { address },
+      signal,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
@@ -290,6 +307,7 @@ export function createTypedApi(options: CreateTypedApiOptions = {}): TypedApi {
     receipts: new ReceiptsClient(client),
     contacts: new ContactsClient(client),
     settings: new SettingsClient(client, policies),
+    wallet: new WalletClient(client),
   };
 }
 

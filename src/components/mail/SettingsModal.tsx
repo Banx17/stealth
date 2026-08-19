@@ -39,6 +39,7 @@ import {
 import { AuditLog } from "@/features/audit-log";
 import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
+import { ManagedWalletStatus } from "@/features/settings/ManagedWalletStatus";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -317,6 +318,7 @@ function AccountSettings() {
           <SettingsField label="Stellar address" value="GDQ...X4KJ" />
         </div>
       </div>
+      <ManagedWalletStatus />
     </div>
   );
 }
