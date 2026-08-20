@@ -593,6 +593,16 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("createSendOperationIfAbsent");
     return this.inner.createSendOperationIfAbsent(state);
   }
+  async getOnboardingDraft(userId: string) {
+    this.maybeFail("getOnboardingDraft");
+    return this.inner.getOnboardingDraft(userId);
+  }
+  async saveOnboardingDraft(
+    record: import("../../../src/server/api/domain").OnboardingDraftRecord,
+  ) {
+    this.maybeFail("saveOnboardingDraft");
+    return this.inner.saveOnboardingDraft(record);
+  }
   reset(): void {
     this.inner.reset();
   }
