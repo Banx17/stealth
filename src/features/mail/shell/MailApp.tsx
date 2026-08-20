@@ -453,6 +453,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               (email) => email.email?.startsWith("G") || email.email?.includes("*"),
             )?.email ?? ""
           }
+          actor={source.actor}
+          offline={isDemoMode || !source.actor}
         />
 
         <BottomNavigation

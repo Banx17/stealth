@@ -270,6 +270,8 @@ export interface AnonymousApiContext {
   isAuthenticated: false;
   requestId?: string;
   traceContext: TraceContext;
+  escrow?: import("../../services/stellar/postage-escrow").PostageEscrowAdapter;
+  _pendingMessageId?: string;
 }
 
 export interface AuthenticatedApiContext {
@@ -278,6 +280,8 @@ export interface AuthenticatedApiContext {
   isAuthenticated: true;
   requestId?: string;
   traceContext: TraceContext;
+  escrow?: import("../../services/stellar/postage-escrow").PostageEscrowAdapter;
+  _pendingMessageId?: string;
 }
 
 export type ApiContext = AnonymousApiContext | AuthenticatedApiContext;
@@ -285,6 +289,8 @@ export type ApiContext = AnonymousApiContext | AuthenticatedApiContext;
 const globalApi = globalThis as typeof globalThis & {
   __stealthApiRepository?: ApiRepository;
   __stealthObjectStore?: unknown;
+  __stealthRuntimeConfig?: import("../../config/schema").BetaRuntimeConfig;
+  __stealthEscrow?: import("../../services/stellar/postage-escrow").PostageEscrowAdapter | null;
 };
 
 /**
@@ -347,6 +353,7 @@ export function createApiContext(
   principal?: ApiPrincipal | null,
   requestId?: string,
   traceContext?: TraceContext,
+  escrow?: import("../../services/stellar/postage-escrow").PostageEscrowAdapter,
 ): ApiContext {
   const finalTraceContext = traceContext ?? getCurrentTraceContext();
   const tracedRepo = traceRepository(repository, finalTraceContext);
@@ -357,6 +364,7 @@ export function createApiContext(
       isAuthenticated: true,
       requestId,
       traceContext: finalTraceContext,
+      escrow,
     };
   }
   return {
@@ -365,6 +373,7 @@ export function createApiContext(
     isAuthenticated: false,
     requestId,
     traceContext: finalTraceContext,
+    escrow,
   };
 }
 
@@ -377,6 +386,44 @@ export function createApiContext(
  * requirements are distinguished, and secret values are never logged.
  */
 import { loadRuntimeConfig } from "../../config";
+
+/**
+ * BETA-042: memoized on-chain postage escrow bridge.
+ *
+ * Only wired when running a real deployment (import.meta.env.PROD) AND the
+ * loaded runtime config yields a live adapter (real RPC + managed wallet +
+ * non-placeholder contract). Dev/test and misconfigured deployments stay fully
+ * off-chain so local workflows and the unit suite remain deterministic.
+ */
+async function getEscrowAdapter(): Promise<
+  import("../../services/stellar/postage-escrow").PostageEscrowAdapter | undefined
+> {
+  if (globalApi.__stealthEscrow !== undefined) {
+    return globalApi.__stealthEscrow ?? undefined;
+  }
+  globalApi.__stealthEscrow = null;
+  if (!import.meta.env.PROD) {
+    return undefined;
+  }
+  try {
+    const { ManagedWalletService } = await import("../../services/stellar/managed-wallet");
+    const { PostageEscrowAdapter } = await import("../../services/stellar/postage-escrow");
+    const config = globalApi.__stealthRuntimeConfig;
+    if (config) {
+      const adapter = new PostageEscrowAdapter({
+        config,
+        managedWallet: new ManagedWalletService(config),
+      });
+      if (adapter.isLive()) {
+        globalApi.__stealthEscrow = adapter;
+        return adapter;
+      }
+    }
+  } catch {
+    // Misconfigured / unavailable on-chain bridge — stay off-chain.
+  }
+  return undefined;
+}
 
 export interface ApiConfig {
   isProd: boolean;
@@ -420,7 +467,7 @@ export function validateApiConfig(config: ApiConfig): void {
   }
 
   // Execute full 6-domain beta runtime configuration validation
-  loadRuntimeConfig({
+  globalApi.__stealthRuntimeConfig = loadRuntimeConfig({
     profile: config.isProd ? "production" : "development",
     env: {
       STEALTH_KV: config.kvBinding,
@@ -509,5 +556,7 @@ export async function getApiContext(request?: Request): Promise<ApiContext> {
 
   traceContextStorage.enterWith(traceContext);
 
-  return createApiContext(repo, principal, requestId, traceContext);
+  const escrow = await getEscrowAdapter();
+
+  return createApiContext(repo, principal, requestId, traceContext, escrow);
 }
