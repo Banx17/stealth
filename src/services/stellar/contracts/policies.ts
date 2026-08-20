@@ -102,7 +102,12 @@ export function createPoliciesClient(opts: PoliciesClientOptions): contract.Clie
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
     ...(opts.signer
-      ? contract.basicNodeSigner(Keypair.fromSecret(opts.signer), opts.networkPassphrase)
+      ? {
+          signTransaction: contract.basicNodeSigner(
+            Keypair.fromSecret(opts.signer),
+            opts.networkPassphrase,
+          ).signTransaction,
+        }
       : {}),
   });
 }
