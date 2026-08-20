@@ -28,6 +28,7 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { SenderJourney } from "@/features/sender-journey";
 import { useSenderConversion } from "@/features/sender-conversion";
 import { useSnooze } from "@/features/snooze";
+import { useSession, sessionActor } from "../useSession";
 
 import { useMailActions, quoteBody } from "../useMailActions";
 import { useMailBulkActions } from "../useMailBulkActions";
@@ -43,6 +44,9 @@ export interface MailAppProps {
 }
 
 export function MailApp({ isDemoMode = false }: MailAppProps) {
+  const session = useSession({ enabled: !isDemoMode });
+  const actor = sessionActor(session.data);
+
   const source = useMailSource({ isDemoMode });
   const navigation = useMailNavigation(source.emails);
   const overlays = useMailOverlays();
@@ -81,6 +85,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     openSenderConversion,
     openSnoozeDialog: (email) => snooze.open({ emailId: email.id, subject: email.subject }),
     closeSnooze: snooze.close,
+    isDemoMode,
+    actor,
   });
 
   const bulk = useMailBulkActions({
@@ -260,6 +266,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                     emails={source.emails}
                     onUpdateEmail={source.updateEmail}
                     onShowToast={showToast}
+                    isDemoMode={isDemoMode}
                   />
                 ) : (
                   <ResizablePanelGroup

@@ -31,6 +31,7 @@ import type {
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
+  UnknownSenderRequestsResponse,
   AccountInfo,
   AccountProfileResponse,
   ProfileUpdateInput,
@@ -186,8 +187,11 @@ export class MailboxClient {
 export class RequestsClient {
   constructor(private readonly client: ApiClient) {}
 
-  list(signal?: AbortSignal): Promise<UnknownSenderRequest[]> {
-    return this.client.get<UnknownSenderRequest[]>("/requests", { signal });
+  list(
+    query?: { cursor?: string; limit?: number },
+    signal?: AbortSignal,
+  ): Promise<UnknownSenderRequestsResponse> {
+    return this.client.get<UnknownSenderRequestsResponse>("/requests", { query, signal });
   }
 
   decide(

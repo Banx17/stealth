@@ -21,6 +21,8 @@ import {
 import type { TrashResult } from "./useMailSource";
 import type { FeedbackTone } from "@/features/design-system/feedback/use-feedback";
 
+import { sharedTypedApi as api } from "@/lib/api";
+
 export function quoteBody(email: Email): string {
   return `\n\n---\nOn ${email.time}, ${email.from} <${email.email}> wrote:\n${email.body
     .split("\n")
@@ -44,6 +46,8 @@ export function useMailActions(input: {
   openSenderConversion: (email: Email) => void;
   openSnoozeDialog: (email: Email) => void;
   closeSnooze: () => void;
+  isDemoMode?: boolean;
+  actor?: string | null;
 }) {
   const {
     emails,
@@ -59,6 +63,8 @@ export function useMailActions(input: {
     openSenderConversion,
     openSnoozeDialog,
     closeSnooze,
+    isDemoMode = false,
+    actor = null,
   } = input;
 
   const handleConvertSender = useCallback(
@@ -68,8 +74,16 @@ export function useMailActions(input: {
       const result = resolveSenderConversion(email, choice);
       updateEmail(email.id, result.patch);
       showToast(result.toast.message, { tone: result.toast.tone });
+
+      if (!isDemoMode && actor) {
+        const rule = choice === "verify" ? "default" : choice;
+        api.policies.setRule(actor, email.email, rule).catch((err) => {
+          console.error("Failed to update sender policy on server", err);
+          showToast("Failed to sync policy change to server", { tone: "danger" });
+        });
+      }
     },
-    [emails, showToast, updateEmail],
+    [emails, showToast, updateEmail, isDemoMode, actor],
   );
 
   const applySenderCommand = useCallback(
@@ -77,8 +91,16 @@ export function useMailActions(input: {
       const result = resolveSenderConversion(email, choice);
       updateEmail(email.id, result.patch);
       showToast(result.toast.message, { tone: result.toast.tone });
+
+      if (!isDemoMode && actor) {
+        const rule = choice === "verify" ? "default" : choice;
+        api.policies.setRule(actor, email.email, rule).catch((err) => {
+          console.error("Failed to update sender policy on server", err);
+          showToast("Failed to sync policy change to server", { tone: "danger" });
+        });
+      }
     },
-    [showToast, updateEmail],
+    [showToast, updateEmail, isDemoMode, actor],
   );
 
   const handleSnooze = useCallback(
