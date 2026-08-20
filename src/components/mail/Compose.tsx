@@ -305,7 +305,7 @@ export function Compose({
             to: to.trim(),
             subject: subject.trim(),
             body,
-            recipients: resolvedAccounts,
+            recipients: resolvedAccounts.length > 0 ? resolvedAccounts : undefined,
             postage,
             postageQuote: quoteState.status === "quoted" ? quoteState.quote : undefined,
           },
@@ -838,16 +838,13 @@ function validateSendRequest({
   }
   if (!isTrustedSender(quoteState)) {
     const currentQuote = quoteState.status === "quoted" ? quoteState.quote : null;
-    if (currentQuote) {
+    if (currentQuote && currentQuote.amount !== "0") {
       const postageStroops = BigInt(Math.round(Number(postage) * 10_000_000));
       const minimumStroops = BigInt(currentQuote.amount);
       if (postageStroops < minimumStroops) {
         onShowToast?.("Add postage before sending");
         return false;
       }
-    } else if (resolvedRecipients.some((r) => r.postage === "required")) {
-      onShowToast?.("Add postage before sending");
-      return false;
     }
   }
   if (!subject.trim()) {
