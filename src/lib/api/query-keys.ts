@@ -8,6 +8,11 @@
 // ---------------------------------------------------------------------------
 
 export const queryKeys = {
+  account: {
+    all: ["account"] as const,
+    profile: ["account", "profile"] as const,
+    info: ["account", "info"] as const,
+  },
   auth: {
     all: ["auth"] as const,
     session: ["auth", "session"] as const,
@@ -29,6 +34,9 @@ export const queryKeys = {
   policies: {
     all: ["policies"] as const,
     policy: (owner: string) => ["policies", owner] as const,
+    reconciliation: (owner: string) => ["policies", "reconciliation", owner] as const,
+    senderRule: (owner: string, sender: string) =>
+      ["policies", "senderRule", owner, sender] as const,
     evaluate: (owner: string) => ["policies", "evaluate", owner] as const,
   },
   postage: {
@@ -58,8 +66,10 @@ export const queryKeys = {
 export const cacheInvalidations = {
   sessionLogout: () => [queryKeys.auth.session],
   sessionRenew: () => [queryKeys.auth.session],
+  updateProfile: () => [queryKeys.account.profile, queryKeys.account.info],
   updateMailboxPolicy: (owner: string) => [
     queryKeys.policies.policy(owner),
+    queryKeys.policies.reconciliation(owner),
     queryKeys.policies.evaluate(owner),
     queryKeys.settings.all,
   ],

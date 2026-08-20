@@ -45,6 +45,7 @@ export const ROUTE_BODY_LIMITS = {
   "PUT /policies/{owner}/senders/{sender}": "standard",
   "POST /policies/evaluate": "compact",
   "POST /relay/messages": "relay",
+  "PATCH /accounts/profile": "standard",
   "POST /accounts": "standard",
   "POST /accounts/provisioning/retry": "minimal",
   "POST /auth/verify": "minimal",

@@ -206,7 +206,11 @@ registerRecordSchema("senderRule", 1, senderRuleSchema);
 registerRecordSchema("postage", 1, postageSchema);
 registerRecordSchema("receipt", 1, receiptSchema);
 registerRecordSchema("user", 1, userSchema);
-registerRecordSchema("profile", 1, profileSchema);
+// Issue #1976 (BETA-069): profile v2 adds locale, timezone, and addressDisplay.
+// Legacy v1 records are migrated by stamping defaults for the new fields.
+registerRecordSchema("profile", 2, profileSchema, {
+  1: (data: any) => ({ ...data, locale: "en", timezone: "UTC", addressDisplay: "truncated" }),
+});
 registerRecordSchema("credential", 1, credentialSchema);
 registerRecordSchema("verificationToken", 1, verificationTokenSchema);
 registerRecordSchema("session", 1, sessionSchema);

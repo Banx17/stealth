@@ -53,6 +53,8 @@ import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/log
 import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/accounts/provisioning'
+import { Route as ApiV1AccountsProfileRouteImport } from './routes/api/v1/accounts/profile'
+import { Route as ApiV1AccountsAccountInfoRouteImport } from './routes/api/v1/accounts/account-info'
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
 import { Route as ApiV1AdminJobsIndexRouteImport } from './routes/api/v1/admin/jobs/index'
@@ -310,6 +312,17 @@ const ApiV1AccountsProvisioningRoute =
     path: '/api/v1/accounts/provisioning',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1AccountsProfileRoute = ApiV1AccountsProfileRouteImport.update({
+  id: '/api/v1/accounts/profile',
+  path: '/api/v1/accounts/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AccountsAccountInfoRoute =
+  ApiV1AccountsAccountInfoRouteImport.update({
+    id: '/api/v1/accounts/account-info',
+    path: '/api/v1/accounts/account-info',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1WalletLinkIndexRoute = ApiV1WalletLinkIndexRouteImport.update({
   id: '/api/v1/wallet/link/',
   path: '/api/v1/wallet/link/',
@@ -511,6 +524,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
@@ -591,6 +606,8 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
@@ -672,6 +689,8 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
@@ -754,6 +773,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
@@ -834,6 +855,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
@@ -914,6 +937,8 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
@@ -995,6 +1020,8 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1AccountsAccountInfoRoute: typeof ApiV1AccountsAccountInfoRoute
+  ApiV1AccountsProfileRoute: typeof ApiV1AccountsProfileRoute
   ApiV1AccountsProvisioningRoute: typeof ApiV1AccountsProvisioningRouteWithChildren
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
@@ -1362,6 +1389,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/accounts/profile': {
+      id: '/api/v1/accounts/profile'
+      path: '/api/v1/accounts/profile'
+      fullPath: '/api/v1/accounts/profile'
+      preLoaderRoute: typeof ApiV1AccountsProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/account-info': {
+      id: '/api/v1/accounts/account-info'
+      path: '/api/v1/accounts/account-info'
+      fullPath: '/api/v1/accounts/account-info'
+      preLoaderRoute: typeof ApiV1AccountsAccountInfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/wallet/link/': {
       id: '/api/v1/wallet/link/'
       path: '/api/v1/wallet/link'
@@ -1705,6 +1746,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1AccountsAccountInfoRoute: ApiV1AccountsAccountInfoRoute,
+  ApiV1AccountsProfileRoute: ApiV1AccountsProfileRoute,
   ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,

@@ -7,6 +7,7 @@ import type {
 } from "./domain";
 import type { ApiRepository } from "./repository";
 import { defaultMailboxPolicy } from "./repository";
+import { ApiError } from "./errors";
 
 // ---------------------------------------------------------------------------
 // BETA-023 (Issue #1930) — privacy-safe mailbox policy defaults
@@ -74,8 +75,18 @@ export async function setMailboxPolicy(
   repository: ApiRepository,
   owner: string,
   policy: MailboxPolicy,
-  options: { requireReceipt?: boolean } = {},
+  options: { requireReceipt?: boolean; version?: number } = {},
 ) {
+  if (options.version !== undefined) {
+    const intent = await repository.getPolicyWriteIntent(owner);
+    const currentVersion = intent?.offchainVersion ?? 0;
+    if (options.version !== currentVersion) {
+      throw new ApiError(409, "conflict", "Policy has been modified since you last loaded it", {
+        details: { currentVersion, suppliedVersion: options.version },
+      });
+    }
+  }
+
   const stored = await repository.setPolicy(owner, policy);
   await schedulePolicyWrite(
     repository,

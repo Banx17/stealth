@@ -20,15 +20,21 @@ import type {
   MailboxPolicyWrite,
   MailboxQueueResponse,
   MailboxSettings,
+  PolicyReconciliation,
   PostageQuote,
   PostageRecord,
   PublicProfile,
   PublicWalletStatus,
   RegistrationResponse,
   ResolvedIdentity,
+  SenderRule,
   SessionBundle,
   UnknownSenderDecision,
   UnknownSenderRequest,
+  AccountInfo,
+  AccountProfileResponse,
+  ProfileUpdateInput,
+  ProfileUpdateResponse,
 } from "./types";
 
 export interface ApiContext {
@@ -37,6 +43,7 @@ export interface ApiContext {
 }
 
 export interface TypedApi {
+  account: AccountClient;
   auth: AuthClient;
   identity: IdentityClient;
   mailbox: MailboxClient;
@@ -210,6 +217,44 @@ export class PoliciesClient {
   update(owner: string, policy: MailboxPolicyWrite, signal?: AbortSignal): Promise<MailboxPolicy> {
     return this.client.put(`/policies/${encodeURIComponent(owner)}`, policy, { signal });
   }
+
+  getReconciliation(
+    owner: string,
+    chainVersion?: number,
+    signal?: AbortSignal,
+  ): Promise<PolicyReconciliation> {
+    return this.client.get<PolicyReconciliation>(
+      `/policies/${encodeURIComponent(owner)}/reconciliation`,
+      {
+        query: chainVersion !== undefined ? { chainVersion: String(chainVersion) } : undefined,
+        signal,
+      },
+    );
+  }
+
+  getRule(
+    owner: string,
+    sender: string,
+    signal?: AbortSignal,
+  ): Promise<{ owner: string; rule: SenderRule }> {
+    return this.client.get<{ owner: string; rule: SenderRule }>(
+      `/policies/${encodeURIComponent(owner)}/senders/${encodeURIComponent(sender)}`,
+      { signal },
+    );
+  }
+
+  setRule(
+    owner: string,
+    sender: string,
+    rule: SenderRule,
+    signal?: AbortSignal,
+  ): Promise<{ owner: string; rule: SenderRule }> {
+    return this.client.put(
+      `/policies/${encodeURIComponent(owner)}/senders/${encodeURIComponent(sender)}`,
+      { rule },
+      { signal },
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -332,6 +377,26 @@ export class SettingsClient {
 }
 
 // ---------------------------------------------------------------------------
+// BETA-069 — Account Profile & Settings
+// ---------------------------------------------------------------------------
+
+export class AccountClient {
+  constructor(private readonly client: ApiClient) {}
+
+  getProfile(signal?: AbortSignal): Promise<AccountProfileResponse> {
+    return this.client.get<AccountProfileResponse>("/accounts/profile", { signal });
+  }
+
+  updateProfile(input: ProfileUpdateInput, signal?: AbortSignal): Promise<ProfileUpdateResponse> {
+    return this.client.patch<ProfileUpdateResponse>("/accounts/profile", input, { signal });
+  }
+
+  getAccountInfo(signal?: AbortSignal): Promise<{ account: AccountInfo }> {
+    return this.client.get<{ account: AccountInfo }>("/accounts/account-info", { signal });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // BETA-019 — managed wallet status (owner-only, no custody fields)
 // ---------------------------------------------------------------------------
 
@@ -360,6 +425,7 @@ export function createTypedApi(options: CreateTypedApiOptions = {}): TypedApi {
   const client = new ApiClient(options);
   const policies = new PoliciesClient(client);
   return {
+    account: new AccountClient(client),
     auth: new AuthClient(client),
     identity: new IdentityClient(client),
     mailbox: new MailboxClient(client),

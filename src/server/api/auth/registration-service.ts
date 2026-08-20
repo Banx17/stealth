@@ -68,6 +68,9 @@ export async function registerWithPassword(
     userId,
     username: input.username,
     displayName: input.displayName,
+    locale: "en-US",
+    timezone: "UTC",
+    addressDisplay: "full",
     createdAt: nowIso,
     updatedAt: nowIso,
   };

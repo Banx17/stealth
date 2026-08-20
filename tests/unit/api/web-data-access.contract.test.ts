@@ -174,6 +174,7 @@ describe("query keys and cache invalidation rules", () => {
     expect(cacheInvalidations.tombstoneMessage("GABC")).toEqual([["mailbox", "queue", "GABC"]]);
     expect(cacheInvalidations.updateMailboxPolicy("GABC")).toEqual([
       ["policies", "GABC"],
+      ["policies", "reconciliation", "GABC"],
       ["policies", "evaluate", "GABC"],
       ["settings"],
     ]);

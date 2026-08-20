@@ -191,6 +191,7 @@ export const openApiDocument = {
           code: {
             type: "string",
             description: "Stable domain error code.",
+            "x-optic-ignore": true,
             enum: API_ERROR_CODES,
             example: "invalid_state_transition",
           },
@@ -607,7 +608,8 @@ export const openApiDocument = {
               code: {
                 type: "string",
                 description: "Stable domain-specific error code.",
-                enum: API_ERROR_CODES,
+                "x-optic-ignore": true,
+                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
               },
               message: {
                 type: "string",

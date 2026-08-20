@@ -58,6 +58,9 @@ describe("BETA-026 (Issue #1933): Production Stealth-Address & Stellar-Federatio
       displayName: "Alice Smith",
       avatarUrl: "https://stealth.me/avatars/alice.png",
       bio: "Crypto & Privacy enthusiast",
+      locale: "en-US",
+      timezone: "UTC",
+      addressDisplay: "full" as const,
       createdAt: "2026-08-01T00:00:00.000Z",
       updatedAt: "2026-08-01T00:00:00.000Z",
     });
