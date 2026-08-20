@@ -483,6 +483,8 @@ async function runOnChainAndSync(
     chainStatus: chain.chainStatus,
     retryClassification: chain.retryClassification as RetryClassification,
   });
+}
+
 export interface QuoteSubmissionInput {
   recipient: string;
   sender: string;
@@ -930,7 +932,11 @@ export async function resolvePostage(
   messageId: string,
   status: "refunded" | "settled",
 ) {
-  const actor = context.principal?.address ?? "system";
+  // Legacy/reconciliation entry point (send-coordinator, relay, and the
+  // pre-BETA-042 settle/refund routes). "system" is the internal trusted actor
+  // for these flows; real callers are authorized at the route layer via
+  // requireActor / requireActorMatches before resolvePostage is reached.
+  const actor = "system";
   const operation: PostageOperation = status === "settled" ? "settle" : "refund";
   return transitionEscrow(context, messageId, operation, status, actor);
 }

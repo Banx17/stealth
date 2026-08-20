@@ -191,15 +191,14 @@ export class ManagedWalletService {
         throw new Error(`Transaction alters policy for a different owner: ${targetOwner}`);
       }
     } else if (intent.type === "postage") {
-      const allowedFuncs = ["submit", "settle", "refund", "dispute", "expire", "reclaim"];
       if (contractAddress !== config.contract.postageContractId) {
         throw new Error("Invalid contract ID for postage intent");
       }
-      const allowedFuncs = ["submit", "settle", "submit_postage", "settle_postage"];
+      const allowedFuncs = ["submit", "settle", "refund", "dispute", "expire", "reclaim"];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for postage intents`);
       }
-      if (functionName === "submit" || functionName === "submit_postage") {
+      if (functionName === "submit") {
         const targetSender = args[1]; // sender is the 2nd argument in submit()
         if (targetSender !== intent.senderAddress) {
           throw new Error(`Transaction submits postage for a different sender: ${targetSender}`);

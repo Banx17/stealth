@@ -137,6 +137,7 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description:
       "The postage escrow operation failed to reach on-chain confirmation; the caller may retry with the same idempotency key.",
+  },
   recent_auth_required: {
     status: 403,
     message: "Recent authentication is required",
