@@ -39,6 +39,8 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1OnboardingDraftRouteImport } from './routes/api/v1/onboarding/draft'
+import { Route as ApiV1OnboardingCompleteRouteImport } from './routes/api/v1/onboarding/complete'
 import { Route as ApiV1MailboxSyncRouteImport } from './routes/api/v1/mailbox/sync'
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxCountsRouteImport } from './routes/api/v1/mailbox/counts'
@@ -242,6 +244,16 @@ const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
 const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   id: '/api/v1/policies/$owner',
   path: '/api/v1/policies/$owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OnboardingDraftRoute = ApiV1OnboardingDraftRouteImport.update({
+  id: '/api/v1/onboarding/draft',
+  path: '/api/v1/onboarding/draft',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OnboardingCompleteRoute = ApiV1OnboardingCompleteRouteImport.update({
+  id: '/api/v1/onboarding/complete',
+  path: '/api/v1/onboarding/complete',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1MailboxSyncRoute = ApiV1MailboxSyncRouteImport.update({
@@ -1357,11 +1369,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/mailbox/sync': {
-      id: '/api/v1/mailbox/sync'
-      path: '/api/v1/mailbox/sync'
-      fullPath: '/api/v1/mailbox/sync'
-      preLoaderRoute: typeof ApiV1MailboxSyncRouteImport
+    '/api/v1/onboarding/draft': {
+      id: '/api/v1/onboarding/draft'
+      path: '/api/v1/onboarding/draft'
+      fullPath: '/api/v1/onboarding/draft'
+      preLoaderRoute: typeof ApiV1OnboardingDraftRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/onboarding/complete': {
@@ -1371,11 +1383,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1OnboardingCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/mailbox/counts': {
-      id: '/api/v1/mailbox/counts'
-      path: '/api/v1/mailbox/counts'
-      fullPath: '/api/v1/mailbox/counts'
-      preLoaderRoute: typeof ApiV1MailboxCountsRouteImport
+    '/api/v1/mailbox/sync': {
+      id: '/api/v1/mailbox/sync'
+      path: '/api/v1/mailbox/sync'
+      fullPath: '/api/v1/mailbox/sync'
+      preLoaderRoute: typeof ApiV1MailboxSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/mailbox/queue': {

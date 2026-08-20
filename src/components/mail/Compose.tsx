@@ -43,11 +43,13 @@ import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress, type FailureInspectionDetails } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
 import { resolveSenderAddress } from "@/services/stellar/wallet";
-import { PostageBalanceBadge } from "./PostageBalanceBadge";
 import { useDraftAutosave } from "@/features/compose/useDraftAutosave";
 import { DraftStatusBadge } from "@/features/compose/DraftStatusBadge";
 import { DraftConflictBanner } from "@/features/compose/DraftConflictBanner";
 import type { Draft, DraftAttachmentDescriptor } from "@/server/api/domain";
+import { restoreDraftIfBlank, readUnsentDraft, saveUnsentDraft } from "@/features/mail/unsent-work";
+import { claimOnce, releaseOnce, classifyAppFailure } from "@/lib/api/failures";
+import { patchEntry } from "@/services/storage/outbox";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 

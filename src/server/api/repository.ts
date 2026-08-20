@@ -37,6 +37,7 @@ import type {
   FundingOperation,
   Wallet,
   DraftRecord,
+  OnboardingDraftRecord,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";

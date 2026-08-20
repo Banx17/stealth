@@ -36,6 +36,7 @@ import type {
   FundingOperation,
   Wallet,
   DraftRecord,
+  OnboardingDraftRecord,
 } from "./domain";
 import type {
   ApiRepository,
