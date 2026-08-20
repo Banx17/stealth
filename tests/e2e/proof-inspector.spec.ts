@@ -28,7 +28,7 @@ test.describe("proof inspector", () => {
 
     // Demo mailbox is offline: message/storage evidence renders, but testnet
     // proofs are honestly shown as missing, so the verdict is "Incomplete".
-    await expect(page.getByText("Incomplete")).toBeVisible();
+    await expect(page.getByText("Incomplete", { exact: true })).toBeVisible();
     await expect(page.getByText("Policy Metadata")).toBeVisible();
     await expect(page.getByText("Postage details")).toBeVisible();
     await expect(page.getByText("Receipt details")).toBeVisible();
