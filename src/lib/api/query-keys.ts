@@ -53,6 +53,10 @@ export const queryKeys = {
     all: ["receipts"] as const,
     byMessage: (messageId: string) => ["receipts", messageId] as const,
   },
+  lifecycle: {
+    all: ["lifecycle"] as const,
+    byMessage: (messageId: string) => ["lifecycle", messageId] as const,
+  },
   contacts: {
     all: ["contacts"] as const,
     list: (owner: string) => ["contacts", owner] as const,

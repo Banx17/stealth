@@ -15,6 +15,7 @@ import type {
   ContactListResponse,
   DeliveryReceipt,
   KeyDirectoryRecord,
+  LifecycleAnchorRecord,
   MailboxDescriptor,
   MailboxSealedMessage,
   MailboxCountsResponse,
@@ -29,6 +30,7 @@ import type {
   PostageRecord,
   PublicProfile,
   PublicWalletStatus,
+  ReceiptRecord,
   RegistrationResponse,
   ResolvedIdentity,
   SenderRule,
@@ -55,6 +57,7 @@ export interface TypedApi {
   policies: PoliciesClient;
   postage: PostageClient;
   receipts: ReceiptsClient;
+  lifecycle: LifecycleClient;
   contacts: ContactsClient;
   settings: SettingsClient;
   wallet: WalletClient;
@@ -366,6 +369,24 @@ export class ReceiptsClient {
   publish(input: DeliveryReceipt, signal?: AbortSignal): Promise<DeliveryReceipt> {
     return this.client.post<DeliveryReceipt>("/receipts", input, { signal });
   }
+
+  get(messageId: string, signal?: AbortSignal): Promise<ReceiptRecord> {
+    return this.client.get<ReceiptRecord>(`/receipts/${encodeURIComponent(messageId)}`, { signal });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle anchors (BETA-043)
+// ---------------------------------------------------------------------------
+
+export class LifecycleClient {
+  constructor(private readonly client: ApiClient) {}
+
+  get(messageId: string, signal?: AbortSignal): Promise<LifecycleAnchorRecord> {
+    return this.client.get<LifecycleAnchorRecord>(`/lifecycle/${encodeURIComponent(messageId)}`, {
+      signal,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -470,6 +491,7 @@ export function createTypedApi(options: CreateTypedApiOptions = {}): TypedApi {
     policies,
     postage: new PostageClient(client),
     receipts: new ReceiptsClient(client),
+    lifecycle: new LifecycleClient(client),
     contacts: new ContactsClient(client),
     settings: new SettingsClient(client, policies),
     wallet: new WalletClient(client),

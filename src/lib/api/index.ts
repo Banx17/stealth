@@ -31,6 +31,7 @@ export {
   AuthClient,
   ContactsClient,
   IdentityClient,
+  LifecycleClient,
   MailboxClient,
   PoliciesClient,
   PostageClient,
