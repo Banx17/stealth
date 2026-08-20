@@ -3,7 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { AmbientBackground } from "@/components/mail/AmbientBackground";
 import { cn } from "@/lib/utils";
-import { useSession, sessionActor, useMailbox } from "@/features/mail";
+import {
+  useSession,
+  sessionActor,
+  useMailbox,
+  useMailboxDescriptors,
+  useRequests,
+} from "@/features/mail";
+import { useNotificationCenter } from "@/features/notifications";
 import { BulkConfirmDialog } from "@/components/mail/BulkConfirmDialog";
 import { Sidebar } from "@/components/mail/Sidebar";
 import { Topbar } from "@/components/mail/Topbar";
@@ -154,6 +161,18 @@ export function MailApp({ isDemoMode = false }: { isDemoMode?: boolean }) {
     enabled: Boolean(actor) && !isDemoMode,
   });
   const mailboxEmails = mailbox.data ?? [];
+  const mailboxDescriptors = useMailboxDescriptors({
+    actor: actor ?? "anonymous",
+    enabled: Boolean(actor) && !isDemoMode,
+  });
+  const requests = useRequests(actor, !isDemoMode);
+  const notificationCenter = useNotificationCenter({
+    actor,
+    mail: mailboxDescriptors.data?.items ?? [],
+    requests: requests.data ?? [],
+    preferences: preferences.notifications,
+    browserEnabled: preferences.desktopNotifications,
+  });
   const mailboxHydrated = useRef(false);
 
   useEffect(() => {
@@ -792,6 +811,9 @@ export function MailApp({ isDemoMode = false }: { isDemoMode?: boolean }) {
                   setFilters({ ...defaultMailFilters, unreadOnly: true });
                 }}
                 onOpenLogin={() => setAuthModalOpen(true)}
+                notifications={notificationCenter.notifications}
+                onMarkNotificationRead={notificationCenter.markRead}
+                onMarkAllNotificationsRead={notificationCenter.markAllRead}
               />
               <div className="flex min-h-0 min-w-0 flex-1">
                 {folder === "requests" ? (

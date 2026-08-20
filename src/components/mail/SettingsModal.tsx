@@ -44,6 +44,7 @@ import { ChangelogPanel, useChangelog } from "@/features/changelog";
 import { ExternalWalletSettings } from "@/features/settings/external-wallet-linking";
 import { ManagedWalletStatus } from "@/features/settings/ManagedWalletStatus";
 import { RecoveryCodesSection } from "@/features/settings/recovery-codes";
+import { requestBrowserPermission, safeBrowserCopy } from "@/features/notifications";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -768,6 +769,9 @@ function NotificationSettings({
   preferences: UiPreferences;
   onChange: (preferences: UiPreferences) => void;
 }) {
+  const [browserPermission, setBrowserPermission] = useState<
+    NotificationPermission | "unsupported"
+  >(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission));
   const queryClient = useQueryClient();
   const {
     data: profileData,
@@ -833,6 +837,9 @@ function NotificationSettings({
   const notifications = profile.notifications ?? { email: true, desktop: true, sound: false };
 
   const handleToggle = async (field: keyof typeof notifications, value: boolean) => {
+    if (field === "desktop") {
+      onChange({ ...preferences, desktopNotifications: value });
+    }
     try {
       await mutation.mutateAsync({
         notifications: { ...notifications, [field]: value },
@@ -842,6 +849,8 @@ function NotificationSettings({
       // Errors handled by UI components below
     }
   };
+  const updateLocalNotifications = (update: Partial<UiPreferences["notifications"]>) =>
+    onChange({ ...preferences, notifications: { ...preferences.notifications, ...update } });
 
   return (
     <div className="space-y-6">
@@ -888,10 +897,118 @@ function NotificationSettings({
         />
         <SettingsToggle
           label="Desktop notifications"
-          description="Show browser notifications"
+          description="Show generic browser alerts without message content."
           checked={notifications.desktop}
           onChange={(checked) => handleToggle("desktop", checked)}
         />
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-foreground">Browser permission</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {browserPermission === "granted"
+              ? "Browser alerts are allowed on this device."
+              : browserPermission === "denied"
+                ? "Browser alerts are blocked. In-app alerts still work."
+                : browserPermission === "unsupported"
+                  ? "This browser does not support browser notifications."
+                  : "Allow generic alerts only on a device you trust."}
+          </p>
+          {browserPermission === "default" && (
+            <button
+              type="button"
+              onClick={() => void requestBrowserPermission().then(setBrowserPermission)}
+              className="mt-3 rounded-md bg-white/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-white/15"
+            >
+              Allow browser alerts
+            </button>
+          )}
+          {browserPermission === "granted" && (
+            <button
+              type="button"
+              onClick={() =>
+                new Notification(safeBrowserCopy.mail.title, {
+                  body: safeBrowserCopy.mail.body,
+                  tag: "stealth-notification-test",
+                })
+              }
+              className="mt-3 rounded-md bg-white/10 px-3 py-1.5 text-xs text-foreground transition hover:bg-white/15"
+            >
+              Send test notification
+            </button>
+          )}
+        </div>
+        <div className="space-y-3 border-t border-white/10 pt-4">
+          <p className="text-xs font-medium text-foreground">In-app alert categories</p>
+          {(["mail", "requests", "failures", "receipts"] as const).map((category) => (
+            <SettingsToggle
+              key={category}
+              label={
+                {
+                  mail: "New mail",
+                  requests: "Sender requests",
+                  failures: "Send failures",
+                  receipts: "Receipt changes",
+                }[category]
+              }
+              description=""
+              checked={preferences.notifications.categories[category]}
+              onChange={(enabled) =>
+                updateLocalNotifications({
+                  categories: { ...preferences.notifications.categories, [category]: enabled },
+                })
+              }
+            />
+          ))}
+        </div>
+        <div className="space-y-3 border-t border-white/10 pt-4">
+          <SettingsToggle
+            label="Quiet hours"
+            description="Suppress browser alerts during these local times. In-app alerts remain available."
+            checked={preferences.notifications.quietHours.enabled}
+            onChange={(enabled) =>
+              updateLocalNotifications({
+                quietHours: { ...preferences.notifications.quietHours, enabled },
+              })
+            }
+          />
+          {preferences.notifications.quietHours.enabled && (
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <label>
+                From{" "}
+                <input
+                  aria-label="Quiet hours start"
+                  type="time"
+                  value={preferences.notifications.quietHours.start}
+                  onChange={(event) =>
+                    updateLocalNotifications({
+                      quietHours: {
+                        ...preferences.notifications.quietHours,
+                        start: event.target.value,
+                      },
+                    })
+                  }
+                  className="ml-1 rounded border border-white/10 bg-black/20 p-1 text-foreground"
+                />
+              </label>
+              <label>
+                To{" "}
+                <input
+                  aria-label="Quiet hours end"
+                  type="time"
+                  value={preferences.notifications.quietHours.end}
+                  onChange={(event) =>
+                    updateLocalNotifications({
+                      quietHours: {
+                        ...preferences.notifications.quietHours,
+                        end: event.target.value,
+                      },
+                    })
+                  }
+                  className="ml-1 rounded border border-white/10 bg-black/20 p-1 text-foreground"
+                />
+              </label>
+            </div>
+          )}
+        </div>
         <SettingsToggle
           label="Sound"
           description="Play a sound for new messages"
