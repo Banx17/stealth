@@ -401,6 +401,14 @@ export interface ApiRepository {
     owner: string,
     policy: MailboxPolicy,
   ): Promise<{ created: boolean; policy: MailboxPolicy }>;
+  // BETA-013 (Issue #1920): Durable server-backed onboarding drafts
+  getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null>;
+  /**
+   * Upserts the onboarding draft for `userId`. Exactly one record exists per
+   * user, so duplicate saves can never create duplicates; a refresh or a
+   * second device resumes from the same authoritative state.
+   */
+  saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord>;
   // BETA-006 & BETA-007: Server-Side Session Domain Methods
   // BETA-006: Server-side session lifecycle methods.
   getSession(sessionId: string): Promise<Session | null>;
@@ -975,6 +983,16 @@ export class ValidatedApiRepository implements ApiRepository {
     return result;
   }
 
+  async getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    const raw = await this.inner.getOnboardingDraft(userId);
+    return raw ? validateRecord<OnboardingDraftRecord>("onboardingDraft", raw) : null;
+  }
+
+  async saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    const result = await this.inner.saveOnboardingDraft(versionRecord("onboardingDraft", record));
+    return validateRecord<OnboardingDraftRecord>("onboardingDraft", result);
+  }
+
   async getSession(sessionId: string): Promise<Session | null> {
     const raw = await this.inner.getSession(sessionId);
     return raw ? validateRecord<Session>("session", raw) : null;
@@ -1483,6 +1501,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getWallet",
   "releaseUsernameReservation",
   "initializePolicyIfAbsent",
+  "getOnboardingDraft",
   "getActiveVerificationToken",
   "invalidateActiveVerificationToken",
   "listRecipientEnvelopes",
@@ -1770,6 +1789,16 @@ export class RetryableApiRepository implements ApiRepository {
     return this.withRetry("initializePolicyIfAbsent", () =>
       this.inner.initializePolicyIfAbsent(owner, policy),
     );
+  }
+
+  getOnboardingDraft(userId: string): Promise<OnboardingDraftRecord | null> {
+    return this.withRetry("getOnboardingDraft", () => this.inner.getOnboardingDraft(userId));
+  }
+
+  saveOnboardingDraft(record: OnboardingDraftRecord): Promise<OnboardingDraftRecord> {
+    // Never retried: the upsert is idempotent (one record per user) but a
+    // client-side timeout must not re-apply a newer draft over a stale one.
+    return this.inner.saveOnboardingDraft(record);
   }
 
   getSession(sessionId: string): Promise<Session | null> {
