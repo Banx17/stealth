@@ -200,7 +200,7 @@ export function RequestCard({
                   onClick={() => onTriggerAction(email.id, "reject")}
                   className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/10 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 >
-                  Reject
+                  Refund
                 </button>
                 <button
                   onClick={() => onTriggerAction(email.id, "approve_once")}
@@ -212,7 +212,7 @@ export function RequestCard({
                   onClick={() => onTriggerAction(email.id, "always_allow")}
                   className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-black transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 >
-                  Always Allow
+                  Approve
                 </button>
               </div>
             </div>
