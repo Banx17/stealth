@@ -24,6 +24,7 @@ import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1DraftsIndexRouteImport } from './routes/api/v1/drafts/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
 import { Route as ApiV1WalletStatusRouteImport } from './routes/api/v1/wallet/status'
@@ -46,6 +47,7 @@ import { Route as ApiV1MailboxCountsRouteImport } from './routes/api/v1/mailbox/
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1DraftsDraftIdRouteImport } from './routes/api/v1/drafts/$draftId'
 import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
 import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
@@ -169,6 +171,11 @@ const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   path: '/api/v1/postage/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DraftsIndexRoute = ApiV1DraftsIndexRouteImport.update({
+  id: '/api/v1/drafts/',
+  path: '/api/v1/drafts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
   id: '/api/v1/contacts/',
   path: '/api/v1/contacts/',
@@ -277,6 +284,11 @@ const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   id: '/api/v1/identity/resolve',
   path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DraftsDraftIdRoute = ApiV1DraftsDraftIdRouteImport.update({
+  id: '/api/v1/drafts/$draftId',
+  path: '/api/v1/drafts/$draftId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
@@ -561,6 +573,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
@@ -583,6 +596,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
+  '/api/v1/drafts/': typeof ApiV1DraftsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
@@ -647,6 +661,7 @@ export interface FileRoutesByTo {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
@@ -669,6 +684,7 @@ export interface FileRoutesByTo {
   '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
+  '/api/v1/drafts': typeof ApiV1DraftsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
@@ -734,6 +750,7 @@ export interface FileRoutesById {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
@@ -756,6 +773,7 @@ export interface FileRoutesById {
   '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
+  '/api/v1/drafts/': typeof ApiV1DraftsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
@@ -822,6 +840,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
@@ -844,6 +863,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/status'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
+    | '/api/v1/drafts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
@@ -908,6 +928,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
@@ -930,6 +951,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/status'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
+    | '/api/v1/drafts'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
@@ -994,6 +1016,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
@@ -1016,6 +1039,7 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/status'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
+    | '/api/v1/drafts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
@@ -1081,6 +1105,7 @@ export interface RootRouteChildren {
   ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
   ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
+  ApiV1DraftsDraftIdRoute: typeof ApiV1DraftsDraftIdRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1LifecycleMessageIdRoute: typeof ApiV1LifecycleMessageIdRouteWithChildren
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
@@ -1103,6 +1128,7 @@ export interface RootRouteChildren {
   ApiV1WalletStatusRoute: typeof ApiV1WalletStatusRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
+  ApiV1DraftsIndexRoute: typeof ApiV1DraftsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
@@ -1236,6 +1262,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/postage'
       fullPath: '/api/v1/postage/'
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/drafts/': {
+      id: '/api/v1/drafts/'
+      path: '/api/v1/drafts'
+      fullPath: '/api/v1/drafts/'
+      preLoaderRoute: typeof ApiV1DraftsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/contacts/': {
@@ -1390,6 +1423,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/identity/resolve'
       fullPath: '/api/v1/identity/resolve'
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/drafts/$draftId': {
+      id: '/api/v1/drafts/$draftId'
+      path: '/api/v1/drafts/$draftId'
+      fullPath: '/api/v1/drafts/$draftId'
+      preLoaderRoute: typeof ApiV1DraftsDraftIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/delivery/$messageId': {
@@ -1839,6 +1879,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
   ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
+  ApiV1DraftsDraftIdRoute: ApiV1DraftsDraftIdRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1LifecycleMessageIdRoute: ApiV1LifecycleMessageIdRouteWithChildren,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
@@ -1861,6 +1902,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletStatusRoute: ApiV1WalletStatusRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
+  ApiV1DraftsIndexRoute: ApiV1DraftsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,

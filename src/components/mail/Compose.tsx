@@ -43,14 +43,13 @@ import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress, type FailureInspectionDetails } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
 import { resolveSenderAddress } from "@/services/stellar/wallet";
+import { useDraftAutosave } from "@/features/compose/useDraftAutosave";
+import { DraftStatusBadge } from "@/features/compose/DraftStatusBadge";
+import { DraftConflictBanner } from "@/features/compose/DraftConflictBanner";
+import type { Draft, DraftAttachmentDescriptor } from "@/server/api/domain";
+import { restoreDraftIfBlank, readUnsentDraft, saveUnsentDraft } from "@/features/mail/unsent-work";
+import { claimOnce, releaseOnce, classifyAppFailure } from "@/lib/api/failures";
 import { patchEntry } from "@/services/storage/outbox";
-import {
-  clearUnsentDraft,
-  readUnsentDraft,
-  restoreDraftIfBlank,
-  saveUnsentDraft,
-} from "@/features/mail/unsent-work";
-import { claimOnce, classifyAppFailure, releaseOnce } from "@/lib/api";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -61,6 +60,8 @@ export function Compose({
   initialTo = "",
   initialSubject = "",
   initialBody = "",
+  initialDraftId = null,
+  initialVersion = 1,
   initialPostage = "0.0001",
   mode = "compose",
   blockedRecipients = EMPTY_BLOCKED,
@@ -73,6 +74,8 @@ export function Compose({
   initialTo?: string;
   initialSubject?: string;
   initialBody?: string;
+  initialDraftId?: string | null;
+  initialVersion?: number;
   initialPostage?: string;
   mode?: ComposeMode;
   blockedRecipients?: string[];
@@ -173,13 +176,40 @@ export function Compose({
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
 
-  useEffect(() => {
-    if (!open) return;
-    const timer = window.setTimeout(() => {
-      saveUnsentDraft({ to, subject, body, postage });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [open, to, subject, body, postage]);
+  const attachmentDescriptors: DraftAttachmentDescriptor[] = attachments.map((att) => {
+    const rawNum = parseInt(att.size.replace(/[^0-9]/g, ""), 10) || 0;
+    const isMb = att.size.toLowerCase().includes("mb");
+    const sizeBytes = isMb ? rawNum * 1024 * 1024 : rawNum * 1024;
+    return {
+      filename: att.name,
+      contentType: att.type === "image" ? "image/png" : "application/octet-stream",
+      sizeBytes,
+    };
+  });
+
+  const handleApplyServerDraft = useCallback((serverDraft: Draft) => {
+    setTo(serverDraft.to.join(", "));
+    setSubject(serverDraft.subject);
+    setBody(serverDraft.body);
+    setAttachments(
+      serverDraft.attachments.map((att) => ({
+        name: att.filename,
+        size: `${Math.round(att.sizeBytes / 1024)} KB`,
+        type: att.contentType.startsWith("image/") ? ("image" as const) : ("file" as const),
+      })),
+    );
+  }, []);
+
+  const draftAutosave = useDraftAutosave({
+    initialDraftId,
+    initialVersion,
+    to,
+    subject,
+    body,
+    attachments: attachmentDescriptors,
+    enabled: open && !isSending,
+    onApplyServerDraft: handleApplyServerDraft,
+  });
 
   // Fetch relay status when compose opens
   useEffect(() => {
@@ -419,7 +449,9 @@ export function Compose({
       setFailureDetails(null);
     }
 
-    clearUnsentDraft();
+    draftAutosave.cancelAutosave();
+    await draftAutosave.discardDraft();
+
     onSubmit?.({
       to: to.trim(),
       subject: subject.trim(),
@@ -461,8 +493,15 @@ export function Compose({
             className="glass-strong fixed bottom-6 right-6 z-50 w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-2xl"
           >
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                {getHeaderTitle(mode)}
+              <div className="flex items-center gap-3">
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {getHeaderTitle(mode)}
+                </div>
+                <DraftStatusBadge
+                  status={draftAutosave.saveStatus}
+                  version={draftAutosave.version}
+                  lastSavedAt={draftAutosave.lastSavedAt}
+                />
               </div>
               <button
                 type="button"
@@ -472,6 +511,15 @@ export function Compose({
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {draftAutosave.conflictDraft && draftAutosave.saveStatus === "conflict" && (
+              <DraftConflictBanner
+                conflictDraft={draftAutosave.conflictDraft}
+                onOverwrite={() => void draftAutosave.resolveConflictOverwrite()}
+                onLoadServer={draftAutosave.resolveConflictLoadServer}
+                onForkNew={() => void draftAutosave.resolveConflictForkNew()}
+              />
+            )}
             <div className="space-y-0 px-4">
               <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
               <RecipientReadinessChips recipients={resolvedRecipients} />

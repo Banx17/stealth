@@ -1,9 +1,11 @@
 import type {
   ApiRepository,
   ContactQueryOptions,
+  DraftQueryOptions,
   InsertEnvelopeResult,
   PostageTransitionResult,
   UpdateContactResult,
+  UpdateDraftResult,
   UpdateProvisioningResult,
   UpdateRecoveryCodeSetResult,
   UpdateUserResult,
@@ -12,6 +14,7 @@ import type {
 } from "./repository";
 import type {
   Contact,
+  DraftRecord,
   Credential,
   DeadLetter,
   DeadLetterStatus,
@@ -737,6 +740,76 @@ export class HybridApiRepository implements ApiRepository {
     }
     contacts.splice(index, 1);
     await this.kv.put(this.contactKey(normOwner), JSON.stringify(contacts));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+
+  private draftKey(owner: string): string {
+    return this.key("drafts", owner.toUpperCase().trim());
+  }
+
+  private async readDrafts(owner: string): Promise<DraftRecord[]> {
+    const stored = await this.kv.get(this.draftKey(owner), "json");
+    return (stored as DraftRecord[]) ?? [];
+  }
+
+  async listDrafts(
+    owner: string,
+    options: DraftQueryOptions = {},
+  ): Promise<import("./repository").Page<DraftRecord>> {
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+
+    const drafts = await this.readDrafts(normOwner);
+    const spec = PAGINATED_QUERY_ORDERINGS.listDrafts;
+    return paginate(drafts, spec, { limit, after: options.after });
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const drafts = await this.readDrafts(owner);
+    return drafts.find((d) => d.draftId === draftId) ?? null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const normOwner = draft.owner.toUpperCase().trim();
+    const drafts = await this.readDrafts(normOwner);
+    if (drafts.some((d) => d.draftId === draft.draftId)) {
+      throw new ApiError(409, "conflict", `A draft already exists for ${draft.draftId}`);
+    }
+    drafts.push(draft);
+    await this.kv.put(this.draftKey(normOwner), JSON.stringify(drafts));
+    return draft;
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const normOwner = draft.owner.toUpperCase().trim();
+    const drafts = await this.readDrafts(normOwner);
+    const index = drafts.findIndex((d) => d.draftId === draft.draftId);
+    if (index < 0) {
+      return { updated: false, current: null };
+    }
+    const existing = drafts[index];
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: existing };
+    }
+    const updated = { ...draft, version: expectedVersion + 1 };
+    drafts[index] = updated;
+    await this.kv.put(this.draftKey(normOwner), JSON.stringify(drafts));
+    return { updated: true, draft: updated };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    const normOwner = owner.toUpperCase().trim();
+    const drafts = await this.readDrafts(normOwner);
+    const index = drafts.findIndex((d) => d.draftId === draftId);
+    if (index < 0) {
+      throw new ApiError(404, "not_found", `No draft found for ${draftId}`);
+    }
+    drafts.splice(index, 1);
+    await this.kv.put(this.draftKey(normOwner), JSON.stringify(drafts));
   }
 
   // ---------------------------------------------------------------------------

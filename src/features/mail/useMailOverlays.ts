@@ -9,6 +9,8 @@ export function useMailOverlays() {
     to?: string;
     subject?: string;
     body?: string;
+    draftId?: string | null;
+    version?: number;
   }>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -28,7 +30,15 @@ export function useMailOverlays() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const openCompose = useCallback(
-    (initial: { to?: string; subject?: string; body?: string } = {}) => {
+    (
+      initial: {
+        to?: string;
+        subject?: string;
+        body?: string;
+        draftId?: string | null;
+        version?: number;
+      } = {},
+    ) => {
       setComposeInitial(initial);
       setComposeOpen(true);
     },

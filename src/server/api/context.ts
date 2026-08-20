@@ -26,7 +26,7 @@ import {
   managedWalletRecordSchema,
   fundingOperationSchema,
   recoveryCodeSetSchema,
-  onboardingDraftSchema,
+  draftRecordSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -251,9 +251,8 @@ registerRecordSchema("fundingOperation", 1, fundingOperationSchema);
 // ValidatedApiRepository can detect tampered or structurally invalid
 // recovery records at the adapter boundary.
 registerRecordSchema("recoveryCodeSet", 1, recoveryCodeSetSchema);
-// Issue #1920 (BETA-013): durable server-backed onboarding drafts are versioned
-// and validated at the adapter boundary like every other durable record.
-registerRecordSchema("onboardingDraft", 1, onboardingDraftSchema);
+// Issue #1965 (BETA-058): durable user-scoped encrypted-at-rest draft records.
+registerRecordSchema("draftRecord", 1, draftRecordSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.
