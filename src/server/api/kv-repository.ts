@@ -563,6 +563,16 @@ export class HybridApiRepository implements ApiRepository {
     return result;
   }
 
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const result = await this.getStub().patchMailboxFlags(messageId, recipient, patch);
+    await this.kv.put(this.key("envelope", messageId), JSON.stringify(result));
+    return result;
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
   // ---------------------------------------------------------------------------

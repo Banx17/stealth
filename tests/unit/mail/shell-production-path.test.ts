@@ -36,7 +36,7 @@ describe("mail shell production path (BETA-053)", () => {
 
     expect(app).not.toContain("getDemoEmails");
     expect(overlays).not.toContain("getDemoEmails");
-    expect(source).toContain("useMailbox");
+    expect(source).toContain("useMailboxSync");
     expect(source).toContain("useTombstoneMessage");
     expect(source).toContain("import.meta.env.DEV");
     expect(source).toContain('import("@/features/mail/demo/demo-data")');

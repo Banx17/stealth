@@ -484,6 +484,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("updateEnvelopeStatus");
     return this.inner.updateEnvelopeStatus(messageId, status);
   }
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("../../../src/server/api/domain").MailboxFlagsPatch,
+  ) {
+    this.maybeFail("patchMailboxFlags");
+    return this.inner.patchMailboxFlags(messageId, recipient, patch);
+  }
   async listContacts(
     owner: string,
     options?: import("../../../src/server/api/repository").ContactQueryOptions,

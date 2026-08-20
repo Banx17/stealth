@@ -1,13 +1,14 @@
 // ---------------------------------------------------------------------------
-// BETA-053 (Issue #1960) — live mailbox source + workspace overlay.
+// BETA-053 / BETA-054 — live mailbox source + workspace overlay.
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Email } from "@/components/mail/data";
-import { errorLabel, normalizeApiClientError } from "@/lib/api";
+import { errorLabel, normalizeApiClientError, type MailboxFlagsPatch } from "@/lib/api";
 import { sessionActor, useSession } from "./useSession";
-import { useMailbox, useTombstoneMessage } from "./useMailbox";
+import { useTombstoneMessage } from "./useMailbox";
+import { useMailboxSync } from "./useMailboxSync";
 import { resolveMailSourceView, type MailSourceView } from "./source-view";
 import {
   applyEmailPatch,
@@ -17,17 +18,26 @@ import {
   revertEmailPatch,
   type MailWorkspaceOverlay,
 } from "./workspace";
+import {
+  applyOverlayToCounts,
+  claimMailboxMutation,
+  emailPatchFromFlags,
+  mailboxMutationKey,
+  mergeLiveFolderCounts,
+} from "./live-mailbox";
+import { buildFolderCounts } from "./navigation";
 
 export interface UseMailSourceOptions {
   isDemoMode: boolean;
 }
 
-export type TrashResult = { ok: true } | { ok: false; reason: string };
+export type MailMutationResult = { ok: true } | { ok: false; reason: string };
+export type TrashResult = MailMutationResult;
 
 export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   const session = useSession({ enabled: !isDemoMode });
   const actor = sessionActor(session.data);
-  const mailbox = useMailbox({
+  const mailbox = useMailboxSync({
     actor: actor ?? "anonymous",
     enabled: Boolean(actor) && !isDemoMode,
   });
@@ -36,7 +46,7 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   const [demoEmails, setDemoEmails] = useState<Email[]>([]);
   const [demoReady, setDemoReady] = useState(!isDemoMode);
   const [overlay, setOverlay] = useState<MailWorkspaceOverlay>(EMPTY_MAIL_WORKSPACE);
-  const pendingTrash = useRef(new Set<string>());
+  const pendingMutations = useRef(new Set<string>());
 
   useEffect(() => {
     if (!import.meta.env.DEV || !isDemoMode) return;
@@ -51,8 +61,16 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     };
   }, [isDemoMode]);
 
-  const serverEmails = isDemoMode ? demoEmails : (mailbox.data ?? []);
+  const serverEmails = isDemoMode ? demoEmails : mailbox.emails;
   const emails = useMemo(() => mergeMailWorkspace(serverEmails, overlay), [overlay, serverEmails]);
+  const folderCounts = useMemo(() => {
+    const local = buildFolderCounts(emails);
+    if (isDemoMode) return local;
+    const live = mailbox.counts
+      ? applyOverlayToCounts(mailbox.counts, overlay, serverEmails)
+      : null;
+    return mergeLiveFolderCounts(local, live);
+  }, [emails, isDemoMode, mailbox.counts, overlay, serverEmails]);
 
   const updateEmail = useCallback((id: string, patch: Partial<Email>) => {
     setOverlay((current) => applyEmailPatch(current, id, patch));
@@ -62,31 +80,44 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
     setOverlay((current) => insertWorkspaceEmail(current, email));
   }, []);
 
-  const trashEmail = useCallback(
-    async (email: Email): Promise<TrashResult> => {
-      if (email.folder === "trash") return { ok: true };
-      if (pendingTrash.current.has(email.id)) {
-        return { ok: false, reason: "This message is already being updated" };
+  const mutateMailbox = useCallback(
+    async (email: Email, patch: MailboxFlagsPatch): Promise<MailMutationResult> => {
+      const key = mailboxMutationKey(email.id, patch);
+      if (!claimMailboxMutation(pendingMutations.current, key)) {
+        return { ok: true };
       }
-      pendingTrash.current.add(email.id);
-      setOverlay((current) => applyEmailPatch(current, email.id, { folder: "trash" }));
+
+      const displayPatch = emailPatchFromFlags(patch);
+      setOverlay((current) => applyEmailPatch(current, email.id, displayPatch));
 
       if (isDemoMode || !actor) {
-        pendingTrash.current.delete(email.id);
+        pendingMutations.current.delete(key);
         return { ok: true };
       }
 
       try {
-        await tombstone.mutateAsync(email.id);
-        pendingTrash.current.delete(email.id);
+        if (patch.folder === "trash") {
+          await tombstone.mutateAsync(email.id);
+        } else {
+          await mailbox.patchFlags({ messageId: email.id, patch });
+        }
+        pendingMutations.current.delete(key);
         return { ok: true };
       } catch (error) {
-        pendingTrash.current.delete(email.id);
-        setOverlay((current) => revertEmailPatch(current, email.id, { folder: email.folder }));
+        pendingMutations.current.delete(key);
+        setOverlay((current) => revertEmailPatch(current, email.id, displayPatchRestore(email, patch)));
         return { ok: false, reason: errorLabel(normalizeApiClientError(error)) };
       }
     },
-    [actor, isDemoMode, tombstone],
+    [actor, isDemoMode, mailbox, tombstone],
+  );
+
+  const trashEmail = useCallback(
+    async (email: Email): Promise<TrashResult> => {
+      if (email.folder === "trash") return { ok: true };
+      return mutateMailbox(email, { folder: "trash" });
+    },
+    [mutateMailbox],
   );
 
   const retry = useCallback(async () => {
@@ -111,11 +142,24 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
   return {
     actor,
     emails,
+    folderCounts,
     updateEmail,
     insertEmail,
     trashEmail,
+    mutateMailbox,
     retry,
     sourceView,
     isDemoMode,
+    hasMore: isDemoMode ? false : mailbox.hasMore,
+    isLoadingMore: isDemoMode ? false : mailbox.isFetchingNextPage,
+    loadMore: mailbox.fetchNextPage,
   };
+}
+
+function displayPatchRestore(email: Email, patch: MailboxFlagsPatch): Partial<Email> {
+  const restore: Partial<Email> = {};
+  if (patch.unread !== undefined) restore.unread = email.unread;
+  if (patch.starred !== undefined) restore.starred = email.starred;
+  if (patch.folder) restore.folder = email.folder;
+  return restore;
 }
