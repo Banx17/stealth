@@ -39,7 +39,7 @@ export function mailboxDescriptorToEmail(descriptor: MailboxDescriptor): Email {
         minute: "2-digit",
       });
 
-  const folder: MailLocation = descriptorFolder(descriptor);
+  const folder = descriptorFolder(descriptor);
   const unread =
     typeof descriptor.unread === "boolean" ? descriptor.unread : descriptor.status === "pending";
 

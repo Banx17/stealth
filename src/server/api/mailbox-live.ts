@@ -210,8 +210,9 @@ export async function listAllRecipientEnvelopes(
 export async function buildMailboxSync(
   repository: Pick<ApiRepository, "listRecipientEnvelopes">,
   actor: string,
-  query: { sinceCursor?: string; cursor?: string; limit: number },
+  query: { sinceCursor?: string; cursor?: string; limit?: number },
 ): Promise<MailboxSyncPayload> {
+  const limit = query.limit ?? 50;
   const all = await listAllRecipientEnvelopes(repository, actor, true);
   const counts = countMailbox(all);
   const syncCursor = encodeCursor(
@@ -231,7 +232,7 @@ export async function buildMailboxSync(
     ? decodeCursor(query.cursor, actor, MAILBOX_SYNC_PAGE_SCOPE).continuationKey
     : undefined;
   const page = paginate(filtered, PAGINATED_QUERY_ORDERINGS.listEnvelopes, {
-    limit: query.limit,
+    limit,
     after,
   });
   const items = page.items.map(envelopeToMailboxDescriptor);

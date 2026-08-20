@@ -15,7 +15,10 @@ export const Route = createFileRoute("/api/v1/mailbox/sync")({
           const apiContext = await getApiContext(request);
           const actor = requireActor(apiContext);
           const query = parseSearchParams(request, mailboxSyncQuerySchema);
-          const payload = await buildMailboxSync(apiContext.repository, actor, query);
+          const payload = await buildMailboxSync(apiContext.repository, actor, {
+            ...query,
+            limit: query.limit ?? 50,
+          });
           return apiSuccess(request, payload, { status: 200 });
         }),
     },
