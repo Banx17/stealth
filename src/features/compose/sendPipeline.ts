@@ -52,11 +52,13 @@ import type { PostageQuote } from "./usePostageQuote";
 
 export type StageId =
   | "resolve"
+  | "quote"
   | "encrypt"
   | "sign"
-  | "postage"
+  | "escrow"
   | "persist"
   | "submit"
+  | "anchor"
   | "reconcile";
 
 export type StageStatus = "pending" | "active" | "done" | "error";
@@ -69,6 +71,13 @@ export interface StageState {
 }
 
 export type DeliveryState = "SUBMITTED" | "ACKNOWLEDGED" | "DEDUPLICATED" | "DEAD_LETTER";
+
+export interface ProofReferences {
+  receiptId?: string;
+  anchorTxHash?: string;
+  postagePaymentHash?: string;
+  relayMessageId?: string;
+}
 
 export type SendOutcome =
   | {
@@ -112,23 +121,49 @@ export interface SendPipelineInput {
   postageQuote?: PostageQuote;
 }
 
+export interface SendPipelineOptions {
+  signer?: (canonical: string) => Promise<WalletSignature>;
+  keyResolver?: DirectoryRecipientKeyResolver;
+  quoteFetcher?: (
+    recipient: string,
+    sender: string,
+    messageId: string,
+  ) => Promise<{ amount: string; asset?: string; eligible?: boolean }>;
+  escrowSubmitter?: (input: {
+    messageId: string;
+    amount: string;
+    sender: string;
+    recipient: string;
+  }) => Promise<{ paymentHash: string }>;
+  receiptAnchorer?: (
+    messageId: string,
+    recipient: string,
+    sender: string,
+  ) => Promise<{ receiptId: string; anchorTxHash: string }>;
+  relaySubmitter?: typeof submitToRelay;
+}
+
 const STAGE_LABELS: Record<StageId, string> = {
   resolve: "Resolving recipient keys",
+  quote: "Requesting postage quote",
   encrypt: "Encrypting message",
   sign: "Awaiting wallet signature",
-  postage: "Reserving postage",
+  escrow: "Reserving postage escrow",
   persist: "Saving to outbox",
   submit: "Submitting to relay",
+  anchor: "Anchoring delivery receipt",
   reconcile: "Confirming delivery",
 };
 
 const STAGE_ORDER: StageId[] = [
   "resolve",
+  "quote",
   "encrypt",
   "sign",
-  "postage",
+  "escrow",
   "persist",
   "submit",
+  "anchor",
   "reconcile",
 ];
 
@@ -179,17 +214,23 @@ export class SendPipeline {
   private signedRequest?: SignedRelayRequest;
   private requestSigner?: RelayRequestSigner;
 
-  /** Injected seams for tests / alternate signers. */
+  private quoteAmount = "0";
+  private paymentHash?: string;
+  private receiptId?: string;
+  private anchorTxHash?: string;
+
+  /** Injected seams for tests / alternate handlers. */
   private readonly signer: (canonical: string) => Promise<WalletSignature>;
   private readonly keyResolver?: DirectoryRecipientKeyResolver;
+  private readonly quoteFetcher?: SendPipelineOptions["quoteFetcher"];
+  private readonly escrowSubmitter?: SendPipelineOptions["escrowSubmitter"];
+  private readonly receiptAnchorer?: SendPipelineOptions["receiptAnchorer"];
+  private readonly relaySubmitter: typeof submitToRelay;
 
   constructor(
     input: SendPipelineInput,
     onProgress?: (stages: StageState[]) => void,
-    options: {
-      signer?: (canonical: string) => Promise<WalletSignature>;
-      keyResolver?: DirectoryRecipientKeyResolver;
-    } = {},
+    options: SendPipelineOptions = {},
   ) {
     this.input = input;
     this.onProgress = onProgress;

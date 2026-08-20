@@ -6,13 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-type ApiFailure = {
-  error?: { message?: string; details?: { validationErrors?: Array<{ message?: string }> } };
-};
-
-function safeDestination(destination?: string) {
-  return destination?.startsWith("/") && !destination.startsWith("//") ? destination : "/";
-}
+import { sharedTypedApi as api, errorLabel, ApiClientError } from "@/lib/api";
+import { safeReturnTo } from "./returnTo";
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -49,37 +44,26 @@ export function SignUpPage({ destination }: { destination?: string }) {
     setPending(true);
     setError(null);
     try {
-      const response = await fetch("/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          displayName: form.get("displayName"),
-          email: form.get("email"),
-          username: form.get("username"),
-          password,
-          passwordConfirmation: confirmation,
-          termsVersion: "2026-01",
-          privacyPolicyVersion: "2026-01",
-        }),
+      const registration = await api.auth.register({
+        displayName: String(form.get("displayName") ?? ""),
+        email: String(form.get("email") ?? ""),
+        username: String(form.get("username") ?? ""),
+        password,
+        passwordConfirmation: confirmation,
+        termsVersion: "2026-01",
+        privacyPolicyVersion: "2026-01",
       });
-      const payload = (await response.json()) as { data?: { maskedEmail?: string } } & ApiFailure;
-      if (!response.ok)
-        throw new Error(
-          payload.error?.details?.validationErrors?.[0]?.message ??
-            payload.error?.message ??
-            "We could not create your account. Please try again.",
-        );
       await navigate({
         to: "/auth/verify",
         search: {
-          email: payload.data?.maskedEmail ?? "your email",
-          next: safeDestination(destination),
+          email: registration.maskedEmail ?? "your email",
+          next: safeReturnTo(destination),
         },
       });
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
+        cause instanceof ApiClientError
+          ? errorLabel(cause)
           : "We could not create your account. Please try again.",
       );
     } finally {
@@ -142,7 +126,7 @@ export function SignUpPage({ destination }: { destination?: string }) {
           <Link
             className="text-primary underline-offset-4 hover:underline"
             to="/auth/sign-in"
-            search={{ next: safeDestination(destination) }}
+            search={{ next: safeReturnTo(destination) }}
           >
             Sign in
           </Link>
@@ -161,25 +145,20 @@ export function SignInPage({ destination }: { destination?: string }) {
     setPending(true);
     setError(null);
     try {
-      const response = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: form.get("identifier"),
-          password: form.get("password"),
-        }),
+      await api.auth.login({
+        identifier: String(form.get("identifier") ?? ""),
+        password: String(form.get("password") ?? ""),
       });
-      const payload = (await response.json()) as ApiFailure;
-      if (!response.ok)
-        throw new Error(
-          response.status === 403
-            ? "Your account needs email verification before you can sign in."
-            : (payload.error?.message ?? "Invalid email, username, or password."),
-        );
-      window.location.assign(safeDestination(destination));
+      window.location.assign(safeReturnTo(destination));
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "We could not sign you in. Please try again.",
+        cause instanceof ApiClientError
+          ? cause.status === 403
+            ? "Your account needs email verification before you can sign in."
+            : cause.status === 401
+              ? "Invalid email, username, or password."
+              : errorLabel(cause)
+          : "We could not sign you in. Please try again.",
       );
     } finally {
       setPending(false);
@@ -215,7 +194,7 @@ export function SignInPage({ destination }: { destination?: string }) {
           <Link
             className="text-primary underline-offset-4 hover:underline"
             to="/auth/sign-up"
-            search={{ next: safeDestination(destination) }}
+            search={{ next: safeReturnTo(destination) }}
           >
             Create an account
           </Link>

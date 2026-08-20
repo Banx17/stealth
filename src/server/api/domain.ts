@@ -30,7 +30,14 @@ export const stroopAmountSchema = z
   }, "Amount exceeds Soroban i128");
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
-export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);
+export const postageStatusSchema = z.enum([
+  "pending",
+  "expired",
+  "disputed",
+  "settled",
+  "refunded",
+  "reclaimed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
@@ -48,6 +55,11 @@ export const mailboxPolicyWriteSchema = z.object({
   minimumPostage: stroopAmountSchema,
   requireVerified: z.boolean(),
   requireReceipt: z.boolean().default(false),
+  version: z.number().int().nonnegative().optional(),
+});
+
+export const senderRuleWriteSchema = z.object({
+  rule: senderRuleSchema,
 });
 
 // ---------------------------------------------------------------------------
@@ -93,6 +105,34 @@ export const policyWriteIntentSchema = z.object({
   txHash: z.string().nullable().default(null),
 });
 
+// ---------------------------------------------------------------------------
+// BETA-043 (Issue #1950) — message lifecycle anchoring
+//
+// Durable record of a message commitment anchored to the on-chain Lifecycle
+// contract on testnet. `messageId` is the message commitment (hash32); no
+// plaintext or private metadata ever appears here. Anchoring is idempotent per
+// message commitment: duplicate submissions collapse onto the stored anchor
+// and map to the contract's DuplicateLifecycle as a success. `amount` is the
+// on-chain postage amount in stroops carried verbatim into the bind call.
+// ---------------------------------------------------------------------------
+
+export const lifecycleAnchorStatusSchema = z.enum(["pending", "submitted", "confirmed", "failed"]);
+
+export const lifecycleAnchorSchema = z.object({
+  messageId: hash32Schema,
+  sender: stellarAddressSchema,
+  recipient: stellarAddressSchema,
+  amount: stroopAmountSchema,
+  verified: z.boolean(),
+  receiptRequired: z.boolean(),
+  status: lifecycleAnchorStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+});
+
 export const postageSchema = z.object({
   amount: stroopAmountSchema,
   createdAt: z.string().datetime(),
@@ -120,6 +160,12 @@ export function createReceiptSchema(options: ReceiptSchemaOptions = {}) {
       readAt: z.string().datetime({ offset: true }).nullable(),
       recipient: stellarAddressSchema,
       sender: stellarAddressSchema,
+      payloadHash: hash32Schema.optional(),
+      protocolVersion: z.number().int().positive().optional(),
+      txHash: z.string().nullable().optional(),
+      chainStatus: z.enum(["pending", "confirmed", "failed"]).nullable().optional(),
+      ledgerSeq: z.number().int().nonnegative().nullable().optional(),
+      confirmedAt: z.string().datetime({ offset: true }).nullable().optional(),
     })
     .superRefine((data, ctx) => {
       const deliveredMs = Date.parse(data.deliveredAt);
@@ -168,6 +214,8 @@ export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
+export type LifecycleAnchor = z.infer<typeof lifecycleAnchorSchema>;
+export type LifecycleAnchorStatus = z.infer<typeof lifecycleAnchorStatusSchema>;
 
 export const idempotencyRecordSchema = z.discriminatedUnion("state", [
   z.object({
@@ -190,6 +238,83 @@ export const idempotencyRecordSchema = z.discriminatedUnion("state", [
 ]);
 
 export type IdempotencyRecord = z.infer<typeof idempotencyRecordSchema>;
+
+export const messageDeliveryStateSchema = z.enum([
+  "queued",
+  "accepted",
+  "anchored",
+  "delivered",
+  "read",
+  "failed",
+  "expired",
+]);
+
+export type MessageDeliveryState = z.infer<typeof messageDeliveryStateSchema>;
+
+export const TERMINAL_DELIVERY_STATES: ReadonlySet<MessageDeliveryState> = new Set([
+  "read",
+  "failed",
+  "expired",
+]);
+
+export const RETRYABLE_DELIVERY_STATES: ReadonlySet<MessageDeliveryState> = new Set([
+  "queued",
+  "accepted",
+  "anchored",
+]);
+
+export const ALLOWED_DELIVERY_TRANSITIONS: Record<
+  MessageDeliveryState,
+  ReadonlySet<MessageDeliveryState>
+> = {
+  queued: new Set(["accepted", "failed", "expired"]),
+  accepted: new Set(["anchored", "delivered", "failed", "expired"]),
+  anchored: new Set(["delivered", "failed", "expired"]),
+  delivered: new Set(["read", "failed", "expired"]),
+  read: new Set([]),
+  failed: new Set([]),
+  expired: new Set([]),
+};
+
+export const messageDeliveryTransitionSchema = z.object({
+  fromState: messageDeliveryStateSchema.nullable(),
+  toState: messageDeliveryStateSchema,
+  timestamp: z.string().datetime(),
+  actor: z.string().min(1),
+  reason: z.string().min(1),
+  chainReference: z.string().nullable().optional(),
+});
+
+export type MessageDeliveryTransition = z.infer<typeof messageDeliveryTransitionSchema>;
+
+export const messageDeliveryStatusRecordSchema = z.object({
+  messageId: hash32Schema,
+  state: messageDeliveryStateSchema,
+  isTerminal: z.boolean(),
+  isRetryable: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  actor: z.string(),
+  reason: z.string(),
+  chainReference: z.string().nullable().optional(),
+  history: z.array(messageDeliveryTransitionSchema),
+});
+
+export type MessageDeliveryStatusRecord = z.infer<typeof messageDeliveryStatusRecordSchema>;
+
+export const publicDeliveryStatusSchema = z.object({
+  messageId: hash32Schema,
+  state: messageDeliveryStateSchema,
+  isTerminal: z.boolean(),
+  isRetryable: z.boolean(),
+  observedAt: z.string().datetime(),
+  actor: z.string(),
+  reason: z.string(),
+  chainReference: z.string().nullable().optional(),
+  history: z.array(messageDeliveryTransitionSchema),
+});
+
+export type PublicDeliveryStatus = z.infer<typeof publicDeliveryStatusSchema>;
 
 // ---------------------------------------------------------------------------
 // BETA-002: Durable User Account, Profile, Credential & AccountStatus Domain
@@ -245,16 +370,97 @@ export const externalWalletChallengeSchema = z.object({
 
 export type ExternalWalletChallenge = z.infer<typeof externalWalletChallengeSchema>;
 
+export const activeSignerSchema = z.object({
+  signerType: z.enum(["external", "managed"]),
+  address: stellarAddressSchema,
+  capabilities: z.array(walletCapabilitySchema),
+  isFallback: z.boolean(),
+});
+
+export type ActiveSigner = z.infer<typeof activeSignerSchema>;
+
+export const managedWalletStatusSchema = z.object({
+  address: stellarAddressSchema,
+  status: z.enum(["active", "funded", "unfunded"]),
+  network: z.string().min(1),
+  balance: z.object({
+    available: z.string().nullable(),
+    balanceXlm: z.string().nullable(),
+  }),
+  capabilities: z.array(walletCapabilitySchema),
+  isDefaultSigner: z.boolean(),
+  activeSigner: activeSignerSchema,
+});
+
+export type ManagedWalletStatus = z.infer<typeof managedWalletStatusSchema>;
+
 export const networkPassphraseSchema = z.string().min(1);
+
+// BETA-069 (Issue #1976): address display preference for Stellar address rendering.
+export const addressDisplaySchema = z.enum(["full", "truncated"]).default("truncated");
+export type AddressDisplay = z.infer<typeof addressDisplaySchema>;
+
 export const profileSchema = z.object({
   userId: z.string().min(1, "User ID cannot be empty"),
   username: usernameSchema,
   displayName: z.string().trim().min(1, "Display name cannot be empty"),
   avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
+  avatarMetadata: z.record(z.unknown()).nullable().optional(),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
+  // BETA-069: locale, timezone, and address display preferences
+  locale: z
+    .string()
+    .trim()
+    .min(2)
+    .max(35)
+    .regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag")
+    .optional()
+    .default("en"),
+  timezone: z.string().trim().min(1).max(64).optional().default("UTC"),
+  addressDisplay: addressDisplaySchema.optional().default("truncated"),
+  notifications: z
+    .object({
+      email: z.boolean().default(true),
+      desktop: z.boolean().default(true),
+      sound: z.boolean().default(false),
+    })
+    .optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+
+// BETA-069: Input schema for profile PATCH updates. Username is intentionally
+// excluded — it is immutable unless a separately governed migration exists.
+export const profileUpdateSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Display name cannot be empty")
+    .max(80, "Display name cannot exceed 80 characters")
+    .optional(),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").nullable().optional(),
+  avatarUrl: z.string().url("Avatar URL must be a valid URL").nullable().optional(),
+  avatarMetadata: z.record(z.unknown()).nullable().optional(),
+  locale: z
+    .string()
+    .trim()
+    .min(2)
+    .max(35)
+    .regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$/, "Expected a BCP-47 locale tag")
+    .optional(),
+  timezone: z.string().trim().min(1).max(64).optional(),
+  addressDisplay: z.enum(["full", "truncated"]).optional(),
+  notifications: z
+    .object({
+      email: z.boolean().optional(),
+      desktop: z.boolean().optional(),
+      sound: z.boolean().optional(),
+    })
+    .optional(),
+  version: z.number().int().positive("Version must be a positive integer"),
+});
+
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
 export const credentialAuthMethodSchema = z.enum([
   "stellar_header",
@@ -288,16 +494,50 @@ export const publicProfileSchema = z.object({
   username: usernameSchema,
   displayName: z.string(),
   avatarUrl: z.string().nullable().optional(),
+  avatarMetadata: z.record(z.unknown()).nullable().optional(),
   bio: z.string().nullable().optional(),
+  locale: z.string().optional().default("en"),
+  timezone: z.string().optional().default("UTC"),
+  addressDisplay: z.enum(["full", "truncated"]).optional().default("truncated"),
+  notifications: z
+    .object({
+      email: z.boolean().default(true),
+      desktop: z.boolean().default(true),
+      sound: z.boolean().default(false),
+    })
+    .optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+
+// BETA-069: Immutable account information composite for settings display.
+export const accountInfoSchema = z.object({
+  userId: z.string(),
+  username: z.string(),
+  address: stellarAddressSchema,
+  email: emailSchema,
+  status: accountStatusSchema,
+  createdAt: z.string().datetime(),
+  network: z.string(),
+  policyVersion: z.number().int().nonnegative().nullable(),
+  betaLimitations: z.array(z.string()),
+});
+
+export type AccountInfo = z.infer<typeof accountInfoSchema>;
 
 // ---------------------------------------------------------------------------
 // BETA-005: Verification token lifecycle domain
 // ---------------------------------------------------------------------------
 
-export const verificationPurposeSchema = z.enum(["email_verification"]);
+export const passwordPolicySchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .max(256, "Password is too long")
+  .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter")
+  .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter")
+  .refine((value) => /\d/.test(value), "Password must include a number");
+
+export const verificationPurposeSchema = z.enum(["email_verification", "password_reset"]);
 export type VerificationPurpose = z.infer<typeof verificationPurposeSchema>;
 
 export const verificationTokenHashSchema = z
@@ -334,6 +574,117 @@ export const verificationTokenSchema = z.object({
 });
 
 export type VerificationToken = z.infer<typeof verificationTokenSchema>;
+
+// ---------------------------------------------------------------------------
+// BETA-015 (Issue #1922) — system-managed Stellar testnet wallet provisioning
+//
+// Public metadata and encrypted secret material are stored together under a
+// user-scoped record. Plaintext seeds never reach durable storage, API
+// responses, or logs — only the public Stellar address and funding status are
+// exposed to clients.
+// ---------------------------------------------------------------------------
+
+export const managedWalletFundingStatusSchema = z.enum(["pending", "funded", "failed"]);
+export type ManagedWalletFundingStatus = z.infer<typeof managedWalletFundingStatusSchema>;
+
+export const encryptedWalletSecretSchema = z.object({
+  ciphertext: z.string().min(1, "Encrypted ciphertext cannot be empty"),
+  nonce: z.string().min(1, "Encrypted nonce cannot be empty"),
+  tag: z.string().min(1, "Encrypted tag cannot be empty"),
+  keyVersion: z.number().int().positive().default(1),
+});
+
+export type EncryptedWalletSecret = z.infer<typeof encryptedWalletSecretSchema>;
+
+export const managedWalletRecordSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  /** Beta managed wallets are testnet-only. */
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  encryptedSecret: encryptedWalletSecretSchema,
+  fundedAt: z.string().datetime().nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  lastError: z.string().max(300).nullable().default(null),
+});
+
+export type ManagedWalletRecord = z.infer<typeof managedWalletRecordSchema>;
+
+/** Client-safe wallet metadata — never includes seed material. */
+export const publicManagedWalletSchema = z.object({
+  address: stellarAddressSchema,
+  network: z.literal("testnet"),
+  fundingStatus: managedWalletFundingStatusSchema,
+  provisioned: z.boolean(),
+  fundedAt: z.string().datetime().nullable().optional(),
+});
+
+export type PublicManagedWallet = z.infer<typeof publicManagedWalletSchema>;
+
+export function toPublicManagedWallet(
+  wallet: ManagedWalletRecord,
+  provisioned: boolean,
+): PublicManagedWallet {
+  return {
+    address: wallet.address,
+    network: wallet.network,
+    fundingStatus: wallet.fundingStatus,
+    provisioned,
+    fundedAt: wallet.fundedAt ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BETA-018 (Issue #1925) — durable testnet funding operations
+//
+// One operation per account. Retries resume the same operationId so worker
+// restarts never double-fund. Queue projections never include seed material.
+// ---------------------------------------------------------------------------
+
+export const fundingErrorClassSchema = z.enum(["transient", "permanent"]);
+export type FundingErrorClass = z.infer<typeof fundingErrorClassSchema>;
+
+export const fundingOperationStatusSchema = z.enum(["pending", "retrying", "succeeded", "failed"]);
+export type FundingOperationStatus = z.infer<typeof fundingOperationStatusSchema>;
+
+export const fundingOperationSchema = z.object({
+  operationId: z.string().min(1, "Funding operation ID cannot be empty"),
+  userId: z.string().min(1, "User ID cannot be empty"),
+  address: stellarAddressSchema,
+  status: fundingOperationStatusSchema,
+  attempt: z.number().int().nonnegative(),
+  maxAttempts: z.number().int().positive(),
+  nextRetryAt: z.string().datetime().nullable().default(null),
+  lastErrorClass: fundingErrorClassSchema.nullable().default(null),
+  lastError: z.string().max(300).nullable().default(null),
+  transactionId: z.string().max(128).nullable().default(null),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type FundingOperation = z.infer<typeof fundingOperationSchema>;
+
+/** Administrator-visible queue item — never includes key material. */
+export const publicFundingOperationSchema = fundingOperationSchema.omit({});
+export type PublicFundingOperation = z.infer<typeof publicFundingOperationSchema>;
+
+export function toPublicFundingOperation(operation: FundingOperation): PublicFundingOperation {
+  return {
+    operationId: operation.operationId,
+    userId: operation.userId,
+    address: operation.address,
+    status: operation.status,
+    attempt: operation.attempt,
+    maxAttempts: operation.maxAttempts,
+    nextRetryAt: operation.nextRetryAt,
+    lastErrorClass: operation.lastErrorClass,
+    lastError: operation.lastError,
+    transactionId: operation.transactionId,
+    createdAt: operation.createdAt,
+    updatedAt: operation.updatedAt,
+  };
+}
 
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 export type User = z.infer<typeof userSchema>;
@@ -436,7 +787,12 @@ export function toPublicProfile(profile: Profile): PublicProfile {
     username: profile.username,
     displayName: profile.displayName,
     avatarUrl: profile.avatarUrl ?? null,
+    avatarMetadata: profile.avatarMetadata ?? null,
     bio: profile.bio ?? null,
+    locale: profile.locale ?? "en",
+    timezone: profile.timezone ?? "UTC",
+    addressDisplay: profile.addressDisplay ?? "truncated",
+    notifications: profile.notifications ?? { email: true, desktop: true, sound: false },
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
   };
@@ -457,6 +813,11 @@ export const sessionSchema = z.object({
   ipAddress: z.string().optional().nullable(),
   userAgent: z.string().optional().nullable(),
   deviceFingerprint: z.string().optional().nullable(),
+  // Issue #1917 (BETA-010): the last time the account holder authenticated
+  // with a password (or via a one-code recovery). Optional so sessions
+  // created before this feature remains valid; recovery-code regeneration
+  // requires a session whose recentLoginAt is fresh.
+  recentLoginAt: z.string().datetime().optional(),
 });
 
 export const publicSessionSchema = z.object({
@@ -490,6 +851,47 @@ export function toPublicSession(session: Session): PublicSession {
     absoluteExpiresAt: session.absoluteExpiresAt,
   };
 }
+
+// ---------------------------------------------------------------------------
+// BETA-010 (Issue #1917): One-time recovery code sets
+//
+// Recovery codes are single-use secrets for restoring account access. Only
+// PBKDF2 hashes of the codes are ever persisted — the plaintext code is
+// returned to the user exactly once, at generation time, and cannot be
+// retrieved afterwards.
+// ---------------------------------------------------------------------------
+
+export const recoveryCodeStatusSchema = z.enum(["active", "exhausted"]);
+
+export const recoveryCodeEntrySchema = z.object({
+  hash: z.string().min(1, "Recovery code hash cannot be empty"),
+  salt: z.string().min(1, "Recovery code salt cannot be empty"),
+  usedAt: z.string().datetime().nullable(),
+});
+
+export const recoveryCodeSetSchema = z.object({
+  userId: z.string().min(1, "User ID cannot be empty"),
+  status: recoveryCodeStatusSchema,
+  codes: z.array(recoveryCodeEntrySchema).min(1, "Recovery code set cannot be empty"),
+  generatedAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  version: z.number().int().positive(),
+});
+
+export type RecoveryCodeEntry = z.infer<typeof recoveryCodeEntrySchema>;
+export type RecoveryCodeSet = z.infer<typeof recoveryCodeSetSchema>;
+
+/**
+ * Safety-model view of a recovery set. Deliberately carries no hash material,
+ * no codes, and no identifiers — only state and aggregate counters, so UI
+ * surfaces can answer "is recovery ready?" without exposing secrets.
+ */
+export type RecoveryCodeSetStatusView = {
+  status: "none" | "active" | "exhausted";
+  totalCodes: number;
+  remainingCodes: number;
+  generatedAt: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // StoredEnvelope — durable encrypted-message record (Issue #1936 / BETA-029)
@@ -554,6 +956,67 @@ export const mailboxQueueQuerySchema = z.object({
 
 export type MailboxQueueQuery = z.infer<typeof mailboxQueueQuerySchema>;
 
+export const mailboxLiveFolderSchema = z.enum([
+  "inbox",
+  "pending",
+  "requests",
+  "archive",
+  "spam",
+  "trash",
+  "sent",
+  "drafts",
+  "outbox",
+]);
+export type MailboxLiveFolder = z.infer<typeof mailboxLiveFolderSchema>;
+
+export const mailboxCountKeySchema = z.enum([
+  "inbox",
+  "requests",
+  "sent",
+  "drafts",
+  "outbox",
+  "archive",
+  "spam",
+  "trash",
+  "unread",
+  "starred",
+]);
+export type MailboxCountKey = z.infer<typeof mailboxCountKeySchema>;
+
+export const mailboxCountsSchema = z.object({
+  inbox: z.number().int().nonnegative(),
+  requests: z.number().int().nonnegative(),
+  sent: z.number().int().nonnegative(),
+  drafts: z.number().int().nonnegative(),
+  outbox: z.number().int().nonnegative(),
+  archive: z.number().int().nonnegative(),
+  spam: z.number().int().nonnegative(),
+  trash: z.number().int().nonnegative(),
+  unread: z.number().int().nonnegative(),
+  starred: z.number().int().nonnegative(),
+});
+export type MailboxCounts = z.infer<typeof mailboxCountsSchema>;
+
+export const mailboxFlagsPatchSchema = z
+  .object({
+    unread: z.boolean().optional(),
+    starred: z.boolean().optional(),
+    folder: z.enum(["inbox", "archive", "spam", "trash"]).optional(),
+  })
+  .refine(
+    (value) =>
+      value.unread !== undefined || value.starred !== undefined || value.folder !== undefined,
+    { message: "At least one mailbox flag is required" },
+  );
+export type MailboxFlagsPatch = z.infer<typeof mailboxFlagsPatchSchema>;
+
+export const mailboxSyncQuerySchema = z.object({
+  sinceCursor: z.string().trim().min(1).optional(),
+  cursor: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type MailboxSyncQuery = z.infer<typeof mailboxSyncQuerySchema>;
+
 export const mailboxDescriptorSchema = z.object({
   messageId: hash32Schema,
   senderId: stellarAddressSchema,
@@ -565,6 +1028,9 @@ export const mailboxDescriptorSchema = z.object({
   objectRef: z.string().optional(),
   isTombstone: z.boolean(),
   deletedAt: z.string().datetime().nullable().optional(),
+  starred: z.boolean().optional(),
+  unread: z.boolean().optional(),
+  folder: mailboxLiveFolderSchema.optional(),
 });
 
 export type MailboxDescriptor = z.infer<typeof mailboxDescriptorSchema>;
@@ -822,3 +1288,54 @@ export const receiptCheckpointSchema = z.object({
   gapCount: z.number().int().nonnegative().default(0),
 });
 export type ReceiptCheckpoint = z.infer<typeof receiptCheckpointSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1954 (BETA-048) — Recoverable Send Operation State & Idempotency
+// ---------------------------------------------------------------------------
+
+export const sendOperationStatusSchema = z.enum([
+  "created",
+  "quoted",
+  "escrowed",
+  "submitted",
+  "anchored",
+  "delivered",
+  "failed",
+]);
+export type SendOperationStatus = z.infer<typeof sendOperationStatusSchema>;
+
+export const sendProofReferencesSchema = z.object({
+  receiptId: z.string().optional(),
+  anchorTxHash: z.string().optional(),
+  postagePaymentHash: z.string().optional(),
+  relayMessageId: z.string().optional(),
+});
+export type SendProofReferences = z.infer<typeof sendProofReferencesSchema>;
+
+export const sendOperationStateSchema = z.object({
+  version: z.number().int().positive().default(1),
+  messageId: hash32Schema,
+  sender: stellarAddressSchema,
+  recipient: stellarAddressSchema,
+  recipientDomain: z.string().default("stellar.network"),
+  status: sendOperationStatusSchema.default("created"),
+  quote: z.record(z.unknown()).optional(),
+  postage: postageSchema.optional(),
+  envelope: storedEnvelopeSchema.optional(),
+  relaySubmission: z
+    .object({
+      accepted: z.boolean(),
+      state: z.string(),
+      attempts: z.number(),
+    })
+    .optional(),
+  receipt: receiptSchema.optional(),
+  anchorTxHash: z.string().optional(),
+  proofReferences: sendProofReferencesSchema.optional(),
+  idempotencyKey: z.string().min(1),
+  failureReason: z.string().optional(),
+  errorCode: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type SendOperationState = z.infer<typeof sendOperationStateSchema>;

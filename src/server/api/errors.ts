@@ -131,6 +131,13 @@ export const API_ERROR_REGISTRY = {
     retryable: true,
     description: "A matching operation currently holds the idempotency lease.",
   },
+  recent_auth_required: {
+    status: 403,
+    message: "Recent authentication is required",
+    retryable: false,
+    description:
+      "The requested operation requires the user to have authenticated recently. The current session has expired for sensitive operations.",
+  },
 } as const satisfies Record<string, ApiErrorDefinition>;
 
 export type ApiErrorCode = keyof typeof API_ERROR_REGISTRY;

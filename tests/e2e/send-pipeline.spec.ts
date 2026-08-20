@@ -5,30 +5,46 @@ import { generateRecipientKeyPair } from "../../src/services/crypto/key-wrap";
 const DEMO_SIGNER = `G${"C".repeat(55)}`;
 const ALICE = `G${"B".repeat(55)}`;
 const BOB = `G${"D".repeat(55)}`;
+const SEND_BUTTON_NAME = /^Send(?: \+ .* XLM| free)?$/;
 
 let aliceKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
 let bobKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
 
 function keyDirectoryBody(owner: string, spkiBase64: string) {
   const now = Date.now();
+  const notBefore = new Date(now - 60_000).toISOString();
+  const notAfter = new Date(now + 86_400_000).toISOString();
+  const updatedAt = new Date(now).toISOString();
+  const encryptionKey = {
+    keyId: "enc-e2e-0001",
+    owner,
+    algorithm: "x25519",
+    purpose: "encryption",
+    publicKey: spkiBase64,
+    version: 1,
+    notBefore,
+    notAfter,
+    status: "active",
+    signature: "e2e",
+    createdAt: updatedAt,
+    updatedAt,
+  };
+
   return {
     data: {
       owner,
       version: 1,
+      updatedAt,
       currentKeys: {
-        encryption: {
-          keyId: "enc-e2e-0001",
-          algorithm: "ecdh",
-          publicKey: spkiBase64,
-          version: 1,
-          notBefore: new Date(now - 60_000).toISOString(),
-          notAfter: new Date(now + 86_400_000).toISOString(),
-          status: "active",
-          signature: "e2e",
-        },
+        encryption: encryptionKey,
       },
       historicalKeys: [],
-      allKeys: [],
+      allKeys: [encryptionKey],
+      freshness: {
+        resolvedAt: updatedAt,
+        cached: false,
+        ttlMs: 60_000,
+      },
     },
   };
 }
@@ -99,7 +115,7 @@ test.describe("send pipeline", () => {
     await page.getByPlaceholder("Subject").fill("Two-recipient pipeline");
     await page
       .getByPlaceholder("Write your message", { exact: false })
-      .fill("Hello Bob — Grüße π ≈ 3.14 ✓ 安全的");
+      .fill("Hello Bob \u2014 Gr\u00fc\u00dfe \u03c0 \u2248 3.14 \u2713 \u5b89\u5168\u7684");
     await expect(page.getByText(ALICE)).toBeVisible();
     await expect(page.getByText(BOB)).toBeVisible();
 

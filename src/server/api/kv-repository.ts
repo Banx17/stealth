@@ -5,6 +5,7 @@ import type {
   PostageTransitionResult,
   UpdateContactResult,
   UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
   UsernameReservationResult,
   WalletCreationResult,
@@ -21,7 +22,9 @@ import type {
   IdempotencyRecord,
   JobStatus,
   KeyDirectoryRecord,
+  LifecycleAnchor,
   MailboxPolicy,
+  MessageDeliveryStatusRecord,
   PolicyWriteIntent,
   Postage,
   PostageStatus,
@@ -30,6 +33,7 @@ import type {
   PublishedKey,
   Receipt,
   ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   SenderRule,
   Session,
@@ -38,6 +42,8 @@ import type {
   UsernameReservation,
   VerificationPurpose,
   VerificationToken,
+  ManagedWalletRecord,
+  FundingOperation,
   Wallet,
 } from "./domain";
 import { ApiError } from "./errors";
@@ -70,6 +76,16 @@ export class HybridApiRepository implements ApiRepository {
   async setPolicyWriteIntent(intent: PolicyWriteIntent): Promise<PolicyWriteIntent> {
     await this.kv.put(this.key("policy-write", intent.owner), JSON.stringify(intent));
     return intent;
+  }
+
+  async getLifecycleAnchor(messageId: string): Promise<LifecycleAnchor | null> {
+    const anchor = await this.kv.get(this.key("lifecycle-anchor", messageId), "json");
+    return (anchor as LifecycleAnchor) ?? null;
+  }
+
+  async setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor> {
+    await this.kv.put(this.key("lifecycle-anchor", anchor.messageId), JSON.stringify(anchor));
+    return anchor;
   }
 
   async getSenderRule(owner: string, sender: string): Promise<SenderRule> {
@@ -138,6 +154,18 @@ export class HybridApiRepository implements ApiRepository {
     await this.getStub().setReceipt(receipt);
     await this.kv.put(this.key("receipt", receipt.messageId), JSON.stringify(receipt));
     return receipt;
+  }
+
+  async getMessageDeliveryStatus(messageId: string): Promise<MessageDeliveryStatusRecord | null> {
+    const record = await this.kv.get(this.key("delivery-status", messageId), "json");
+    return (record as MessageDeliveryStatusRecord) ?? null;
+  }
+
+  async setMessageDeliveryStatus(
+    record: MessageDeliveryStatusRecord,
+  ): Promise<MessageDeliveryStatusRecord> {
+    await this.kv.put(this.key("delivery-status", record.messageId), JSON.stringify(record));
+    return record;
   }
 
   async createReceiptIfAbsent(receipt: Receipt): Promise<{ created: boolean; receipt: Receipt }> {
@@ -300,6 +328,14 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().recordVerificationAttempt(tokenHash, now);
   }
 
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.getStub().invalidateActiveVerificationToken(userId, purpose, now);
+  }
+
   // BETA-006: Session DO stubs
   async getSession(sessionId: string): Promise<Session | null> {
     return this.getStub().getSession(sessionId);
@@ -329,7 +365,21 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().createRetiredSession(retiredSession);
   }
 
+  // Issue #1917 (BETA-010): CAS semantics live in the Durable Object (the
+  // runExclusive critical section), so KV delegation is a plain RPC passthrough.
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    return this.getStub().getRecoveryCodeSet(userId);
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.getStub().setRecoveryCodeSet(set, expectedVersion);
+  }
+
   // Consistent layer delegated to Durable Object via RPC
+
   private getStub() {
     const id = this.coordinator.idFromName("global-stealth-coordinator");
     return this.coordinator.get(id);
@@ -513,6 +563,16 @@ export class HybridApiRepository implements ApiRepository {
     return result;
   }
 
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const result = await this.getStub().patchMailboxFlags(messageId, recipient, patch);
+    await this.kv.put(this.key("envelope", messageId), JSON.stringify(result));
+    return result;
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
   // ---------------------------------------------------------------------------
@@ -541,6 +601,41 @@ export class HybridApiRepository implements ApiRepository {
       JSON.stringify(record),
     );
     return record;
+  }
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    return this.getStub().getManagedWallet(userId);
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    return this.getStub().setManagedWallet(wallet);
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<import("./repository").CreateManagedWalletResult> {
+    return this.getStub().createManagedWalletIfAbsent(wallet);
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    return this.getStub().getFundingOperation(operationId);
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.getStub().setFundingOperation(operation);
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.getStub().createFundingOperationIfAbsent(operation);
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    return this.getStub().listFundingOperations(filter);
   }
 
   // ---------------------------------------------------------------------------
@@ -691,5 +786,21 @@ export class HybridApiRepository implements ApiRepository {
 
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     return this.getStub().setReceiptCheckpoint(checkpoint);
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    return this.getStub().getSendOperation(messageId);
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    return this.getStub().setSendOperation(state);
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.getStub().createSendOperationIfAbsent(state);
   }
 }

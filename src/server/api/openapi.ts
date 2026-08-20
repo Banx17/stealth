@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
+﻿import { API_ERROR_CODES, API_ERROR_REGISTRY } from "./errors";
 
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -15,6 +15,13 @@ export const openApiDocument = {
   ],
   components: {
     securitySchemes: {
+      SessionCookie: {
+        type: "apiKey",
+        in: "cookie",
+        name: "stealth_session",
+        description:
+          "Server-issued session cookie set by POST /auth/login and POST /auth/recovery/redeem; HttpOnly.",
+      },
       StellarSignedRequest: {
         type: "http",
         scheme: "bearer",
@@ -56,6 +63,114 @@ export const openApiDocument = {
           },
         },
       },
+      RecoveryCodeRedeemRequest: {
+        type: "object",
+        required: ["identifier", "code"],
+        additionalProperties: false,
+        properties: {
+          identifier: {
+            type: "string",
+            description: "Account email or username for the code set.",
+          },
+          code: {
+            type: "string",
+            description:
+              "A single unused recovery code. Normalization tolerates case and separator differences.",
+          },
+        },
+      },
+      RecoveryCodeRedeemResponse: {
+        type: "object",
+        required: ["user", "session"],
+        additionalProperties: false,
+        properties: {
+          user: {
+            type: "object",
+            required: [
+              "userId",
+              "address",
+              "email",
+              "username",
+              "status",
+              "createdAt",
+              "updatedAt",
+            ],
+            additionalProperties: false,
+            properties: {
+              userId: { type: "string" },
+              address: { type: "string" },
+              email: { type: "string", format: "email" },
+              username: { type: "string" },
+              status: {
+                type: "string",
+                enum: ["active", "suspended", "pending_verification", "deactivated"],
+              },
+              createdAt: { type: "string", format: "date-time" },
+              updatedAt: { type: "string", format: "date-time" },
+            },
+          },
+          session: {
+            type: "object",
+            required: ["sessionId", "userId", "createdAt", "expiresAt", "lastActiveAt"],
+            additionalProperties: false,
+            properties: {
+              sessionId: { type: "string" },
+              userId: { type: "string" },
+              createdAt: { type: "string", format: "date-time" },
+              expiresAt: { type: "string", format: "date-time" },
+              lastActiveAt: { type: "string", format: "date-time" },
+              absoluteExpiresAt: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+      RecoveryCodeRegenerateResponse: {
+        type: "object",
+        required: ["status", "totalCodes", "remainingCodes", "generatedAt", "codes"],
+        additionalProperties: false,
+        properties: {
+          status: { type: "string", enum: ["active"] },
+          totalCodes: { type: "integer" },
+          remainingCodes: { type: "integer" },
+          generatedAt: { type: "string", format: "date-time", nullable: true },
+          codes: {
+            type: "array",
+            items: {
+              type: "string",
+              pattern: "^[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$",
+            },
+            description:
+              "Plaintext codes. Returned exactly once at regeneration time and never persisted server-side.",
+          },
+        },
+      },
+      RecoveryCodeStatus: {
+        type: "object",
+        required: ["status", "totalCodes", "remainingCodes", "generatedAt"],
+        additionalProperties: false,
+        properties: {
+          status: {
+            type: "string",
+            enum: ["none", "active", "exhausted"],
+            description:
+              "Account recovery state. 'none' when no set was ever created; 'exhausted' when every code has been consumed.",
+          },
+          totalCodes: {
+            type: "integer",
+            description: "Number of codes provisioned in the set.",
+          },
+          remainingCodes: {
+            type: "integer",
+            description: "Number of unused codes still redeemable.",
+          },
+          generatedAt: {
+            type: "string",
+            format: "date-time",
+            nullable: true,
+            description: "When the current set was generated; null when 'none'.",
+          },
+        },
+      },
       SuccessEnvelope: {
         type: "object",
         required: ["data", "meta"],
@@ -76,6 +191,7 @@ export const openApiDocument = {
           code: {
             type: "string",
             description: "Stable domain error code.",
+            "x-optic-ignore": true,
             enum: API_ERROR_CODES,
             example: "invalid_state_transition",
           },
@@ -492,7 +608,8 @@ export const openApiDocument = {
               code: {
                 type: "string",
                 description: "Stable domain-specific error code.",
-                enum: API_ERROR_CODES,
+                "x-optic-ignore": true,
+                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
               },
               message: {
                 type: "string",
@@ -571,7 +688,10 @@ export const openApiDocument = {
               },
             },
           },
-          timeoutMs: { type: "integer", description: "Readiness probe timeout." },
+          timeoutMs: {
+            type: "integer",
+            description: "Readiness probe timeout.",
+          },
         },
       },
       RelayVersion: {
@@ -580,7 +700,10 @@ export const openApiDocument = {
         additionalProperties: false,
         properties: {
           app: { type: "string", enum: ["stealth-relay"] },
-          apiVersion: { type: "string", description: "Stealth Mail API version." },
+          apiVersion: {
+            type: "string",
+            description: "Stealth Mail API version.",
+          },
           protocolVersion: { type: "string", description: "Protocol version." },
           build: { type: "string", description: "Build version string." },
         },
@@ -616,6 +739,54 @@ export const openApiDocument = {
           messageId: { $ref: "#/components/schemas/Hash32" },
           queueDepth: { type: "integer" },
           service: { type: "string", description: "Service name." },
+        },
+      },
+      LifecycleAnchor: {
+        type: "object",
+        required: [
+          "messageId",
+          "sender",
+          "recipient",
+          "amount",
+          "verified",
+          "receiptRequired",
+          "status",
+          "scheduledAt",
+          "updatedAt",
+        ],
+        additionalProperties: false,
+        description:
+          "Durable record of a message commitment anchored to the on-chain Lifecycle contract. Only the commitment and non-secret envelope metadata appear; plaintext or private payload metadata are never stored or submitted.",
+        properties: {
+          messageId: {
+            $ref: "#/components/schemas/Hash32",
+            description: "Message commitment (hash32).",
+          },
+          sender: { $ref: "#/components/schemas/StellarAddress" },
+          recipient: { $ref: "#/components/schemas/StellarAddress" },
+          amount: {
+            $ref: "#/components/schemas/StroopAmount",
+            description: "On-chain postage amount in stroops carried into the bind call.",
+          },
+          verified: { type: "boolean" },
+          receiptRequired: { type: "boolean" },
+          status: {
+            type: "string",
+            enum: ["pending", "submitted", "confirmed", "failed"],
+          },
+          scheduledAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          failureCount: { type: "integer", minimum: 0 },
+          lastError: {
+            type: "string",
+            nullable: true,
+            description: "Redacted failure reason; never contains secrets.",
+          },
+          txHash: {
+            type: "string",
+            nullable: true,
+            description: "On-chain transaction hash reference.",
+          },
         },
       },
       Contact: {
@@ -851,6 +1022,233 @@ export const openApiDocument = {
     },
   },
   paths: {
+    "/auth/recovery/redeem": {
+      post: {
+        operationId: "redeemRecoveryCode",
+        summary: "Recover account access with one recovery code (BETA-010)",
+        description:
+          "Consumes a single unused recovery code, revokes ALL existing sessions for the account, and issues a brand-new session cookie. Unauthenticated by design ╬ô├ç├╢ the code itself is the credential. Idempotent when an x-idempotency-key is supplied.",
+        "x-max-body-bytes": 16 * 1024,
+        "x-idempotency-key-supported": "yes",
+        "x-stability": "beta",
+        requestBody: {
+          description: "Account identifier and a single unused recovery code.",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/RecoveryCodeRedeemRequest",
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Recovered session (Set-Cookie issued)",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/RecoveryCodeRedeemResponse",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized ╬ô├ç├╢ invalid or already used recovery code",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Too Many Requests ╬ô├ç├╢ brute-force throttling",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/recovery/regenerate": {
+      post: {
+        operationId: "regenerateRecoveryCodes",
+        summary: "Regenerate one-time recovery codes (BETA-010)",
+        description:
+          "Privilege-sensitive action. Requires a session with a recent password login; replaces the stored code set (hashes only), returns the plaintext codes exactly once, and revokes every OTHER session for the account. Idempotent when an x-idempotency-key is supplied.",
+        "x-max-body-bytes": 4 * 1024,
+        "x-idempotency-key-supported": "yes",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        requestBody: {
+          description: "Empty JSON object ({}). The action is driven by the authenticated session.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                additionalProperties: false,
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "New recovery code set (plaintext codes, shown once)",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/RecoveryCodeRegenerateResponse",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden ╬ô├ç├╢ recent login required for regeneration",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict ╬ô├ç├╢ codes changed concurrently or idempotency replay",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/recovery/status": {
+      get: {
+        operationId: "getRecoveryCodeStatus",
+        summary: "Read recovery-code status (BETA-010)",
+        description:
+          "Recovery-status safety model for the settings UI. Never returns code material ╬ô├ç├╢ only state and counters.",
+        security: [
+          {
+            SessionCookie: [],
+          },
+        ],
+        "x-stability": "beta",
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Recovery status",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      $ref: "#/components/schemas/SuccessEnvelope",
+                    },
+                    {
+                      type: "object",
+                      properties: {
+                        data: {
+                          $ref: "#/components/schemas/RecoveryCodeStatus",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/health": {
       get: {
         operationId: "getHealth",
@@ -1509,7 +1907,7 @@ export const openApiDocument = {
                     },
                   },
                   senderBlocked: {
-                    summary: "Policy Denied — Sender explicitly blocked",
+                    summary: "Policy Denied ΓÇö Sender explicitly blocked",
                     value: {
                       data: {
                         allowed: false,
@@ -1525,7 +1923,7 @@ export const openApiDocument = {
                     },
                   },
                   unknownSendersDisabled: {
-                    summary: "Policy Denied — Unknown senders disabled by recipient policy",
+                    summary: "Policy Denied ΓÇö Unknown senders disabled by recipient policy",
                     value: {
                       data: {
                         allowed: false,
@@ -1542,7 +1940,7 @@ export const openApiDocument = {
                   },
                   insufficientPostage: {
                     summary:
-                      "Policy Denied — Postage provided is below recipient minimum requirement",
+                      "Policy Denied ΓÇö Postage provided is below recipient minimum requirement",
                     value: {
                       data: {
                         allowed: false,
@@ -1558,7 +1956,7 @@ export const openApiDocument = {
                     },
                   },
                   verificationRequired: {
-                    summary: "Policy Denied — Sender identity verification is required",
+                    summary: "Policy Denied ΓÇö Sender identity verification is required",
                     value: {
                       data: {
                         allowed: false,
@@ -1579,7 +1977,7 @@ export const openApiDocument = {
           },
           "400": {
             description:
-              "Bad Request — Invalid request JSON structure or missing Content-Type header",
+              "Bad Request ΓÇö Invalid request JSON structure or missing Content-Type header",
             content: {
               "application/json": {
                 schema: {
@@ -1587,7 +1985,7 @@ export const openApiDocument = {
                 },
                 examples: {
                   invalidJson: {
-                    summary: "Bad Request — Syntax error in JSON body",
+                    summary: "Bad Request ΓÇö Syntax error in JSON body",
                     value: {
                       error: {
                         code: "bad_request",
@@ -1616,7 +2014,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -1624,7 +2022,7 @@ export const openApiDocument = {
                 },
                 examples: {
                   invalidStellarAddress: {
-                    summary: "Validation failure — Malformed Stellar address field",
+                    summary: "Validation failure ΓÇö Malformed Stellar address field",
                     value: {
                       error: {
                         code: "validation_error",
@@ -1648,7 +2046,7 @@ export const openApiDocument = {
                     },
                   },
                   invalidPostageAmount: {
-                    summary: "Validation failure — Malformed postage amount string",
+                    summary: "Validation failure ΓÇö Malformed postage amount string",
                     value: {
                       error: {
                         code: "validation_error",
@@ -2204,7 +2602,7 @@ export const openApiDocument = {
             },
           },
           "503": {
-            description: "Not Ready — a required dependency is unavailable",
+            description: "Not Ready ΓÇö a required dependency is unavailable",
             content: {
               "application/json": {
                 schema: {
@@ -2354,7 +2752,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -2364,7 +2762,7 @@ export const openApiDocument = {
             },
           },
           "503": {
-            description: "Not Ready — a required dependency is unavailable",
+            description: "Not Ready ΓÇö a required dependency is unavailable",
             content: {
               "application/json": {
                 schema: {
@@ -2456,7 +2854,7 @@ export const openApiDocument = {
             },
           },
           "409": {
-            description: "Conflict ΓÇö username unavailable or provisioning previously failed",
+            description: "Conflict ╬ô├ç├╢ username unavailable or provisioning previously failed",
             content: {
               "application/json": {
                 schema: {
@@ -2466,7 +2864,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity ΓÇö Request payload validation failure",
+            description: "Unprocessable Entity ╬ô├ç├╢ Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -2543,7 +2941,7 @@ export const openApiDocument = {
             },
           },
           "404": {
-            description: "Not Found ΓÇö no account or provisioning record",
+            description: "Not Found ╬ô├ç├╢ no account or provisioning record",
             content: {
               "application/json": {
                 schema: {
@@ -2620,7 +3018,7 @@ export const openApiDocument = {
             },
           },
           "404": {
-            description: "Not Found ΓÇö no account or provisioning record",
+            description: "Not Found ╬ô├ç├╢ no account or provisioning record",
             content: {
               "application/json": {
                 schema: {
@@ -2631,7 +3029,7 @@ export const openApiDocument = {
           },
           "409": {
             description:
-              "Conflict ΓÇö provisioning in flight, already active, or attempts exhausted",
+              "Conflict ╬ô├ç├╢ provisioning in flight, already active, or attempts exhausted",
             content: {
               "application/json": {
                 schema: {
@@ -2808,6 +3206,183 @@ export const openApiDocument = {
         },
       },
     },
+    "/auth/password-reset/request": {
+      post: {
+        operationId: "requestPasswordReset",
+        summary: "Request a password reset email for an account",
+        description:
+          "Issues a hashed, single-use password reset token delivered to the account email. Responds identically for existing and non-existing accounts to prevent enumeration; rate limits and cooldowns are enforced.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Generic confirmation; the message was sent or intentionally not sent",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Password reset request is on cooldown or rate limited",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "503": {
+            description: "The password reset message could not be delivered",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/auth/password-reset/complete": {
+      post: {
+        operationId: "completePasswordReset",
+        summary: "Complete password reset using a single-use token",
+        description:
+          "Consumes a single-use password reset token, validates password policy, sets the new password, invalidates all other outstanding reset tokens, and revokes all active sessions for the user.",
+        security: [],
+        "x-stability": "beta",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token", "password"],
+                properties: {
+                  token: { type: "string" },
+                  password: { type: "string", minLength: 12, maxLength: 256 },
+                  passwordConfirmation: { type: "string" },
+                  email: { type: "string", format: "email" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Password reset completed successfully and all active sessions revoked",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid or expired password reset token",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Password reset token has already been used or superseded",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Password does not meet policy requirements or validation failed",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "429": {
+            description: "Too many failed attempts. Token is locked",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/contacts": {
       get: {
         operationId: "listContacts",
@@ -2944,7 +3519,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -3116,7 +3691,7 @@ export const openApiDocument = {
             },
           },
           "409": {
-            description: "Conflict — concurrent modification detected",
+            description: "Conflict ΓÇö concurrent modification detected",
             content: {
               "application/json": {
                 schema: {
@@ -3126,7 +3701,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -3284,7 +3859,7 @@ export const openApiDocument = {
             },
           },
           "403": {
-            description: "Forbidden — cannot merge a contact owned by another actor",
+            description: "Forbidden ΓÇö cannot merge a contact owned by another actor",
             content: {
               "application/json": {
                 schema: {
@@ -3304,7 +3879,7 @@ export const openApiDocument = {
             },
           },
           "409": {
-            description: "Conflict — kept contact modified concurrently",
+            description: "Conflict ΓÇö kept contact modified concurrently",
             content: {
               "application/json": {
                 schema: {
@@ -3314,7 +3889,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -3400,7 +3975,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -3502,7 +4077,7 @@ export const openApiDocument = {
             },
           },
           "422": {
-            description: "Unprocessable Entity — Request payload validation failure",
+            description: "Unprocessable Entity ΓÇö Request payload validation failure",
             content: {
               "application/json": {
                 schema: {
@@ -3518,6 +4093,266 @@ export const openApiDocument = {
                 schema: {
                   $ref: "#/components/schemas/ErrorEnvelope",
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/lifecycle/{messageId}": {
+      get: {
+        operationId: "getLifecycleStatus",
+        summary: "Read lifecycle status for a message commitment",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Lifecycle status (participant only)",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["status", "updatedAt"],
+                  additionalProperties: false,
+                  properties: {
+                    status: {
+                      type: "string",
+                      enum: ["pending", "submitted", "confirmed", "failed"],
+                    },
+                    updatedAt: { type: "string", format: "date-time" },
+                    failureCount: { type: "integer", minimum: 0 },
+                    lastError: {
+                      type: "string",
+                      nullable: true,
+                      description: "Redacted failure reason; never contains secrets.",
+                    },
+                    txHash: { type: "string", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Actor is not a participant",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "404": {
+            description: "No lifecycle anchor for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/lifecycle/{messageId}/anchor": {
+      post: {
+        operationId: "anchorLifecycle",
+        summary: "Anchor a message commitment to the on-chain Lifecycle contract",
+        description:
+          "Idempotently schedules and submits a bind for the given message commitment. Only the commitment and non-secret envelope metadata (sender, recipient, amount, verified, receipt_required) are submitted; plaintext and private payload metadata never leave the relay.",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["sender", "recipient"],
+                additionalProperties: false,
+                properties: {
+                  sender: { $ref: "#/components/schemas/StellarAddress" },
+                  recipient: { $ref: "#/components/schemas/StellarAddress" },
+                  verified: { type: "boolean", default: false },
+                  receiptRequired: { type: "boolean", default: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "202": {
+            description: "Anchor scheduled and submission attempted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["messageId", "status"],
+                  additionalProperties: false,
+                  properties: {
+                    messageId: { $ref: "#/components/schemas/Hash32" },
+                    status: {
+                      type: "string",
+                      enum: ["pending", "submitted", "confirmed"],
+                    },
+                    txHash: { type: "string", nullable: true },
+                    attempts: { type: "integer", minimum: 0 },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Actor is not a participant",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "404": {
+            description: "No postage record for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "409": {
+            description: "Existing anchor conflicts with the request",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/lifecycle/{messageId}/reconcile": {
+      post: {
+        operationId: "reconcileLifecycle",
+        summary: "Reconcile a lifecycle anchor against the on-chain contract state",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        "x-stability": "beta",
+        parameters: [
+          {
+            name: "messageId",
+            in: "path",
+            required: true,
+            schema: { $ref: "#/components/schemas/Hash32" },
+          },
+        ],
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Reconciliation result",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["messageId", "status"],
+                  additionalProperties: false,
+                  properties: {
+                    messageId: { $ref: "#/components/schemas/Hash32" },
+                    status: {
+                      type: "string",
+                      enum: ["pending", "submitted", "confirmed", "failed"],
+                    },
+                    updatedAt: { type: "string", format: "date-time" },
+                  },
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Actor is not a participant",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "404": {
+            description: "No lifecycle anchor for this message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "422": {
+            description: "Request validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
+              },
+            },
+          },
+          "503": {
+            description: "Dependency unavailable",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorEnvelope" },
               },
             },
           },

@@ -6,12 +6,15 @@ import type {
   DurableJobType,
   IdempotencyRecord,
   JobStatus,
+  ManagedWalletRecord,
+  FundingOperation,
   Postage,
   PostageStatus,
   Profile,
   ProvisioningRecord,
   Receipt,
   ReceiptCheckpoint,
+  RecoveryCodeSet,
   RetiredSession,
   Session,
   StoredEnvelope,
@@ -26,11 +29,13 @@ import type {
 import type {
   AcquireIdempotencyResult,
   ConsumeVerificationTokenResult,
+  CreateManagedWalletResult,
   InsertEnvelopeResult,
   IssueVerificationTokenResult,
   PostageTransitionResult,
   RecordVerificationAttemptResult,
   UpdateProvisioningResult,
+  UpdateRecoveryCodeSetResult,
   UpdateUserResult,
   UsernameReservationResult,
   WalletCreationResult,
@@ -670,6 +675,77 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  // Issue #1917 (BETA-010): Recovery code set CAS storage. The CAS body runs
+  // under runExclusive so concurrent writers for the same userId cannot
+  // interleave their read-check-write cycles (the exact double-consumption
+  // race this coordinates against).
+  // interleave their read-check-write cycles (the exact double-consumption
+  // race this coordinates against).
+  async getRecoveryCodeSet(userId: string): Promise<RecoveryCodeSet | null> {
+    const set = (await this.ctx.storage.get(`recovery-code-set:${userId}`)) as
+      | RecoveryCodeSet
+      | undefined;
+    return set ?? null;
+  }
+
+  async setRecoveryCodeSet(
+    set: RecoveryCodeSet,
+    expectedVersion: number,
+  ): Promise<UpdateRecoveryCodeSetResult> {
+    return this.runExclusive(`recovery-code-set:${set.userId}`, async () => {
+      const current = (await this.ctx.storage.get(`recovery-code-set:${set.userId}`)) as
+        | RecoveryCodeSet
+        | undefined;
+
+      if (expectedVersion === 0) {
+        // Create-only reservation. A concurrent first generation that won
+        // reports `current` so the caller can reconcile instead of
+        // double-inserting.
+        if (current) {
+          return { updated: false as const, current };
+        }
+        await this.ctx.storage.put(`recovery-code-set:${set.userId}`, set);
+        return { updated: true as const, set };
+      }
+
+      if (!current || current.version !== expectedVersion) {
+        return { updated: false as const, current: current ?? null };
+      }
+
+      const next: RecoveryCodeSet = {
+        ...set,
+        version: expectedVersion + 1,
+      };
+      await this.ctx.storage.put(`recovery-code-set:${set.userId}`, next);
+      return { updated: true as const, set: next };
+    });
+  }
+
+  async invalidateActiveVerificationToken(
+    userId: string,
+    purpose: VerificationPurpose,
+    now: Date,
+  ): Promise<void> {
+    return this.runExclusive(`verification-token:user:${userId}:${purpose}`, async () => {
+      const activeHash = (await this.ctx.storage.get(
+        `verification-token:active:${userId}:${purpose}`,
+      )) as string | undefined;
+      if (activeHash) {
+        const current = (await this.ctx.storage.get(`verification-token:hash:${activeHash}`)) as
+          | VerificationToken
+          | undefined;
+        if (current && current.consumedAt === null && current.replacedAt === null) {
+          const invalidated: VerificationToken = {
+            ...current,
+            replacedAt: now.toISOString(),
+          };
+          await this.ctx.storage.put(`verification-token:hash:${activeHash}`, invalidated);
+        }
+        await this.ctx.storage.delete(`verification-token:active:${userId}:${purpose}`);
+      }
+    });
+  }
+
   async getCounter(key: string): Promise<number> {
     const timestamps =
       ((await this.ctx.storage.get(`counter:${key}`)) as number[] | undefined) ?? [];
@@ -797,6 +873,81 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-015 (Issue #1922) — Managed Stellar testnet wallet persistence
+  // ---------------------------------------------------------------------------
+
+  async getManagedWallet(userId: string): Promise<ManagedWalletRecord | null> {
+    const wallet = (await this.ctx.storage.get(`managed-wallet:${userId}`)) as
+      | ManagedWalletRecord
+      | undefined;
+    return wallet ?? null;
+  }
+
+  async setManagedWallet(wallet: ManagedWalletRecord): Promise<ManagedWalletRecord> {
+    await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+    return wallet;
+  }
+
+  async createManagedWalletIfAbsent(
+    wallet: ManagedWalletRecord,
+  ): Promise<CreateManagedWalletResult> {
+    return this.runExclusive(`managed-wallet:${wallet.userId}`, async () => {
+      const existing = await this.getManagedWallet(wallet.userId);
+      if (existing) {
+        return { outcome: "existing", wallet: existing };
+      }
+      await this.ctx.storage.put(`managed-wallet:${wallet.userId}`, wallet);
+      return { outcome: "created", wallet };
+    });
+  }
+
+  async getFundingOperation(operationId: string): Promise<FundingOperation | null> {
+    const operation = (await this.ctx.storage.get(`funding-op:${operationId}`)) as
+      | FundingOperation
+      | undefined;
+    return operation ?? null;
+  }
+
+  async setFundingOperation(operation: FundingOperation): Promise<FundingOperation> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return operation;
+    });
+  }
+
+  async createFundingOperationIfAbsent(
+    operation: FundingOperation,
+  ): Promise<{ created: boolean; operation: FundingOperation }> {
+    return this.runExclusive(`funding-op:${operation.operationId}`, async () => {
+      const existing = await this.getFundingOperation(operation.operationId);
+      if (existing) {
+        return { created: false, operation: existing };
+      }
+      await this.ctx.storage.put(`funding-op:${operation.operationId}`, operation);
+      return { created: true, operation };
+    });
+  }
+
+  async listFundingOperations(filter?: {
+    status?: FundingOperation["status"];
+    limit?: number;
+  }): Promise<FundingOperation[]> {
+    const stored = (await this.ctx.storage.list({ prefix: "funding-op:" })) as Map<
+      string,
+      FundingOperation
+    >;
+    const limit = filter?.limit ?? 50;
+    const matches: FundingOperation[] = [];
+    for (const operation of stored.values()) {
+      if (!operation?.operationId) continue;
+      if (filter?.status && operation.status !== filter.status) continue;
+      matches.push(operation);
+    }
+    matches.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return matches.slice(0, limit);
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
@@ -807,10 +958,9 @@ export class StealthCoordinator extends DurableObjectBase {
     const includeTombstones = options.includeTombstones ?? false;
     const limit = options.limit ?? 25;
 
-    const envelopesMap = (await this.ctx.storage.list({ prefix: "envelope:" })) as Map<
-      string,
-      StoredEnvelope
-    >;
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
 
     const filtered: StoredEnvelope[] = [];
     for (const env of envelopesMap.values()) {
@@ -869,6 +1019,35 @@ export class StealthCoordinator extends DurableObjectBase {
         ...existing,
         status,
       };
+      await this.ctx.storage.put(`envelope:${messageId}`, updated);
+      return updated;
+    });
+  }
+
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const { applyMailboxFlags } = await import("./mailbox-live");
+    return this.runExclusive(`envelope:${messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
+        | StoredEnvelope
+        | undefined;
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot update an envelope belonging to another recipient",
+        );
+      }
+      if (existing.deletedAt && patch.folder && patch.folder !== "trash") {
+        throw new ApiError(409, "conflict", "Cannot move a deleted message");
+      }
+      const updated = applyMailboxFlags(existing, patch, new Date().toISOString());
       await this.ctx.storage.put(`envelope:${messageId}`, updated);
       return updated;
     });
@@ -1012,5 +1191,34 @@ export class StealthCoordinator extends DurableObjectBase {
   async setReceiptCheckpoint(checkpoint: ReceiptCheckpoint): Promise<ReceiptCheckpoint> {
     await this.ctx.storage.put(`receipt_cp:${checkpoint.streamId}`, checkpoint);
     return checkpoint;
+  }
+
+  async getSendOperation(messageId: string): Promise<import("./domain").SendOperationState | null> {
+    const state = (await this.ctx.storage.get(`send_op:${messageId}`)) as
+      | import("./domain").SendOperationState
+      | undefined;
+    return state ?? null;
+  }
+
+  async setSendOperation(
+    state: import("./domain").SendOperationState,
+  ): Promise<import("./domain").SendOperationState> {
+    await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+    return state;
+  }
+
+  async createSendOperationIfAbsent(
+    state: import("./domain").SendOperationState,
+  ): Promise<{ created: boolean; state: import("./domain").SendOperationState }> {
+    return this.runExclusive(`send_op:${state.messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`send_op:${state.messageId}`)) as
+        | import("./domain").SendOperationState
+        | undefined;
+      if (existing) {
+        return { created: false, state: existing };
+      }
+      await this.ctx.storage.put(`send_op:${state.messageId}`, state);
+      return { created: true, state };
+    });
   }
 }
