@@ -38,6 +38,8 @@ import type {
   Wallet,
   DraftRecord,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
@@ -344,6 +346,17 @@ export interface ApiRepository {
   getProfile(userId: string): Promise<Profile | null>;
   setProfile(profile: Profile): Promise<Profile>;
   getCredential(userId: string): Promise<Credential | null>;
+  getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null>;
+  setAccountDeletionRequest(request: AccountDeletionRequest): Promise<AccountDeletionRequest>;
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport>;
+  deleteAccountData(
+    userId: string,
+    address: string,
+    now?: Date,
+  ): Promise<{
+    deleted: string[];
+    retained: string[];
+  }>;
   setCredential(credential: Credential): Promise<Credential>;
 
   // BETA-014: Transactional account-provisioning methods
@@ -905,6 +918,28 @@ export class ValidatedApiRepository implements ApiRepository {
   async setCredential(credential: Credential): Promise<Credential> {
     const result = await this.inner.setCredential(versionRecord("credential", credential));
     return validateRecord<Credential>("credential", result);
+  }
+
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    const raw = await this.inner.getAccountDeletionRequest(userId);
+    return raw ? validateRecord<AccountDeletionRequest>("accountDeletionRequest", raw) : null;
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    return validateRecord<AccountDeletionRequest>(
+      "accountDeletionRequest",
+      await this.inner.setAccountDeletionRequest(request),
+    );
+  }
+
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport> {
+    return this.inner.exportAccount(userId, address, now);
+  }
+
+  deleteAccountData(userId: string, address: string, now?: Date) {
+    return this.inner.deleteAccountData(userId, address, now);
   }
 
   async getProvisioningRecord(userId: string): Promise<ProvisioningRecord | null> {
@@ -1731,6 +1766,24 @@ export class RetryableApiRepository implements ApiRepository {
 
   setCredential(credential: Credential): Promise<Credential> {
     return this.withRetry("setCredential", () => this.inner.setCredential(credential));
+  }
+
+  getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return this.withRetry("getAccountDeletionRequest", () =>
+      this.inner.getAccountDeletionRequest(userId),
+    );
+  }
+
+  setAccountDeletionRequest(request: AccountDeletionRequest): Promise<AccountDeletionRequest> {
+    return this.inner.setAccountDeletionRequest(request);
+  }
+
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport> {
+    return this.withRetry("exportAccount", () => this.inner.exportAccount(userId, address, now));
+  }
+
+  deleteAccountData(userId: string, address: string, now?: Date) {
+    return this.inner.deleteAccountData(userId, address, now);
   }
 
   // BETA-014: retry-safe reads + idempotent compensation are retried; the

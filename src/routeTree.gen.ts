@@ -60,6 +60,9 @@ import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
 import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/accounts/provisioning'
 import { Route as ApiV1AccountsProfileRouteImport } from './routes/api/v1/accounts/profile'
+import { Route as ApiV1AccountsExportRouteImport } from './routes/api/v1/accounts/export'
+import { Route as ApiV1AccountsDeletionCancelRouteImport } from './routes/api/v1/accounts/deletion-cancel'
+import { Route as ApiV1AccountsDeletionRouteImport } from './routes/api/v1/accounts/deletion'
 import { Route as ApiV1AccountsAccountInfoRouteImport } from './routes/api/v1/accounts/account-info'
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
@@ -353,6 +356,22 @@ const ApiV1AccountsProfileRoute = ApiV1AccountsProfileRouteImport.update({
   path: '/api/v1/accounts/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AccountsExportRoute = ApiV1AccountsExportRouteImport.update({
+  id: '/api/v1/accounts/export',
+  path: '/api/v1/accounts/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AccountsDeletionCancelRoute =
+  ApiV1AccountsDeletionCancelRouteImport.update({
+    id: '/api/v1/accounts/deletion-cancel',
+    path: '/api/v1/accounts/deletion-cancel',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AccountsDeletionRoute = ApiV1AccountsDeletionRouteImport.update({
+  id: '/api/v1/accounts/deletion',
+  path: '/api/v1/accounts/deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AccountsAccountInfoRoute =
   ApiV1AccountsAccountInfoRouteImport.update({
     id: '/api/v1/accounts/account-info',
@@ -561,6 +580,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
+  '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
+  '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
@@ -649,6 +671,9 @@ export interface FileRoutesByTo {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
+  '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
+  '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
@@ -738,6 +763,9 @@ export interface FileRoutesById {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
+  '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
+  '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
@@ -828,6 +856,9 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/deletion'
+    | '/api/v1/accounts/deletion-cancel'
+    | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
     | '/api/v1/auth/login'
@@ -916,6 +947,9 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/deletion'
+    | '/api/v1/accounts/deletion-cancel'
+    | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
     | '/api/v1/auth/login'
@@ -1004,6 +1038,9 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/deletion'
+    | '/api/v1/accounts/deletion-cancel'
+    | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
     | '/api/v1/auth/login'
@@ -1093,6 +1130,9 @@ export interface RootRouteChildren {
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
   ApiV1AccountsAccountInfoRoute: typeof ApiV1AccountsAccountInfoRoute
+  ApiV1AccountsDeletionRoute: typeof ApiV1AccountsDeletionRoute
+  ApiV1AccountsDeletionCancelRoute: typeof ApiV1AccountsDeletionCancelRoute
+  ApiV1AccountsExportRoute: typeof ApiV1AccountsExportRoute
   ApiV1AccountsProfileRoute: typeof ApiV1AccountsProfileRoute
   ApiV1AccountsProvisioningRoute: typeof ApiV1AccountsProvisioningRouteWithChildren
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
@@ -1516,6 +1556,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/accounts/export': {
+      id: '/api/v1/accounts/export'
+      path: '/api/v1/accounts/export'
+      fullPath: '/api/v1/accounts/export'
+      preLoaderRoute: typeof ApiV1AccountsExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/deletion-cancel': {
+      id: '/api/v1/accounts/deletion-cancel'
+      path: '/api/v1/accounts/deletion-cancel'
+      fullPath: '/api/v1/accounts/deletion-cancel'
+      preLoaderRoute: typeof ApiV1AccountsDeletionCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/deletion': {
+      id: '/api/v1/accounts/deletion'
+      path: '/api/v1/accounts/deletion'
+      fullPath: '/api/v1/accounts/deletion'
+      preLoaderRoute: typeof ApiV1AccountsDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/accounts/account-info': {
       id: '/api/v1/accounts/account-info'
       path: '/api/v1/accounts/account-info'
@@ -1867,6 +1928,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1AccountsAccountInfoRoute: ApiV1AccountsAccountInfoRoute,
+  ApiV1AccountsDeletionRoute: ApiV1AccountsDeletionRoute,
+  ApiV1AccountsDeletionCancelRoute: ApiV1AccountsDeletionCancelRoute,
+  ApiV1AccountsExportRoute: ApiV1AccountsExportRoute,
   ApiV1AccountsProfileRoute: ApiV1AccountsProfileRoute,
   ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,

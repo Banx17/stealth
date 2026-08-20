@@ -786,6 +786,46 @@ export type ProvisioningRecord = z.infer<typeof provisioningRecordSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
 export type UsernameReservation = z.infer<typeof usernameReservationSchema>;
 
+// BETA-080 (Issue #1987): account deletion is a durable, cancellable workflow.
+export const accountDeletionStatusSchema = z.enum([
+  "cooling_off",
+  "processing",
+  "partial_failure",
+  "completed",
+  "cancelled",
+]);
+
+export const accountDeletionRequestSchema = z.object({
+  userId: z.string().min(1),
+  requestedAt: z.string().datetime(),
+  coolingOffEndsAt: z.string().datetime(),
+  status: accountDeletionStatusSchema,
+  attempt: z.number().int().nonnegative(),
+  lastError: z.string().max(500).nullable(),
+  updatedAt: z.string().datetime(),
+});
+
+export type AccountDeletionStatus = z.infer<typeof accountDeletionStatusSchema>;
+export type AccountDeletionRequest = z.infer<typeof accountDeletionRequestSchema>;
+
+export interface AccountExport {
+  format: "stealth-account-export-v1";
+  generatedAt: string;
+  account: PublicUser;
+  profile: PublicProfile | null;
+  contacts: Contact[];
+  mailbox: StoredEnvelope[];
+  senderRequests: UnknownSenderRequest[];
+  publicKeys: PublishedKey[];
+  ciphertextReferences: Array<{
+    messageId: string;
+    objectKey: string | null;
+    contentCommitment: string | null;
+    deletedAt: string | null;
+  }>;
+  onChainLimitations: string[];
+}
+
 // ---------------------------------------------------------------------------
 // BETA-013 (Issue #1920): Profile-first account onboarding
 //
