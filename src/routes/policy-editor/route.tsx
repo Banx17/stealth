@@ -172,7 +172,10 @@ function PolicyEditorPage({ address }: { address: string }) {
               </p>
               <button
                 onClick={() =>
-                  mutation.mutate({ ...livePolicy, version: reconciliation.offchain.version ?? undefined })
+                  mutation.mutate({
+                    ...livePolicy,
+                    version: reconciliation.offchain.version ?? undefined,
+                  })
                 }
                 className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
               >
