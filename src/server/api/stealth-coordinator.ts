@@ -77,6 +77,25 @@ export class StealthCoordinator extends DurableObjectBase {
     super(ctx, env);
   }
 
+  /** Run the reviewed identity migration plan against this DO's own storage. */
+  async runIdentityMigrations(
+    command: MigrationCommand,
+    options: MigrationRunOptions = {},
+  ): Promise<MigrationReport> {
+    const storage = createDurableObjectMigrationStorage(this.ctx);
+    const families = selectFamilies(identityRecordFamilies, options);
+    switch (command) {
+      case "dry-run":
+        return dryRun(storage, families, options);
+      case "forward":
+        return forward(storage, families, options);
+      case "rollback":
+        return rollback(storage, families, options);
+      case "integrity-check":
+        return integrityCheck(storage, families, options);
+    }
+  }
+
   private runExclusive<T>(lockKey: string, fn: () => Promise<T>): Promise<T> {
     const previous = this.locks.get(lockKey) ?? Promise.resolve();
     const result = previous.then(fn, fn);
