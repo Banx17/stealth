@@ -56,6 +56,7 @@ export type StageId =
   | "encrypt"
   | "sign"
   | "escrow"
+  | "postage"
   | "persist"
   | "submit"
   | "anchor"
@@ -88,6 +89,7 @@ export type SendOutcome =
       delivered: boolean;
       state: DeliveryState;
       timestamp: string;
+      proofReferences: ProofReferences;
     }
   | {
       ok: false;
@@ -149,6 +151,7 @@ const STAGE_LABELS: Record<StageId, string> = {
   encrypt: "Encrypting message",
   sign: "Awaiting wallet signature",
   escrow: "Reserving postage escrow",
+  postage: "Verifying postage policy",
   persist: "Saving to outbox",
   submit: "Submitting to relay",
   anchor: "Anchoring delivery receipt",
@@ -244,6 +247,10 @@ export class SendPipeline {
     this.audience = `relay.${this.domain}`;
     this.signer = options.signer ?? authorizeSend;
     this.keyResolver = options.keyResolver;
+    this.quoteFetcher = options.quoteFetcher;
+    this.escrowSubmitter = options.escrowSubmitter;
+    this.receiptAnchorer = options.receiptAnchorer;
+    this.relaySubmitter = options.relaySubmitter ?? submitToRelay;
 
     this.stages = STAGE_ORDER.map((id) => ({
       id,
@@ -457,6 +464,94 @@ export class SendPipeline {
     }
   }
 
+  private async executeQuoteStage(): Promise<SendOutcome | null> {
+    this.setStage("quote", "active");
+    try {
+      if (this.quoteFetcher) {
+        const quote = await this.quoteFetcher(
+          this.recipientKeys[0]?.account ?? this.recipients[0] ?? "",
+          this.input.sender,
+          this.messageId,
+        );
+        if (quote.eligible === false) {
+          this.setStage("quote", "error", "Recipient rejected sender");
+          return this.fail(
+            "resolve",
+            "recipient_rejected",
+            "Recipient rejected sender postage eligibility",
+            "ERR_INELIGIBLE_SENDER",
+            false,
+          );
+        }
+        this.quoteAmount = quote.amount ?? "0";
+      } else if (this.input.postageQuote) {
+        if (this.input.postageQuote.reason === "sender_blocked") {
+          this.setStage("quote", "error", "Recipient blocked this sender");
+          return this.fail(
+            "resolve",
+            "recipient_rejected",
+            "Recipient has blocked this sender",
+            "ERR_SENDER_BLOCKED",
+            false,
+          );
+        }
+        if (this.input.postageQuote.trusted) {
+          this.quoteAmount = "0";
+        }
+      } else if (this.input.postage) {
+        this.quoteAmount = this.input.postage;
+      }
+      this.setStage("quote", "done", `Quote: ${this.quoteAmount} XLM`);
+      return null;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Quote failed";
+      this.setStage("quote", "error", detail);
+      return this.fail("resolve", "recipient_rejected", detail, "ERR_QUOTE_FAILED", false);
+    }
+  }
+
+  private async executeEscrowStage(): Promise<SendOutcome | null> {
+    this.setStage("escrow", "active");
+    try {
+      if (this.escrowSubmitter && this.quoteAmount !== "0") {
+        const escrow = await this.escrowSubmitter({
+          messageId: this.messageId,
+          amount: this.quoteAmount,
+          sender: this.input.sender,
+          recipient: this.recipientKeys[0]?.account ?? this.recipients[0] ?? "",
+        });
+        this.paymentHash = escrow.paymentHash;
+      }
+      this.setStage("escrow", "done", "Postage escrow reserved");
+      return null;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Escrow reservation failed";
+      this.setStage("escrow", "error", detail);
+      return this.fail("escrow", "escrow_failed" as any, detail, "ERR_ESCROW_FAILED", true);
+    }
+  }
+
+  private async executeAnchorStage(): Promise<SendOutcome | null> {
+    this.setStage("anchor", "active");
+    try {
+      if (this.receiptAnchorer) {
+        const anchor = await this.receiptAnchorer(
+          this.messageId,
+          this.recipientKeys[0]?.account ?? this.recipients[0] ?? "",
+          this.input.sender,
+        );
+        this.receiptId = anchor.receiptId;
+        this.anchorTxHash = anchor.anchorTxHash;
+      }
+      this.setStage("anchor", "done", "Delivery receipt anchored");
+      return null;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Receipt anchoring failed";
+      this.setStage("anchor", "error", detail);
+      return this.fail("anchor", "failed", detail, "ERR_ANCHOR_FAILED", true);
+    }
+  }
+
   private async executePostageStage(): Promise<SendOutcome | null> {
     this.setStage("postage", "active");
     try {
@@ -575,19 +670,31 @@ export class SendPipeline {
     switch (id) {
       case "resolve":
         return this.executeResolveStage();
+      case "quote":
+        return this.executeQuoteStage();
       case "encrypt":
         return this.executeEncryptStage();
       case "sign":
         return this.executeSignStage();
+      case "escrow":
+        return this.executeEscrowStage();
       case "postage":
         return this.executePostageStage();
       case "persist":
         return this.executePersistStage();
       case "submit":
         return this.executeSubmitStage();
+      case "anchor":
+        return this.executeAnchorStage();
       case "reconcile":
         return this.executeReconcileStage();
+      default:
+        return null;
     }
+  }
+
+  async resume(): Promise<SendOutcome> {
+    return this.run();
   }
 
   async run(): Promise<SendOutcome> {
@@ -622,6 +729,12 @@ export class SendPipeline {
         delivered: this.delivered,
         state: this.finalState,
         timestamp: new Date().toISOString(),
+        proofReferences: {
+          relayMessageId: this.messageId,
+          anchorTxHash: this.anchorTxHash,
+          postagePaymentHash: this.paymentHash,
+          receiptId: this.receiptId,
+        },
       };
       this.lastOutcome = outcome;
       return outcome;

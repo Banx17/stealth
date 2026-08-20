@@ -38,6 +38,7 @@ import {
   type RecipientReadiness,
 } from "./composeValidation";
 import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
+import { PostageBalanceBadge } from "./PostageBalanceBadge";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
 import { SendProgress, type FailureInspectionDetails } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
