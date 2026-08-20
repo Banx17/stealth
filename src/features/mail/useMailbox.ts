@@ -11,7 +11,8 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
 import { sharedTypedApi as api, queryKeys, cacheInvalidations } from "@/lib/api";
 import type { MailboxDescriptor, MailboxQueueResponse } from "@/lib/api";
-import type { Email, MailLocation } from "@/components/mail/data";
+import type { Email } from "@/components/mail/data";
+import { descriptorFolder, threadIdFromDescriptor } from "./live-mailbox";
 
 export interface UseMailboxOptions {
   /** Authenticated actor (Stellar G-address) owning the mailbox. */
@@ -38,11 +39,9 @@ export function mailboxDescriptorToEmail(descriptor: MailboxDescriptor): Email {
         minute: "2-digit",
       });
 
-  const folder: MailLocation = descriptor.isTombstone
-    ? "trash"
-    : descriptor.status === "pending"
-      ? "pending"
-      : "inbox";
+  const folder = descriptorFolder(descriptor);
+  const unread =
+    typeof descriptor.unread === "boolean" ? descriptor.unread : descriptor.status === "pending";
 
   return {
     id: descriptor.messageId,
@@ -52,13 +51,14 @@ export function mailboxDescriptorToEmail(descriptor: MailboxDescriptor): Email {
     preview: descriptor.isTombstone ? "This message was deleted." : "Encrypted payload",
     body: "",
     time,
-    unread: descriptor.status === "pending",
-    starred: false,
+    unread,
+    starred: Boolean(descriptor.starred),
     folder,
     labels: descriptor.isTombstone ? ["Deleted"] : [],
     attachments: [],
     avatarColor: "#5b6470",
     verifiedSender: false,
+    threadId: threadIdFromDescriptor(descriptor),
   };
 }
 
@@ -78,6 +78,15 @@ export function useMailbox({ actor, enabled = true }: UseMailboxOptions) {
     queryFn: ({ signal }) => api.mailbox.listQueue({}, signal),
     enabled,
     select: mailboxQueueToEmails,
+  });
+}
+
+/** Raw live descriptors for services such as notification delivery that must retain event timestamps. */
+export function useMailboxDescriptors({ actor, enabled = true }: UseMailboxOptions) {
+  return useQuery({
+    queryKey: queryKeys.mailbox.queue(actor),
+    queryFn: ({ signal }) => api.mailbox.listQueue({}, signal),
+    enabled,
   });
 }
 

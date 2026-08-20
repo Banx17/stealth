@@ -28,7 +28,7 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { SenderJourney } from "@/features/sender-journey";
 import { useSenderConversion } from "@/features/sender-conversion";
 import { useSnooze } from "@/features/snooze";
-import { useSession, sessionActor } from "../useSession";
+import { useNotificationCenter } from "@/features/notifications";
 
 import { useMailActions, quoteBody } from "../useMailActions";
 import { useMailBulkActions } from "../useMailBulkActions";
@@ -36,6 +36,9 @@ import { useMailCommands } from "../useMailCommands";
 import { useMailNavigation } from "../useMailNavigation";
 import { useMailOverlays } from "../useMailOverlays";
 import { useMailSource } from "../useMailSource";
+import { useMailboxDescriptors } from "../useMailbox";
+import { useRequests } from "../useRequests";
+import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
 
@@ -48,10 +51,30 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const actor = sessionActor(session.data);
 
   const source = useMailSource({ isDemoMode });
-  const navigation = useMailNavigation(source.emails);
+  const mailboxDescriptors = useMailboxDescriptors({
+    actor: source.actor ?? "anonymous",
+    enabled: Boolean(source.actor) && !isDemoMode,
+  });
+  const requests = useRequests(source.actor, !isDemoMode);
+  const navigation = useMailNavigation(source.emails, source.folderCounts);
+  const threadRead = useThreadRead({
+    actor: source.actor,
+    selectedId: navigation.selectedId,
+    emails: source.emails,
+    enabled: !isDemoMode,
+    isDemoMode,
+  });
+  const readerEmail = threadRead.readerEmail ?? navigation.selected;
   const overlays = useMailOverlays();
   const { layout, setLayout, resetLayout, hydrated: layoutHydrated } = useLayoutPreferences();
   const { preferences, setPreferences, hydrated: prefHydrated } = usePreferences();
+  const notificationCenter = useNotificationCenter({
+    actor: source.actor,
+    mail: mailboxDescriptors.data?.items ?? [],
+    requests: requests.data ?? [],
+    preferences: preferences.notifications,
+    browserEnabled: preferences.desktopNotifications,
+  });
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
@@ -74,6 +97,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     updateEmail: source.updateEmail,
     insertEmail: source.insertEmail,
     trashEmail: source.trashEmail,
+    mutateMailbox: source.mutateMailbox,
     showToast,
     openCompose: overlays.openCompose,
     openCalendar: overlays.openCalendar,
@@ -93,6 +117,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     selectedEmails: navigation.selectedEmails,
     updateEmail: source.updateEmail,
     trashEmail: source.trashEmail,
+    mutateMailbox: source.mutateMailbox,
     onToast: showToast,
     onClearSelection: () => navigation.setSelectedIds([]),
   });
@@ -118,8 +143,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   useEffect(() => {
     if (!navigation.selectedId) return;
     const current = source.emails.find((email) => email.id === navigation.selectedId);
-    if (current?.unread) source.updateEmail(navigation.selectedId, { unread: false });
-  }, [navigation.selectedId, source.emails, source.updateEmail]);
+    if (current?.unread) void source.mutateMailbox(current, { unread: false });
+  }, [navigation.selectedId, source.emails, source.mutateMailbox]);
 
   const handleImportSave = useCallback(
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
@@ -245,6 +270,9 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
                 }}
                 onOpenLogin={() => overlays.setAuthModalOpen(true)}
+                notifications={notificationCenter.notifications}
+                onMarkNotificationRead={notificationCenter.markRead}
+                onMarkAllNotificationsRead={notificationCenter.markAllRead}
               />
               {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
                 <MailMailboxStatus
@@ -307,13 +335,26 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           snooze.open({ emailId: email.id, subject: email.subject })
                         }
                         onMove={actions.handleMove}
+                        hasMore={source.hasMore}
+                        onLoadMore={() => {
+                          void source.loadMore();
+                        }}
+                        isLoadingMore={source.isLoadingMore}
                       />
                     </ResizablePanel>
                     {!isMobile && (
                       <>
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
-                          <EmailView email={navigation.selected} actions={actions.emailActions} />
+                          <EmailView
+                            email={readerEmail}
+                            thread={threadRead.thread}
+                            threadView={threadRead.view}
+                            onRetryThread={() => {
+                              void threadRead.retry();
+                            }}
+                            actions={actions.emailActions}
+                          />
                         </ResizablePanel>
                         <ResizableHandle withHandle />
                         <ResizablePanel
@@ -325,7 +366,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           onExpand={() => setLayout({ rightPanelCollapsed: false })}
                         >
                           <RightPanel
-                            email={navigation.selected}
+                            email={readerEmail}
                             onAction={actions.handleContextAction}
                             onConvertSender={openSenderConversion}
                             onSnooze={(email) =>
@@ -364,7 +405,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
         <MailOverlayStack
           overlays={overlays}
           emails={source.emails}
-          selected={navigation.selected}
+          selected={readerEmail}
           folder={navigation.folder}
           preferences={preferences}
           layout={layout}

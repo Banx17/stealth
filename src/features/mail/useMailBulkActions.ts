@@ -12,6 +12,8 @@ import {
 import type { Email } from "@/components/mail/data";
 import type { TrashResult } from "./useMailSource";
 import type { FeedbackTone } from "@/features/design-system/feedback/use-feedback";
+import type { MailboxFlagsPatch } from "@/lib/api";
+import { flagsPatchFromEmail } from "./live-mailbox";
 
 function delay(ms: number) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
@@ -21,6 +23,7 @@ export function useMailBulkActions({
   selectedEmails,
   updateEmail,
   trashEmail,
+  mutateMailbox,
   onToast,
   onClearSelection,
   paceMs = 90,
@@ -28,6 +31,7 @@ export function useMailBulkActions({
   selectedEmails: Email[];
   updateEmail: (id: string, patch: Partial<Email>) => void;
   trashEmail: (email: Email) => Promise<TrashResult>;
+  mutateMailbox?: (email: Email, patch: MailboxFlagsPatch) => Promise<TrashResult>;
   onToast: (message: string, options?: { tone: FeedbackTone }) => void;
   onClearSelection: () => void;
   paceMs?: number;
@@ -79,7 +83,18 @@ export function useMailBulkActions({
             ];
           }
         } else {
-          updateEmail(email.id, result.patch);
+          const flags = flagsPatchFromEmail(result.patch);
+          if (flags && mutateMailbox) {
+            const live = await mutateMailbox(email, flags);
+            if (!live.ok) {
+              failures = [
+                ...failures,
+                { id: email.id, subject: email.subject, reason: live.reason },
+              ];
+            }
+          } else {
+            updateEmail(email.id, result.patch);
+          }
         }
 
         await delay(paceMs);
@@ -118,7 +133,7 @@ export function useMailBulkActions({
         onToast(`${getBulkActionProgressLabel(request, successCount)} complete`);
       }
     },
-    [onClearSelection, onToast, paceMs, selectedEmails, trashEmail, updateEmail],
+    [mutateMailbox, onClearSelection, onToast, paceMs, selectedEmails, trashEmail, updateEmail],
   );
 
   const handleBulkActionRequest = useCallback(

@@ -26,6 +26,7 @@ import type {
   SenderRule,
   Session,
   StoredEnvelope,
+  MailboxFlagsPatch,
   UnknownSenderDecision,
   UnknownSenderRequest,
   User,
@@ -476,6 +477,11 @@ export interface ApiRepository {
   updateEnvelopeStatus(
     messageId: string,
     status: import("./domain").MailboxItemStatus,
+  ): Promise<StoredEnvelope>;
+  patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: MailboxFlagsPatch,
   ): Promise<StoredEnvelope>;
 
   // ---------------------------------------------------------------------------
@@ -1143,6 +1149,15 @@ export class ValidatedApiRepository implements ApiRepository {
     status: import("./domain").MailboxItemStatus,
   ): Promise<StoredEnvelope> {
     const result = await this.inner.updateEnvelopeStatus(messageId, status);
+    return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const result = await this.inner.patchMailboxFlags(messageId, recipient, patch);
     return validateRecord<StoredEnvelope>("storedEnvelope", result);
   }
 
@@ -1857,6 +1872,14 @@ export class RetryableApiRepository implements ApiRepository {
     status: import("./domain").MailboxItemStatus,
   ): Promise<StoredEnvelope> {
     return this.inner.updateEnvelopeStatus(messageId, status);
+  }
+
+  patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    return this.inner.patchMailboxFlags(messageId, recipient, patch);
   }
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {

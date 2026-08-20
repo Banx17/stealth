@@ -153,12 +153,66 @@ export interface MailboxDescriptor {
   objectRef?: string;
   isTombstone: boolean;
   deletedAt?: string | null;
+  starred?: boolean;
+  unread?: boolean;
+  folder?: MailboxLiveFolder;
+}
+
+/** Recipient-only sealed envelope used by the live reader (BETA-055). */
+export interface MailboxSealedMessage extends MailboxDescriptor {
+  ciphertext: string;
+  payload: unknown;
+  signature?: unknown;
+}
+
+export type MailboxLiveFolder =
+  | "inbox"
+  | "pending"
+  | "requests"
+  | "archive"
+  | "spam"
+  | "trash"
+  | "sent"
+  | "drafts"
+  | "outbox";
+
+export type MailboxCountKey =
+  | "inbox"
+  | "requests"
+  | "sent"
+  | "drafts"
+  | "outbox"
+  | "archive"
+  | "spam"
+  | "trash"
+  | "unread"
+  | "starred";
+
+export type MailboxCounts = Record<MailboxCountKey, number>;
+
+export interface MailboxFlagsPatch {
+  unread?: boolean;
+  starred?: boolean;
+  folder?: "inbox" | "archive" | "spam" | "trash";
 }
 
 export interface MailboxQueueResponse {
   items: MailboxDescriptor[];
   nextCursor: string | null;
   hasMore: boolean;
+}
+
+export interface MailboxSyncResponse {
+  items: MailboxDescriptor[];
+  deletedIds: string[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  syncCursor: string;
+  counts: MailboxCounts;
+}
+
+export interface MailboxCountsResponse {
+  counts: MailboxCounts;
 }
 
 // ---------------------------------------------------------------------------

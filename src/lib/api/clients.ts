@@ -16,9 +16,13 @@ import type {
   DeliveryReceipt,
   KeyDirectoryRecord,
   MailboxDescriptor,
+  MailboxSealedMessage,
+  MailboxCountsResponse,
+  MailboxFlagsPatch,
   MailboxPolicy,
   MailboxPolicyWrite,
   MailboxQueueResponse,
+  MailboxSyncResponse,
   MailboxSettings,
   PolicyReconciliation,
   PostageQuote,
@@ -151,6 +155,12 @@ export interface MailboxQueueQuery {
   limit?: number;
 }
 
+export interface MailboxSyncQuery {
+  sinceCursor?: string;
+  cursor?: string;
+  limit?: number;
+}
+
 export class MailboxClient {
   constructor(private readonly client: ApiClient) {}
 
@@ -166,6 +176,33 @@ export class MailboxClient {
     });
   }
 
+  sync(query: MailboxSyncQuery = {}, signal?: AbortSignal): Promise<MailboxSyncResponse> {
+    return this.client.get<MailboxSyncResponse>("/mailbox/sync", {
+      query: {
+        sinceCursor: query.sinceCursor,
+        cursor: query.cursor,
+        limit: query.limit,
+      },
+      signal,
+    });
+  }
+
+  getCounts(signal?: AbortSignal): Promise<MailboxCountsResponse> {
+    return this.client.get<MailboxCountsResponse>("/mailbox/counts", { signal });
+  }
+
+  patchFlags(
+    messageId: string,
+    patch: MailboxFlagsPatch,
+    signal?: AbortSignal,
+  ): Promise<MailboxDescriptor> {
+    return this.client.patch<MailboxDescriptor>(
+      `/mailbox/${encodeURIComponent(messageId)}`,
+      patch,
+      { signal },
+    );
+  }
+
   tombstone(
     messageId: string,
     signal?: AbortSignal,
@@ -173,8 +210,8 @@ export class MailboxClient {
     return this.client.delete(`/mailbox/${encodeURIComponent(messageId)}`, { signal });
   }
 
-  getMessage(messageId: string, signal?: AbortSignal): Promise<MailboxDescriptor> {
-    return this.client.get<MailboxDescriptor>(`/mailbox/${encodeURIComponent(messageId)}`, {
+  getMessage(messageId: string, signal?: AbortSignal): Promise<MailboxSealedMessage> {
+    return this.client.get<MailboxSealedMessage>(`/mailbox/${encodeURIComponent(messageId)}`, {
       signal,
     });
   }

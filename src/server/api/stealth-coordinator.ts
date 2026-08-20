@@ -1024,6 +1024,35 @@ export class StealthCoordinator extends DurableObjectBase {
     });
   }
 
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const { applyMailboxFlags } = await import("./mailbox-live");
+    return this.runExclusive(`envelope:${messageId}`, async () => {
+      const existing = (await this.ctx.storage.get(`envelope:${messageId}`)) as
+        | StoredEnvelope
+        | undefined;
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot update an envelope belonging to another recipient",
+        );
+      }
+      if (existing.deletedAt && patch.folder && patch.folder !== "trash") {
+        throw new ApiError(409, "conflict", "Cannot move a deleted message");
+      }
+      const updated = applyMailboxFlags(existing, patch, new Date().toISOString());
+      await this.ctx.storage.put(`envelope:${messageId}`, updated);
+      return updated;
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------

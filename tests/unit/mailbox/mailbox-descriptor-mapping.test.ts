@@ -27,12 +27,21 @@ describe("mailboxDescriptorToEmail (BETA-051)", () => {
     expect(email.folder).toBe("pending");
     expect(email.unread).toBe(true);
     expect(email.subject).toBe("Encrypted message");
+    expect(email.threadId).toContain("thread:");
   });
 
-  it("maps a delivered descriptor to the inbox as read", () => {
-    const email = mailboxDescriptorToEmail(descriptor({ status: "delivered" }));
-    expect(email.folder).toBe("inbox");
-    expect(email.unread).toBe(false);
+  it("maps server starred, unread, and folder flags when present", () => {
+    const email = mailboxDescriptorToEmail(
+      descriptor({
+        status: "delivered",
+        starred: true,
+        unread: true,
+        folder: "archive",
+      }),
+    );
+    expect(email.folder).toBe("archive");
+    expect(email.starred).toBe(true);
+    expect(email.unread).toBe(true);
   });
 
   it("maps a tombstone to trash with a deleted label", () => {
@@ -48,6 +57,7 @@ describe("mailboxDescriptorToEmail (BETA-051)", () => {
       descriptor({ protectedHeaders: { subject: "Quarterly report", alg: "dir" } }),
     );
     expect(email.subject).toBe("Quarterly report");
+    expect(email.threadId).toContain("quarterly report");
   });
 
   it("maps an entire queue page to the display email list", () => {

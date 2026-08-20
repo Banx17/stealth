@@ -20,6 +20,8 @@ import {
 } from "@/features/snooze";
 import type { TrashResult } from "./useMailSource";
 import type { FeedbackTone } from "@/features/design-system/feedback/use-feedback";
+import type { MailboxFlagsPatch } from "@/lib/api";
+import { flagsPatchFromEmail } from "./live-mailbox";
 
 import { sharedTypedApi as api } from "@/lib/api";
 
@@ -35,6 +37,7 @@ export function useMailActions(input: {
   updateEmail: (id: string, patch: Partial<Email>) => void;
   insertEmail: (email: Email) => void;
   trashEmail: (email: Email) => Promise<TrashResult>;
+  mutateMailbox?: (email: Email, patch: MailboxFlagsPatch) => Promise<TrashResult>;
   showToast: (message: string, options?: { tone: FeedbackTone }) => void;
   openCompose: (initial?: { to?: string; subject?: string; body?: string }) => void;
   openCalendar: (eventId?: string | null) => void;
@@ -54,6 +57,7 @@ export function useMailActions(input: {
     updateEmail,
     insertEmail,
     trashEmail,
+    mutateMailbox,
     showToast,
     openCompose,
     openCalendar,
@@ -130,20 +134,43 @@ export function useMailActions(input: {
     [handleSnooze],
   );
 
+  const commitFlags = useCallback(
+    async (email: Email, patch: MailboxFlagsPatch, successMessage: string) => {
+      if (!mutateMailbox) {
+        updateEmail(email.id, {
+          ...(patch.unread !== undefined ? { unread: patch.unread } : {}),
+          ...(patch.starred !== undefined ? { starred: patch.starred } : {}),
+          ...(patch.folder ? { folder: patch.folder } : {}),
+        });
+        showToast(successMessage);
+        return;
+      }
+      const result = await mutateMailbox(email, patch);
+      if (!result.ok) {
+        showToast(result.reason, { tone: "danger" });
+        return;
+      }
+      showToast(successMessage);
+    },
+    [mutateMailbox, showToast, updateEmail],
+  );
+
   const handleArchive = useCallback(
     (email: Email) => {
-      updateEmail(email.id, { folder: "archive" });
-      showToast(`"${email.subject}" archived`);
+      void commitFlags(email, { folder: "archive" }, `"${email.subject}" archived`);
     },
-    [showToast, updateEmail],
+    [commitFlags],
   );
 
   const handleStar = useCallback(
     (email: Email) => {
-      updateEmail(email.id, { starred: !email.starred });
-      showToast(email.starred ? `Unstarred "${email.subject}"` : `Starred "${email.subject}"`);
+      void commitFlags(
+        email,
+        { starred: !email.starred },
+        email.starred ? `Unstarred "${email.subject}"` : `Starred "${email.subject}"`,
+      );
     },
-    [showToast, updateEmail],
+    [commitFlags],
   );
 
   const handleMove = useCallback(
@@ -158,7 +185,16 @@ export function useMailActions(input: {
           else showToast(result.reason, { tone: "danger" });
           continue;
         }
-        updateEmail(id, { folder: target as MailLocation });
+        const flags = flagsPatchFromEmail({ folder: target as MailLocation });
+        if (flags && mutateMailbox) {
+          const result = await mutateMailbox(email, flags);
+          if (!result.ok) {
+            showToast(result.reason, { tone: "danger" });
+            continue;
+          }
+        } else {
+          updateEmail(id, { folder: target as MailLocation });
+        }
         moved += 1;
       }
       if (moved > 0) {
@@ -167,7 +203,7 @@ export function useMailActions(input: {
         );
       }
     },
-    [emails, showToast, trashEmail, updateEmail],
+    [emails, mutateMailbox, showToast, trashEmail, updateEmail],
   );
 
   const handleTrash = useCallback(
@@ -261,15 +297,13 @@ export function useMailActions(input: {
         });
       },
       onArchive: (email: Email) => {
-        updateEmail(email.id, { folder: "archive" });
-        showToast(`Archived "${email.subject}"`);
+        void handleArchive(email);
       },
       onTrash: (email: Email) => {
         void handleTrash(email);
       },
       onToggleStar: (email: Email) => {
-        updateEmail(email.id, { starred: !email.starred });
-        showToast(email.starred ? "Removed star" : "Starred");
+        void handleStar(email);
       },
       onConvertSender: openSenderConversion,
       onSnooze: openSnoozeDialog,
@@ -291,6 +325,8 @@ export function useMailActions(input: {
     [
       addMailEvent,
       calendarEvents,
+      handleArchive,
+      handleStar,
       handleTrash,
       handleUnsnooze,
       input.updateCalendarReminder,
