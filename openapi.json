@@ -245,6 +245,7 @@
               "duplicate_postage",
               "invalid_quote",
               "request_in_progress",
+              "chain_error",
               "recent_auth_required"
             ],
             "example": "invalid_state_transition"
@@ -980,6 +981,12 @@
             "message": "An equivalent request is already in progress",
             "retryable": true,
             "description": "A matching operation currently holds the idempotency lease."
+          },
+          "chain_error": {
+            "status": 502,
+            "message": "The on-chain operation could not be confirmed",
+            "retryable": true,
+            "description": "The postage escrow operation failed to reach on-chain confirmation; the caller may retry with the same idempotency key."
           },
           "recent_auth_required": {
             "status": 403,
@@ -2843,6 +2850,162 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "transitionPostage",
+        "summary": "Transition postage lifecycle state (settle, refund, dispute, expire, reclaim)",
+        "x-max-body-bytes": 8192,
+        "x-stability": "beta",
+        "security": [
+          {
+            "StellarSignedRequest": []
+          }
+        ],
+        "requestBody": {
+          "description": "The postage lifecycle operation to perform.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["operation"],
+                "additionalProperties": false,
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": ["settle", "refund", "dispute", "expire", "reclaim"]
+                  }
+                }
+              },
+              "examples": {
+                "settle": {
+                  "summary": "Settle the escrow to the recipient",
+                  "value": {
+                    "operation": "settle"
+                  }
+                },
+                "refund": {
+                  "summary": "Refund the escrow to the sender",
+                  "value": {
+                    "operation": "refund"
+                  }
+                },
+                "dispute": {
+                  "summary": "Dispute a pending escrow within the dispute window",
+                  "value": {
+                    "operation": "dispute"
+                  }
+                },
+                "expire": {
+                  "summary": "Expire a pending escrow",
+                  "value": {
+                    "operation": "expire"
+                  }
+                },
+                "reclaim": {
+                  "summary": "Reclaim an escrow after expiry",
+                  "value": {
+                    "operation": "reclaim"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway — on-chain escrow operation could not be confirmed",
             "content": {
               "application/json": {
                 "schema": {

@@ -35,6 +35,7 @@ import type {
   ManagedWalletRecord,
   FundingOperation,
   Wallet,
+  DraftRecord,
   OnboardingDraftRecord,
   AccountDeletionRequest,
   AccountExport,
@@ -43,6 +44,7 @@ import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   ApiRepository,
   ContactQueryOptions,
+  DraftQueryOptions,
   ConsumeVerificationTokenResult,
   CreateManagedWalletResult,
   InsertEnvelopeResult,
@@ -50,6 +52,7 @@ import type {
   PostageTransitionResult,
   RecordVerificationAttemptResult,
   UpdateContactResult,
+  UpdateDraftResult,
   UpdateProvisioningResult,
   UpdateRecoveryCodeSetResult,
   UpdateUserResult,
@@ -87,6 +90,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly senderRequestLocks = new Map<string, Promise<void>>();
   // Issue #1973: owner-scoped contact store keyed by `${owner}:${contactId}`.
   private readonly contacts = new Map<string, Contact>();
+  // Issue #1965: owner-scoped draft store keyed by `${owner}:${draftId}`.
+  private readonly drafts = new Map<string, DraftRecord>();
   // Issue #1952: durable jobs, DLQ, and receipt checkpoints
   private readonly jobs = new Map<string, DurableJob>();
   private readonly jobsByIdempotencyKey = new Map<string, string>();
@@ -1422,6 +1427,70 @@ export class MemoryApiRepository implements ApiRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+
+  async listDrafts(
+    owner: string,
+    options: DraftQueryOptions = {},
+  ): Promise<import("./repository").Page<DraftRecord>> {
+    const normOwner = owner.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+
+    const matched: DraftRecord[] = [];
+    for (const draft of this.drafts.values()) {
+      if (draft.owner.toUpperCase().trim() === normOwner) {
+        matched.push(structuredClone(draft));
+      }
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.listDrafts;
+    return paginate(matched, spec, { limit, after: options.after });
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const draft = this.drafts.get(this.draftKey(owner, draftId));
+    return draft ? structuredClone(draft) : null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const key = this.draftKey(draft.owner, draft.draftId);
+    if (this.drafts.has(key)) {
+      throw new ApiError(409, "conflict", `A draft already exists for ${draft.draftId}`);
+    }
+    const stored = structuredClone(draft);
+    this.drafts.set(key, stored);
+    return structuredClone(stored);
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const key = this.draftKey(draft.owner, draft.draftId);
+    const existing = this.drafts.get(key);
+    if (!existing) {
+      return { updated: false, current: null };
+    }
+    if (existing.version !== expectedVersion) {
+      return { updated: false, current: structuredClone(existing) };
+    }
+    const updated = { ...draft, version: expectedVersion + 1 };
+    this.drafts.set(key, updated);
+    return { updated: true, draft: structuredClone(updated) };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    const key = this.draftKey(owner, draftId);
+    if (!this.drafts.has(key)) {
+      throw new ApiError(404, "not_found", `No draft found for ${draftId}`);
+    }
+    this.drafts.delete(key);
+  }
+
+  private draftKey(owner: string, draftId: string): string {
+    return `${owner.toUpperCase().trim()}:${draftId}`;
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
 
@@ -1579,6 +1648,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.managedWallets.clear();
     this.fundingOperations.clear();
     this.contacts.clear();
+    this.drafts.clear();
     this.jobs.clear();
     this.jobsByIdempotencyKey.clear();
     this.deadLetters.clear();

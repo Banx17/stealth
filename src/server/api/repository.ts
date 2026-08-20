@@ -36,12 +36,29 @@ import type {
   ManagedWalletRecord,
   FundingOperation,
   Wallet,
+  DraftRecord,
   OnboardingDraftRecord,
   AccountDeletionRequest,
   AccountExport,
 } from "./domain";
 import type { ZodSchema } from "zod";
 import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
+
+/**
+ * Outcome of a compare-and-swap draft write (Issue #1965 BETA-058).
+ *
+ * - `updated: true`  : the draft was persisted at `expectedVersion + 1`.
+ * - `updated: false` : the draft was updated concurrently (or not found);
+ *   `current` reflects the authoritative state for reconciliation.
+ */
+export type UpdateDraftResult =
+  | { updated: true; draft: DraftRecord }
+  | { updated: false; current: DraftRecord | null };
+
+export interface DraftQueryOptions {
+  limit?: number;
+  after?: string;
+}
 
 /**
  * Outcome of an insert-only encrypted envelope persistence operation.
@@ -544,6 +561,15 @@ export interface ApiRepository {
   createContact(contact: Contact): Promise<Contact>;
   updateContact(contact: Contact, expectedVersion: number): Promise<UpdateContactResult>;
   deleteContact(owner: string, contactId: string): Promise<void>;
+
+  // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+  listDrafts(owner: string, options?: DraftQueryOptions): Promise<Page<DraftRecord>>;
+  getDraft(owner: string, draftId: string): Promise<DraftRecord | null>;
+  createDraft(draft: DraftRecord): Promise<DraftRecord>;
+  updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult>;
+  deleteDraft(owner: string, draftId: string): Promise<void>;
 
   // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
@@ -1354,6 +1380,45 @@ export class ValidatedApiRepository implements ApiRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+  async listDrafts(owner: string, options?: DraftQueryOptions): Promise<Page<DraftRecord>> {
+    const page = await this.inner.listDrafts(owner, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<DraftRecord>("draftRecord", item)),
+    };
+  }
+
+  async getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    const raw = await this.inner.getDraft(owner, draftId);
+    return raw ? validateRecord<DraftRecord>("draftRecord", raw) : null;
+  }
+
+  async createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    const result = await this.inner.createDraft(versionRecord("draftRecord", draft));
+    return validateRecord<DraftRecord>("draftRecord", result);
+  }
+
+  async updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    const result = await this.inner.updateDraft(
+      versionRecord("draftRecord", draft),
+      expectedVersion,
+    );
+    if (result.updated) {
+      return { updated: true, draft: validateRecord<DraftRecord>("draftRecord", result.draft) };
+    }
+    return {
+      updated: false,
+      current: result.current ? validateRecord<DraftRecord>("draftRecord", result.current) : null,
+    };
+  }
+
+  async deleteDraft(owner: string, draftId: string): Promise<void> {
+    return this.inner.deleteDraft(owner, draftId);
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
   enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
@@ -1487,6 +1552,10 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "listFundingOperations",
   "listContacts",
   "getContact",
+  "listDrafts",
+  "getDraft",
+  "updateDraft",
+  "deleteDraft",
   "getJob",
   "getJobByIdempotencyKey",
   "listJobs",
@@ -2073,6 +2142,29 @@ export class RetryableApiRepository implements ApiRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Issue #1965 (BETA-058) — Live drafts CRUD
+  // ---------------------------------------------------------------------------
+  listDrafts(owner: string, options?: DraftQueryOptions): Promise<Page<DraftRecord>> {
+    return this.withRetry("listDrafts", () => this.inner.listDrafts(owner, options));
+  }
+
+  getDraft(owner: string, draftId: string): Promise<DraftRecord | null> {
+    return this.withRetry("getDraft", () => this.inner.getDraft(owner, draftId));
+  }
+
+  createDraft(draft: DraftRecord): Promise<DraftRecord> {
+    return this.inner.createDraft(draft);
+  }
+
+  updateDraft(draft: DraftRecord, expectedVersion: number): Promise<UpdateDraftResult> {
+    return this.withRetry("updateDraft", () => this.inner.updateDraft(draft, expectedVersion));
+  }
+
+  deleteDraft(owner: string, draftId: string): Promise<void> {
+    return this.withRetry("deleteDraft", () => this.inner.deleteDraft(owner, draftId));
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue #1952 (BETA-045) — Durable jobs, retries, DLQ, and receipt indexing
   // ---------------------------------------------------------------------------
   enqueueJob(job: DurableJob): Promise<{ enqueued: boolean; job: DurableJob }> {
@@ -2395,6 +2487,12 @@ export const PAGINATED_QUERY_ORDERINGS = {
    * optional search query before passing the collection to `paginate`.
    */
   listContacts: declareOrdering<Contact>([{ field: "createdAt", direction: "desc" }], "contactId"),
+  /**
+   * Issue #1965 (BETA-058): Owner-scoped draft listing.
+   * Ordered by updated time descending (most recently edited first); draftId is the
+   * unique tie-breaker so the walk is stable.
+   */
+  listDrafts: declareOrdering<DraftRecord>([{ field: "updatedAt", direction: "desc" }], "draftId"),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

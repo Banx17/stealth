@@ -38,6 +38,12 @@ export const postageStatusSchema = z.enum([
   "refunded",
   "reclaimed",
 ]);
+export const postageChainStatusSchema = z.enum([
+  "not_submitted",
+  "submitted",
+  "confirmed",
+  "failed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
@@ -141,6 +147,16 @@ export const postageSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   status: postageStatusSchema,
+  // BETA-042: chain-sync bookkeeping fields. Kept optional so pre-existing
+  // records and test fixtures remain assignable; the service writes all of
+  // them explicitly when it touches the chain.
+  chainStatus: postageChainStatusSchema.optional(),
+  txHash: z.string().nullable().optional(),
+  ledger: z.number().int().nonnegative().nullable().optional(),
+  retryCount: z.number().int().nonnegative().optional(),
+  lastError: z.string().max(500).nullable().optional(),
+  submittedAt: z.string().datetime().nullable().optional(),
+  confirmedAt: z.string().datetime().nullable().optional(),
 });
 
 export const DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
@@ -212,6 +228,7 @@ export type PolicyWriteIntent = z.infer<typeof policyWriteIntentSchema>;
 export type PolicyWriteStatus = z.infer<typeof policyWriteStatusSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
+export type PostageChainStatus = z.infer<typeof postageChainStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 export type LifecycleAnchor = z.infer<typeof lifecycleAnchorSchema>;
@@ -1448,3 +1465,146 @@ export const sendOperationStateSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type SendOperationState = z.infer<typeof sendOperationStateSchema>;
+
+// ---------------------------------------------------------------------------
+// Issue #1965 (BETA-058) — Durable Drafts, Scheduled Autosave & Conflict Handling
+// ---------------------------------------------------------------------------
+
+export const draftAttachmentDescriptorSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  contentType: z.string().trim().default("application/octet-stream"),
+  sizeBytes: z.number().int().nonnegative(),
+  contentHash: z.string().trim().optional(),
+});
+export type DraftAttachmentDescriptor = z.infer<typeof draftAttachmentDescriptorSchema>;
+
+export const draftContentSchema = z.object({
+  to: z.array(z.string().trim()).default([]),
+  cc: z.array(z.string().trim()).default([]),
+  bcc: z.array(z.string().trim()).default([]),
+  subject: z.string().default(""),
+  body: z.string().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).default([]),
+});
+export type DraftContent = z.infer<typeof draftContentSchema>;
+
+/**
+ * Encrypted-at-rest persistence record for drafts.
+ * Plaintext draft content (subject, body, recipients, attachments) is
+ * sealed using AES-256-GCM with AAD bound to the owner and draftId.
+ */
+export const draftRecordSchema = z.object({
+  draftId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  encryptedPayload: z.string().min(1),
+  nonce: z.string().min(1),
+  tag: z.string().min(1),
+  algorithm: z.literal("AES-256-GCM").default("AES-256-GCM"),
+  version: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type DraftRecord = z.infer<typeof draftRecordSchema>;
+
+/**
+ * Decrypted draft representation exposed to authenticated callers.
+ */
+export const draftSchema = z.object({
+  draftId: z.string().trim().min(1),
+  owner: stellarAddressSchema,
+  to: z.array(z.string().trim()).default([]),
+  cc: z.array(z.string().trim()).default([]),
+  bcc: z.array(z.string().trim()).default([]),
+  subject: z.string().default(""),
+  body: z.string().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).default([]),
+  version: z.number().int().positive(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Draft = z.infer<typeof draftSchema>;
+
+export const draftCreateSchema = z.object({
+  draftId: z.string().trim().min(1).optional(),
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional()
+    .default([]),
+  subject: z.string().optional().default(""),
+  body: z.string().optional().default(""),
+  attachments: z.array(draftAttachmentDescriptorSchema).optional().default([]),
+});
+export type DraftCreateInput = z.input<typeof draftCreateSchema>;
+
+export const draftUpdateSchema = z.object({
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) =>
+      Array.isArray(val)
+        ? val.map((s) => s.trim()).filter(Boolean)
+        : val
+            .split(/[;,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    )
+    .optional(),
+  subject: z.string().optional(),
+  body: z.string().optional(),
+  attachments: z.array(draftAttachmentDescriptorSchema).optional(),
+  expectedVersion: z.number().int().positive(),
+});
+export type DraftUpdateInput = z.input<typeof draftUpdateSchema>;
