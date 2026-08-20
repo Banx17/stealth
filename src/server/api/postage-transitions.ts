@@ -66,6 +66,11 @@ export const ALLOWED_POSTAGE_TRANSITIONS: Record<PostageStatus, readonly Postage
   refunded: [],
   expired: ["disputed", "settled", "refunded", "reclaimed"],
   disputed: ["settled", "refunded", "reclaimed"],
+  pending: ["settled", "refunded", "expired", "disputed"],
+  settled: ["refunded"],
+  refunded: [],
+  expired: ["reclaimed", "disputed"],
+  disputed: ["settled", "refunded"],
   reclaimed: [],
 };
 
