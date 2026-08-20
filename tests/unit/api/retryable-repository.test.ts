@@ -44,6 +44,21 @@ function sampleRecoveryCodeSet(
 }
 
 class FailingRepository implements ApiRepository {
+  async getAccountDeletionRequest() {
+    return null;
+  }
+
+  async setAccountDeletionRequest(request: any) {
+    return request;
+  }
+
+  async exportAccount(): Promise<any> {
+    throw new Error("not implemented in retry test double");
+  }
+
+  async deleteAccountData() {
+    return { deleted: [], retained: [] };
+  }
   public readonly inner = new MemoryApiRepository();
   private readonly failCounts = new Map<string, number>();
   private readonly callCounts = new Map<string, number>();

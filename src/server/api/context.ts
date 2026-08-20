@@ -27,6 +27,7 @@ import {
   fundingOperationSchema,
   recoveryCodeSetSchema,
   onboardingDraftSchema,
+  accountDeletionRequestSchema,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -254,6 +255,7 @@ registerRecordSchema("recoveryCodeSet", 1, recoveryCodeSetSchema);
 // Issue #1920 (BETA-013): durable server-backed onboarding drafts are versioned
 // and validated at the adapter boundary like every other durable record.
 registerRecordSchema("onboardingDraft", 1, onboardingDraftSchema);
+registerRecordSchema("accountDeletionRequest", 1, accountDeletionRequestSchema);
 
 /**
  * Issue #1461: Verified API Principal model representing authenticated request identity.

@@ -46,6 +46,8 @@ import type {
   FundingOperation,
   Wallet,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
 import { ApiError } from "./errors";
 
@@ -238,6 +240,22 @@ export class HybridApiRepository implements ApiRepository {
 
   async setCredential(credential: Credential): Promise<Credential> {
     return this.getStub().setCredential(credential);
+  }
+
+  getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return this.getStub().getAccountDeletionRequest(userId);
+  }
+
+  setAccountDeletionRequest(request: AccountDeletionRequest): Promise<AccountDeletionRequest> {
+    return this.getStub().setAccountDeletionRequest(request);
+  }
+
+  exportAccount(userId: string, address: string, now?: Date): Promise<AccountExport> {
+    return this.getStub().exportAccount(userId, address, now);
+  }
+
+  deleteAccountData(userId: string, address: string, now?: Date) {
+    return this.getStub().deleteAccountData(userId, address, now);
   }
 
   // BETA-014: Provisioning state is coordinated by the DO (single authority);

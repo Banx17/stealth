@@ -36,7 +36,10 @@ import type {
   FundingOperation,
   Wallet,
   OnboardingDraftRecord,
+  AccountDeletionRequest,
+  AccountExport,
 } from "./domain";
+import { toPublicProfile, toPublicUser } from "./domain";
 import type {
   ApiRepository,
   ContactQueryOptions,
@@ -107,6 +110,7 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly wallets = new Map<string, Wallet>();
   // BETA-013: Durable server-backed onboarding drafts (one record per user)
   private readonly onboardingDrafts = new Map<string, OnboardingDraftRecord>();
+  private readonly accountDeletionRequests = new Map<string, AccountDeletionRequest>();
   private readonly keyLocks = new Map<string, Promise<void>>();
 
   private async withKeyLock<T>(lockKey: string, action: () => Promise<T>): Promise<T> {
@@ -494,6 +498,116 @@ export class MemoryApiRepository implements ApiRepository {
 
   async getCredential(userId: string): Promise<Credential | null> {
     return structuredClone(this.credentials.get(userId) ?? null);
+  }
+
+  async getAccountDeletionRequest(userId: string): Promise<AccountDeletionRequest | null> {
+    return structuredClone(this.accountDeletionRequests.get(userId) ?? null);
+  }
+
+  async setAccountDeletionRequest(
+    request: AccountDeletionRequest,
+  ): Promise<AccountDeletionRequest> {
+    this.accountDeletionRequests.set(request.userId, structuredClone(request));
+    return structuredClone(request);
+  }
+
+  async exportAccount(userId: string, address: string, now = new Date()): Promise<AccountExport> {
+    const user = this.usersById.get(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const mailbox = [...this.envelopes.values()]
+      .filter((envelope) => envelope.recipientId.toUpperCase() === address.toUpperCase())
+      .map((envelope) => structuredClone(envelope));
+    const contacts = [...this.contacts.values()]
+      .filter((contact) => contact.owner.toUpperCase() === address.toUpperCase())
+      .map((contact) => structuredClone(contact));
+    const senderRequests = [...this.senderRequests.values()]
+      .filter((request) => request.recipient.toUpperCase() === address.toUpperCase())
+      .map((request) => structuredClone(request));
+    const publicKeys = [...this.publishedKeys.values()]
+      .filter((key) => key.owner.toUpperCase() === address.toUpperCase())
+      .map((key) => structuredClone(key));
+
+    return {
+      format: "stealth-account-export-v1",
+      generatedAt: now.toISOString(),
+      account: toPublicUser(user),
+      profile: this.profiles.has(userId) ? toPublicProfile(this.profiles.get(userId)!) : null,
+      contacts,
+      mailbox,
+      senderRequests,
+      publicKeys,
+      ciphertextReferences: mailbox.map((envelope) => ({
+        messageId: envelope.messageId,
+        objectKey: envelope.objectRef ?? null,
+        contentCommitment: envelope.contentCommitment ?? null,
+        deletedAt: envelope.deletedAt ?? null,
+      })),
+      onChainLimitations: [
+        "Stellar testnet transactions, account history, contract events, and published lifecycle commitments are immutable and are not erased.",
+        "This export contains ciphertext and references only; Stealth never exports plaintext message content or credentials.",
+      ],
+    };
+  }
+
+  async deleteAccountData(userId: string, address: string, now = new Date()) {
+    const user = this.usersById.get(userId);
+    if (!user || user.address.toUpperCase() !== address.toUpperCase()) {
+      throw new ApiError(404, "not_found", "Account data not found");
+    }
+    const normalizedAddress = address.toUpperCase();
+    await this.deleteUserSessions(userId);
+    this.profiles.delete(userId);
+    this.credentials.delete(userId);
+    this.onboardingDrafts.delete(userId);
+    this.provisioning.delete(userId);
+    this.wallets.delete(userId);
+    this.managedWallets.delete(userId);
+    this.externalWallets.delete(normalizedAddress);
+    this.keyDirectories.delete(normalizedAddress);
+    for (const key of [...this.publishedKeys.keys()]) {
+      if (key.startsWith(`${normalizedAddress}:`)) this.publishedKeys.delete(key);
+    }
+    for (const [contactKey, contact] of this.contacts.entries()) {
+      if (contact.owner.toUpperCase() === normalizedAddress) this.contacts.delete(contactKey);
+    }
+    for (const envelope of this.envelopes.values()) {
+      if (envelope.recipientId.toUpperCase() === normalizedAddress) {
+        envelope.deletedAt = now.toISOString();
+        this.envelopes.set(envelope.messageId, envelope);
+      }
+    }
+
+    this.usersByEmail.delete(user.email.toLowerCase());
+    this.usersByUsername.delete(user.username.toLowerCase());
+    const tombstoneUser = {
+      ...user,
+      email: `deleted-${userId}@invalid.example`,
+      username: `deleted-${userId}`.slice(0, 30),
+      status: "deactivated" as const,
+      updatedAt: now.toISOString(),
+      version: user.version + 1,
+    };
+    this.usersById.set(userId, tombstoneUser);
+    this.usersByEmail.set(tombstoneUser.email, userId);
+    this.usersByAddress.set(normalizedAddress, userId);
+
+    return {
+      deleted: [
+        "profile",
+        "credential",
+        "sessions",
+        "contacts",
+        "mailbox ciphertext access",
+        "published keys",
+      ],
+      retained: [
+        "testnet account and transaction history",
+        "on-chain contract events and lifecycle commitments",
+        "postage and receipt references required for chain reconciliation",
+      ],
+    };
   }
 
   async setCredential(credential: Credential): Promise<Credential> {
