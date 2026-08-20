@@ -27,6 +27,7 @@ describe("mailboxDescriptorToEmail (BETA-051)", () => {
     expect(email.folder).toBe("pending");
     expect(email.unread).toBe(true);
     expect(email.subject).toBe("Encrypted message");
+    expect(email.threadId).toContain("thread:");
   });
 
   it("maps server starred, unread, and folder flags when present", () => {
@@ -56,6 +57,7 @@ describe("mailboxDescriptorToEmail (BETA-051)", () => {
       descriptor({ protectedHeaders: { subject: "Quarterly report", alg: "dir" } }),
     );
     expect(email.subject).toBe("Quarterly report");
+    expect(email.threadId).toContain("quarterly report");
   });
 
   it("maps an entire queue page to the display email list", () => {

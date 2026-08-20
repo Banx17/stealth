@@ -35,9 +35,7 @@ import { useMailCommands } from "../useMailCommands";
 import { useMailNavigation } from "../useMailNavigation";
 import { useMailOverlays } from "../useMailOverlays";
 import { useMailSource } from "../useMailSource";
-import { useMailboxDescriptors } from "../useMailbox";
-import { useRequests } from "../useRequests";
-import { useNotificationCenter } from "@/features/notifications";
+import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
 
@@ -53,6 +51,14 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   });
   const requests = useRequests(source.actor, !isDemoMode);
   const navigation = useMailNavigation(source.emails, source.folderCounts);
+  const threadRead = useThreadRead({
+    actor: source.actor,
+    selectedId: navigation.selectedId,
+    emails: source.emails,
+    enabled: !isDemoMode,
+    isDemoMode,
+  });
+  const readerEmail = threadRead.readerEmail ?? navigation.selected;
   const overlays = useMailOverlays();
   const { layout, setLayout, resetLayout, hydrated: layoutHydrated } = useLayoutPreferences();
   const { preferences, setPreferences, hydrated: prefHydrated } = usePreferences();
@@ -331,7 +337,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                       <>
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
-                          <EmailView email={navigation.selected} actions={actions.emailActions} />
+                          <EmailView
+                            email={readerEmail}
+                            thread={threadRead.thread}
+                            threadView={threadRead.view}
+                            onRetryThread={() => {
+                              void threadRead.retry();
+                            }}
+                            actions={actions.emailActions}
+                          />
                         </ResizablePanel>
                         <ResizableHandle withHandle />
                         <ResizablePanel
@@ -343,7 +357,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           onExpand={() => setLayout({ rightPanelCollapsed: false })}
                         >
                           <RightPanel
-                            email={navigation.selected}
+                            email={readerEmail}
                             onAction={actions.handleContextAction}
                             onConvertSender={openSenderConversion}
                             onSnooze={(email) =>
@@ -382,7 +396,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
         <MailOverlayStack
           overlays={overlays}
           emails={source.emails}
-          selected={navigation.selected}
+          selected={readerEmail}
           folder={navigation.folder}
           preferences={preferences}
           layout={layout}

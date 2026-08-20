@@ -122,6 +122,66 @@ export function applyMailboxFlags(
   };
 }
 
+export function readSealedMailboxParts(envelope: StoredEnvelope): {
+  payload: unknown;
+  ciphertext: string;
+  signature: unknown;
+} {
+  const metadata =
+    envelope.metadata && typeof envelope.metadata === "object"
+      ? (envelope.metadata as Record<string, unknown>)
+      : {};
+  const sealedRaw = metadata.sealed;
+  if (sealedRaw && typeof sealedRaw === "object") {
+    const sealed = sealedRaw as Record<string, unknown>;
+    if (sealed.payload !== undefined && typeof sealed.ciphertext === "string") {
+      return {
+        payload: sealed.payload,
+        ciphertext: sealed.ciphertext,
+        signature: sealed.signature ?? null,
+      };
+    }
+  }
+
+  const headers = (envelope.protectedHeaders ?? {}) as Record<string, unknown>;
+  const payload =
+    metadata.payload !== undefined
+      ? metadata.payload
+      : {
+          version: typeof headers.version === "string" ? headers.version : "v1",
+          sender: envelope.senderId,
+          recipient: envelope.recipientId,
+          timestamp: envelope.createdAt,
+          encryption_metadata: {
+            algorithm: "AES-256-GCM",
+            nonce: headers.nonce,
+            mac: headers.mac,
+            ephemeral_public_key: headers.ephemeral_public_key,
+            recipient_key_id: headers.kid,
+            sender_key_id: headers.sender_key_id,
+          },
+          content_commitment: metadata.contentCommitment ?? envelope.contentCommitment,
+          attachments: Array.isArray(metadata.attachments) ? metadata.attachments : [],
+          wrapped_keys: metadata.wrapped_keys,
+        };
+
+  return {
+    payload,
+    ciphertext: envelope.ciphertext,
+    signature: metadata.signature ?? headers.signature ?? null,
+  };
+}
+
+export function envelopeToSealedMailboxMessage(envelope: StoredEnvelope) {
+  const sealed = readSealedMailboxParts(envelope);
+  return {
+    ...envelopeToMailboxDescriptor(envelope),
+    ciphertext: sealed.ciphertext,
+    payload: sealed.payload,
+    signature: sealed.signature,
+  };
+}
+
 export function envelopeToMailboxDescriptor(envelope: StoredEnvelope): MailboxDescriptor {
   const flags = readMailboxFlags(envelope);
   return {

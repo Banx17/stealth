@@ -168,6 +168,7 @@ describe("query keys and cache invalidation rules", () => {
     expect(queryKeys.mailbox.sync("GABC")).toEqual(["mailbox", "sync", "GABC"]);
     expect(queryKeys.mailbox.counts("GABC")).toEqual(["mailbox", "counts", "GABC"]);
     expect(queryKeys.mailbox.delta("GABC")).toEqual(["mailbox", "delta", "GABC"]);
+    expect(queryKeys.mailbox.thread("GABC")).toEqual(["mailbox", "thread", "GABC"]);
     expect(queryKeys.auth.session).toEqual(["auth", "session"]);
     expect(queryKeys.policies.policy("GABC")).toEqual(["policies", "GABC"]);
   });
@@ -179,12 +180,14 @@ describe("query keys and cache invalidation rules", () => {
       ["mailbox", "sync", "GABC"],
       ["mailbox", "counts", "GABC"],
       ["mailbox", "delta", "GABC"],
+      ["mailbox", "thread", "GABC"],
     ]);
     expect(cacheInvalidations.patchMailboxFlags("GABC")).toEqual([
       ["mailbox", "queue", "GABC"],
       ["mailbox", "sync", "GABC"],
       ["mailbox", "counts", "GABC"],
       ["mailbox", "delta", "GABC"],
+      ["mailbox", "thread", "GABC"],
     ]);
     expect(cacheInvalidations.updateMailboxPolicy("GABC")).toEqual([
       ["policies", "GABC"],

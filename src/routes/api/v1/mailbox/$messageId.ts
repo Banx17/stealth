@@ -3,7 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { requireActor } from "@/server/api/actor";
 import { getApiContext } from "@/server/api/context";
 import { hash32Schema, mailboxFlagsPatchSchema } from "@/server/api/domain";
-import { envelopeToMailboxDescriptor } from "@/server/api/mailbox-live";
+import {
+  envelopeToMailboxDescriptor,
+  envelopeToSealedMailboxMessage,
+} from "@/server/api/mailbox-live";
 import { parseJsonBody } from "@/server/api/request";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
 import { ApiError } from "@/server/api/errors";
@@ -23,7 +26,7 @@ export const Route = createFileRoute("/api/v1/mailbox/$messageId")({
           if (envelope.recipientId.toUpperCase().trim() !== actor.toUpperCase().trim()) {
             throw new ApiError(403, "forbidden", "Cannot read another recipient's message");
           }
-          return apiSuccess(request, envelopeToMailboxDescriptor(envelope), { status: 200 });
+          return apiSuccess(request, envelopeToSealedMailboxMessage(envelope), { status: 200 });
         }),
 
       PATCH: ({ request, params }) =>
