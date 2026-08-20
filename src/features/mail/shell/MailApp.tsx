@@ -44,7 +44,7 @@ export interface MailAppProps {
 
 export function MailApp({ isDemoMode = false }: MailAppProps) {
   const source = useMailSource({ isDemoMode });
-  const navigation = useMailNavigation(source.emails);
+  const navigation = useMailNavigation(source.emails, source.folderCounts);
   const overlays = useMailOverlays();
   const { layout, setLayout, resetLayout, hydrated: layoutHydrated } = useLayoutPreferences();
   const { preferences, setPreferences, hydrated: prefHydrated } = usePreferences();
@@ -70,6 +70,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     updateEmail: source.updateEmail,
     insertEmail: source.insertEmail,
     trashEmail: source.trashEmail,
+    mutateMailbox: source.mutateMailbox,
     showToast,
     openCompose: overlays.openCompose,
     openCalendar: overlays.openCalendar,
@@ -87,6 +88,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     selectedEmails: navigation.selectedEmails,
     updateEmail: source.updateEmail,
     trashEmail: source.trashEmail,
+    mutateMailbox: source.mutateMailbox,
     onToast: showToast,
     onClearSelection: () => navigation.setSelectedIds([]),
   });
@@ -112,8 +114,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   useEffect(() => {
     if (!navigation.selectedId) return;
     const current = source.emails.find((email) => email.id === navigation.selectedId);
-    if (current?.unread) source.updateEmail(navigation.selectedId, { unread: false });
-  }, [navigation.selectedId, source.emails, source.updateEmail]);
+    if (current?.unread) void source.mutateMailbox(current, { unread: false });
+  }, [navigation.selectedId, source.emails, source.mutateMailbox]);
 
   const handleImportSave = useCallback(
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
@@ -300,6 +302,11 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           snooze.open({ emailId: email.id, subject: email.subject })
                         }
                         onMove={actions.handleMove}
+                        hasMore={source.hasMore}
+                        onLoadMore={() => {
+                          void source.loadMore();
+                        }}
+                        isLoadingMore={source.isLoadingMore}
                       />
                     </ResizablePanel>
                     {!isMobile && (

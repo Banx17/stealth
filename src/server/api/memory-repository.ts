@@ -1114,6 +1114,33 @@ export class MemoryApiRepository implements ApiRepository {
     });
   }
 
+  async patchMailboxFlags(
+    messageId: string,
+    recipient: string,
+    patch: import("./domain").MailboxFlagsPatch,
+  ): Promise<StoredEnvelope> {
+    const { applyMailboxFlags } = await import("./mailbox-live");
+    return this.withEnvelopeLock(messageId, async () => {
+      const existing = this.envelopes.get(messageId);
+      if (!existing) {
+        throw new ApiError(404, "not_found", `No envelope found for message ${messageId}`);
+      }
+      if (existing.recipientId.toUpperCase().trim() !== recipient.toUpperCase().trim()) {
+        throw new ApiError(
+          403,
+          "forbidden",
+          "Cannot update an envelope belonging to another recipient",
+        );
+      }
+      if (existing.deletedAt && patch.folder && patch.folder !== "trash") {
+        throw new ApiError(409, "conflict", "Cannot move a deleted message");
+      }
+      const updated = applyMailboxFlags(existing, patch, new Date().toISOString());
+      this.envelopes.set(messageId, updated);
+      return structuredClone(updated);
+    });
+  }
+
   async getKeyDirectory(owner: string): Promise<KeyDirectoryRecord | null> {
     const dir = this.keyDirectories.get(owner.toUpperCase());
     return dir ? structuredClone(dir) : null;

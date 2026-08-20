@@ -43,4 +43,9 @@ export {
   type TypedApi,
 } from "./clients";
 export type * from "./types";
-export { type MailboxQueueQuery, type PostageQuoteQuery, type ContactListQuery } from "./clients";
+export {
+  type MailboxQueueQuery,
+  type MailboxSyncQuery,
+  type PostageQuoteQuery,
+  type ContactListQuery,
+} from "./clients";
