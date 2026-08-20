@@ -28,6 +28,7 @@ import { RequestsTriageBoard } from "@/features/requests";
 import { SenderJourney } from "@/features/sender-journey";
 import { useSenderConversion } from "@/features/sender-conversion";
 import { useSnooze } from "@/features/snooze";
+import { useNotificationCenter } from "@/features/notifications";
 
 import { useMailActions, quoteBody } from "../useMailActions";
 import { useMailBulkActions } from "../useMailBulkActions";
@@ -35,6 +36,8 @@ import { useMailCommands } from "../useMailCommands";
 import { useMailNavigation } from "../useMailNavigation";
 import { useMailOverlays } from "../useMailOverlays";
 import { useMailSource } from "../useMailSource";
+import { useMailboxDescriptors } from "../useMailbox";
+import { useRequests } from "../useRequests";
 import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
@@ -45,6 +48,11 @@ export interface MailAppProps {
 
 export function MailApp({ isDemoMode = false }: MailAppProps) {
   const source = useMailSource({ isDemoMode });
+  const mailboxDescriptors = useMailboxDescriptors({
+    actor: source.actor ?? "anonymous",
+    enabled: Boolean(source.actor) && !isDemoMode,
+  });
+  const requests = useRequests(source.actor, !isDemoMode);
   const navigation = useMailNavigation(source.emails, source.folderCounts);
   const threadRead = useThreadRead({
     actor: source.actor,
@@ -57,6 +65,13 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const overlays = useMailOverlays();
   const { layout, setLayout, resetLayout, hydrated: layoutHydrated } = useLayoutPreferences();
   const { preferences, setPreferences, hydrated: prefHydrated } = usePreferences();
+  const notificationCenter = useNotificationCenter({
+    actor: source.actor,
+    mail: mailboxDescriptors.data?.items ?? [],
+    requests: requests.data ?? [],
+    preferences: preferences.notifications,
+    browserEnabled: preferences.desktopNotifications,
+  });
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
@@ -250,6 +265,9 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
                 }}
                 onOpenLogin={() => overlays.setAuthModalOpen(true)}
+                notifications={notificationCenter.notifications}
+                onMarkNotificationRead={notificationCenter.markRead}
+                onMarkAllNotificationsRead={notificationCenter.markAllRead}
               />
               {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
                 <MailMailboxStatus
