@@ -113,7 +113,9 @@ function delay(ms: number) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
-export function MailApp({ isDemoMode = false }: { isDemoMode?: boolean }) {
+// Kept temporarily for conflict-resolution safety. The root route renders the
+// production shell imported above; this legacy composition is no longer exported.
+function LegacyMailApp({ isDemoMode = false }: { isDemoMode?: boolean }) {
   const [showSenderJourney, setShowSenderJourney] = useState(false);
   const [folder, setFolder] = useState<MailFolder>("inbox");
   const [emails, setEmails] = useState<Email[]>([]);
