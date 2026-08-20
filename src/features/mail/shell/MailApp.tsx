@@ -38,6 +38,7 @@ import { useMailOverlays } from "../useMailOverlays";
 import { useMailSource } from "../useMailSource";
 import { useMailboxDescriptors } from "../useMailbox";
 import { useRequests } from "../useRequests";
+import { useSession, sessionActor } from "../useSession";
 import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
@@ -55,7 +56,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     actor: source.actor ?? "anonymous",
     enabled: Boolean(source.actor) && !isDemoMode,
   });
-  const requests = useRequests(source.actor, !isDemoMode);
+  const requests = useRequests(source.actor, undefined, !isDemoMode);
   const navigation = useMailNavigation(source.emails, source.folderCounts);
   const threadRead = useThreadRead({
     actor: source.actor,
@@ -71,7 +72,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const notificationCenter = useNotificationCenter({
     actor: source.actor,
     mail: mailboxDescriptors.data?.items ?? [],
-    requests: requests.data ?? [],
+    requests: requests.data?.items ?? [],
     preferences: preferences.notifications,
     browserEnabled: preferences.desktopNotifications,
   });
