@@ -78,6 +78,8 @@ import { ProofInspectorModal } from "@/features/proof-inspector";
 import { SenderJourney } from "@/features/sender-journey";
 import { AuthModal } from "@/components/mail/AuthModal";
 
+import { MailApp } from "@/features/mail";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -101,6 +103,9 @@ function IndexPage() {
   // (RouteGate) only ever lets authenticated, active visitors reach this page,
   // so the app shell never renders in demo mode here. Demo mode lives on the
   // isolated `/demo` route behind an explicit development-only flag.
+  //
+  // BETA-053: this file is only the composition entrypoint. Mailbox
+  // orchestration lives in `src/features/mail/shell`.
   return <MailApp isDemoMode={false} />;
 }
 

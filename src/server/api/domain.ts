@@ -956,6 +956,67 @@ export const mailboxQueueQuerySchema = z.object({
 
 export type MailboxQueueQuery = z.infer<typeof mailboxQueueQuerySchema>;
 
+export const mailboxLiveFolderSchema = z.enum([
+  "inbox",
+  "pending",
+  "requests",
+  "archive",
+  "spam",
+  "trash",
+  "sent",
+  "drafts",
+  "outbox",
+]);
+export type MailboxLiveFolder = z.infer<typeof mailboxLiveFolderSchema>;
+
+export const mailboxCountKeySchema = z.enum([
+  "inbox",
+  "requests",
+  "sent",
+  "drafts",
+  "outbox",
+  "archive",
+  "spam",
+  "trash",
+  "unread",
+  "starred",
+]);
+export type MailboxCountKey = z.infer<typeof mailboxCountKeySchema>;
+
+export const mailboxCountsSchema = z.object({
+  inbox: z.number().int().nonnegative(),
+  requests: z.number().int().nonnegative(),
+  sent: z.number().int().nonnegative(),
+  drafts: z.number().int().nonnegative(),
+  outbox: z.number().int().nonnegative(),
+  archive: z.number().int().nonnegative(),
+  spam: z.number().int().nonnegative(),
+  trash: z.number().int().nonnegative(),
+  unread: z.number().int().nonnegative(),
+  starred: z.number().int().nonnegative(),
+});
+export type MailboxCounts = z.infer<typeof mailboxCountsSchema>;
+
+export const mailboxFlagsPatchSchema = z
+  .object({
+    unread: z.boolean().optional(),
+    starred: z.boolean().optional(),
+    folder: z.enum(["inbox", "archive", "spam", "trash"]).optional(),
+  })
+  .refine(
+    (value) =>
+      value.unread !== undefined || value.starred !== undefined || value.folder !== undefined,
+    { message: "At least one mailbox flag is required" },
+  );
+export type MailboxFlagsPatch = z.infer<typeof mailboxFlagsPatchSchema>;
+
+export const mailboxSyncQuerySchema = z.object({
+  sinceCursor: z.string().trim().min(1).optional(),
+  cursor: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type MailboxSyncQuery = z.infer<typeof mailboxSyncQuerySchema>;
+
 export const mailboxDescriptorSchema = z.object({
   messageId: hash32Schema,
   senderId: stellarAddressSchema,
@@ -967,6 +1028,9 @@ export const mailboxDescriptorSchema = z.object({
   objectRef: z.string().optional(),
   isTombstone: z.boolean(),
   deletedAt: z.string().datetime().nullable().optional(),
+  starred: z.boolean().optional(),
+  unread: z.boolean().optional(),
+  folder: mailboxLiveFolderSchema.optional(),
 });
 
 export type MailboxDescriptor = z.infer<typeof mailboxDescriptorSchema>;

@@ -25,6 +25,9 @@ export const queryKeys = {
   mailbox: {
     all: ["mailbox"] as const,
     queue: (owner: string) => ["mailbox", "queue", owner] as const,
+    sync: (owner: string) => ["mailbox", "sync", owner] as const,
+    counts: (owner: string) => ["mailbox", "counts", owner] as const,
+    delta: (owner: string) => ["mailbox", "delta", owner] as const,
     message: (messageId: string) => ["mailbox", "message", messageId] as const,
   },
   requests: {
@@ -76,9 +79,22 @@ export const cacheInvalidations = {
   senderRequestDecision: (owner: string) => [
     queryKeys.requests.list(owner),
     queryKeys.mailbox.queue(owner),
+    queryKeys.mailbox.sync(owner),
+    queryKeys.mailbox.counts(owner),
   ],
   createSenderRequest: (owner: string) => [queryKeys.requests.list(owner)],
-  tombstoneMessage: (owner: string) => [queryKeys.mailbox.queue(owner)],
+  tombstoneMessage: (owner: string) => [
+    queryKeys.mailbox.queue(owner),
+    queryKeys.mailbox.sync(owner),
+    queryKeys.mailbox.counts(owner),
+    queryKeys.mailbox.delta(owner),
+  ],
+  patchMailboxFlags: (owner: string) => [
+    queryKeys.mailbox.queue(owner),
+    queryKeys.mailbox.sync(owner),
+    queryKeys.mailbox.counts(owner),
+    queryKeys.mailbox.delta(owner),
+  ],
   rotateKey: (owner: string) => [queryKeys.identity.keys(owner)],
   createContact: (owner: string) => [queryKeys.contacts.list(owner)],
   updateContact: (owner: string, contactId: string) => [

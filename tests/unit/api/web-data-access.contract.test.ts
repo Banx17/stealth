@@ -165,13 +165,27 @@ describe("client decoding matches OpenAPI schemas", () => {
 describe("query keys and cache invalidation rules", () => {
   it("query keys are stable, scoped tuples", () => {
     expect(queryKeys.mailbox.queue("GABC")).toEqual(["mailbox", "queue", "GABC"]);
+    expect(queryKeys.mailbox.sync("GABC")).toEqual(["mailbox", "sync", "GABC"]);
+    expect(queryKeys.mailbox.counts("GABC")).toEqual(["mailbox", "counts", "GABC"]);
+    expect(queryKeys.mailbox.delta("GABC")).toEqual(["mailbox", "delta", "GABC"]);
     expect(queryKeys.auth.session).toEqual(["auth", "session"]);
     expect(queryKeys.policies.policy("GABC")).toEqual(["policies", "GABC"]);
   });
 
   it("mutations invalidate the documented dependent queries", () => {
     expect(cacheInvalidations.sessionLogout()).toEqual([["auth", "session"]]);
-    expect(cacheInvalidations.tombstoneMessage("GABC")).toEqual([["mailbox", "queue", "GABC"]]);
+    expect(cacheInvalidations.tombstoneMessage("GABC")).toEqual([
+      ["mailbox", "queue", "GABC"],
+      ["mailbox", "sync", "GABC"],
+      ["mailbox", "counts", "GABC"],
+      ["mailbox", "delta", "GABC"],
+    ]);
+    expect(cacheInvalidations.patchMailboxFlags("GABC")).toEqual([
+      ["mailbox", "queue", "GABC"],
+      ["mailbox", "sync", "GABC"],
+      ["mailbox", "counts", "GABC"],
+      ["mailbox", "delta", "GABC"],
+    ]);
     expect(cacheInvalidations.updateMailboxPolicy("GABC")).toEqual([
       ["policies", "GABC"],
       ["policies", "reconciliation", "GABC"],

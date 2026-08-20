@@ -29,10 +29,18 @@ describe("mailboxDescriptorToEmail (BETA-051)", () => {
     expect(email.subject).toBe("Encrypted message");
   });
 
-  it("maps a delivered descriptor to the inbox as read", () => {
-    const email = mailboxDescriptorToEmail(descriptor({ status: "delivered" }));
-    expect(email.folder).toBe("inbox");
-    expect(email.unread).toBe(false);
+  it("maps server starred, unread, and folder flags when present", () => {
+    const email = mailboxDescriptorToEmail(
+      descriptor({
+        status: "delivered",
+        starred: true,
+        unread: true,
+        folder: "archive",
+      }),
+    );
+    expect(email.folder).toBe("archive");
+    expect(email.starred).toBe(true);
+    expect(email.unread).toBe(true);
   });
 
   it("maps a tombstone to trash with a deleted label", () => {

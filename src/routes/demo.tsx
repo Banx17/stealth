@@ -11,7 +11,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 import { BootstrapLoadingSkeleton } from "@/features/identity";
-import { MailApp } from "./index";
+import { MailApp } from "@/features/mail";
 
 export const Route = createFileRoute("/demo")({
   component: DemoRoute,
