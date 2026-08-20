@@ -91,6 +91,8 @@ export function MailOverlayStack({
   onCloseSnooze,
   onImportComplete,
   composeOwner,
+  actor,
+  offline,
 }: {
   overlays: MailOverlays;
   emails: Email[];
@@ -127,6 +129,8 @@ export function MailOverlayStack({
     rows: Array<{ name: string; address: string }>;
   }) => void;
   composeOwner: string;
+  actor: string | null;
+  offline: boolean;
 }) {
   return (
     <>
@@ -198,6 +202,8 @@ export function MailOverlayStack({
           onOpenMessage={onOpenMessage}
           onShowToast={onShowToast}
           initialQuery={overlays.proofInspectorQuery}
+          owner={actor}
+          offline={offline}
         />
       </Suspense>
       <Suspense fallback={null}>
