@@ -16,6 +16,7 @@ import type {
   DeliveryReceipt,
   KeyDirectoryRecord,
   MailboxDescriptor,
+  MailboxSealedMessage,
   MailboxCountsResponse,
   MailboxFlagsPatch,
   MailboxPolicy,
@@ -208,8 +209,8 @@ export class MailboxClient {
     return this.client.delete(`/mailbox/${encodeURIComponent(messageId)}`, { signal });
   }
 
-  getMessage(messageId: string, signal?: AbortSignal): Promise<MailboxDescriptor> {
-    return this.client.get<MailboxDescriptor>(`/mailbox/${encodeURIComponent(messageId)}`, {
+  getMessage(messageId: string, signal?: AbortSignal): Promise<MailboxSealedMessage> {
+    return this.client.get<MailboxSealedMessage>(`/mailbox/${encodeURIComponent(messageId)}`, {
       signal,
     });
   }

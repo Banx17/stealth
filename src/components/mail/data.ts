@@ -97,6 +97,7 @@ export type Email = {
   encryptedPayload?: EncryptedPayload;
   provenanceData?: VerifiedEnvelopeProvenance;
   quarantineRecord?: QuarantinedMailRecord;
+  threadId?: string;
 };
 
 export type MailFilters = {
@@ -181,6 +182,10 @@ export function isVerified(email: Email) {
  * badge and the command palette so "inspect proof" and the badge agree.
  */
 export function deriveProof(email: Email) {
+  const digest = email.provenanceData?.digest;
+  if (digest && digest.length >= 12) {
+    return `${digest.slice(0, 8)}...${digest.slice(-4)}`;
+  }
   return `${email.id.padStart(2, "0")}c7...${email.from.length.toString(16)}a9`;
 }
 

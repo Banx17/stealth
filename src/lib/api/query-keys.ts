@@ -29,6 +29,8 @@ export const queryKeys = {
     counts: (owner: string) => ["mailbox", "counts", owner] as const,
     delta: (owner: string) => ["mailbox", "delta", owner] as const,
     message: (messageId: string) => ["mailbox", "message", messageId] as const,
+    sealed: (messageId: string) => ["mailbox", "sealed", messageId] as const,
+    thread: (owner: string) => ["mailbox", "thread", owner] as const,
   },
   requests: {
     all: ["requests"] as const,
@@ -88,12 +90,14 @@ export const cacheInvalidations = {
     queryKeys.mailbox.sync(owner),
     queryKeys.mailbox.counts(owner),
     queryKeys.mailbox.delta(owner),
+    queryKeys.mailbox.thread(owner),
   ],
   patchMailboxFlags: (owner: string) => [
     queryKeys.mailbox.queue(owner),
     queryKeys.mailbox.sync(owner),
     queryKeys.mailbox.counts(owner),
     queryKeys.mailbox.delta(owner),
+    queryKeys.mailbox.thread(owner),
   ],
   rotateKey: (owner: string) => [queryKeys.identity.keys(owner)],
   createContact: (owner: string) => [queryKeys.contacts.list(owner)],

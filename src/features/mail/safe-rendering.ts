@@ -11,11 +11,17 @@ export type BodyBlock =
   | { kind: "fields"; fields: { label: string; value: string }[] }
   | { kind: "list"; items: string[] };
 
+export interface IsolatedRemoteResources {
+  blockedUrls: string[];
+  blockedCount: number;
+}
+
 export interface SafeMailContent {
   rawCleanText: string;
   hasHtmlTags: boolean;
   blocks: BodyBlock[];
   sanitizedHtml?: string;
+  remoteResources: IsolatedRemoteResources;
 }
 
 const DANGEROUS_PATTERNS = [
@@ -42,6 +48,66 @@ export function sanitizeRawContent(input: string): string {
   return sanitized;
 }
 
+const EMPTY_REMOTE_RESOURCES: IsolatedRemoteResources = {
+  blockedUrls: [],
+  blockedCount: 0,
+};
+
+const REMOTE_MEDIA_TAG =
+  /<(img|video|audio|source|track|link|iframe|embed|object|picture)\b[^>]*>/gi;
+const REMOTE_URL = /(?:https?:)?\/\/[^\s"'<>\\]+/gi;
+
+function uniqueUrls(urls: string[]): string[] {
+  return [...new Set(urls.filter(Boolean))];
+}
+
+/**
+ * Strip remote resource references so opening mail cannot trigger tracking
+ * pixels, remote images, or outbound fetches. Local/relative refs are also
+ * dropped because the reader never loads untrusted URLs.
+ */
+export function isolateRemoteResources(input: string): {
+  sanitized: string;
+  isolation: IsolatedRemoteResources;
+} {
+  if (typeof input !== "string" || !input) {
+    return { sanitized: "", isolation: EMPTY_REMOTE_RESOURCES };
+  }
+
+  const blockedUrls: string[] = [];
+  let sanitized = sanitizeRawContent(input);
+
+  sanitized = sanitized.replace(REMOTE_MEDIA_TAG, (tag) => {
+    const matches = tag.match(REMOTE_URL);
+    if (matches) blockedUrls.push(...matches);
+    else if (/\bsrc\s*=/i.test(tag) || /\bhref\s*=/i.test(tag) || /\bsrcset\s*=/i.test(tag)) {
+      blockedUrls.push("(blocked local resource)");
+    }
+    return "";
+  });
+
+  sanitized = sanitized.replace(/url\((['"]?)((?:https?:)?\/\/[^)]+)\1\)/gi, (_all, _q, url) => {
+    blockedUrls.push(String(url));
+    return "";
+  });
+
+  sanitized = sanitized.replace(
+    /\b(?:src|href|poster|srcset|action)\s*=\s*(["']?)((?:https?:)?\/\/[^"'>\s]+)\1/gi,
+    (_all, _q, url) => {
+      blockedUrls.push(String(url));
+      return "";
+    },
+  );
+
+  const isolation = {
+    blockedUrls: uniqueUrls(blockedUrls),
+    blockedCount: 0,
+  };
+  isolation.blockedCount = isolation.blockedUrls.length;
+
+  return { sanitized, isolation };
+}
+
 /**
  * Strip all HTML markup tags to convert HTML content into safe plain text.
  */
@@ -65,8 +131,10 @@ export function stripHtmlTags(html: string): string {
  * Parse input body (plain text or sanitized HTML) into structured, safe reader blocks.
  */
 export function parseSafeContent(body: string): SafeMailContent {
-  const hasHtml = /<[a-z][\s\S]*>/i.test(body);
-  const cleanText = hasHtml ? stripHtmlTags(body) : sanitizeRawContent(body);
+  const isolated = isolateRemoteResources(typeof body === "string" ? body : "");
+  const working = isolated.sanitized;
+  const hasHtml = /<[a-z][\s\S]*>/i.test(working);
+  const cleanText = hasHtml ? stripHtmlTags(working) : sanitizeRawContent(working);
 
   const blocks: BodyBlock[] = [];
   const lines = cleanText.split(/\r?\n/);
@@ -122,6 +190,7 @@ export function parseSafeContent(body: string): SafeMailContent {
     rawCleanText: cleanText,
     hasHtmlTags: hasHtml,
     blocks,
-    sanitizedHtml: hasHtml ? sanitizeRawContent(body) : undefined,
+    sanitizedHtml: hasHtml ? sanitizeRawContent(working) : undefined,
+    remoteResources: isolated.isolation,
   };
 }

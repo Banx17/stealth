@@ -158,6 +158,13 @@ export interface MailboxDescriptor {
   folder?: MailboxLiveFolder;
 }
 
+/** Recipient-only sealed envelope used by the live reader (BETA-055). */
+export interface MailboxSealedMessage extends MailboxDescriptor {
+  ciphertext: string;
+  payload: unknown;
+  signature?: unknown;
+}
+
 export type MailboxLiveFolder =
   | "inbox"
   | "pending"
