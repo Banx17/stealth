@@ -869,17 +869,68 @@ export const openApiDocument = {
             type: "integer",
             description: "Delivery TTL in milliseconds.",
           },
+          postage: {
+            $ref: "#/components/schemas/StroopAmount",
+            description: "Attached postage in stroops. Defaults to 0 when omitted.",
+          },
+          verified: {
+            type: "boolean",
+            description: "Whether the sender identity has been verified. Defaults to false.",
+          },
+          receipt: {
+            type: "boolean",
+            description: "Whether the submission includes a delivery-receipt commitment.",
+          },
+        },
+      },
+      RelayAdmissionDecision: {
+        type: "object",
+        required: ["allowed", "kind", "reason", "policyVersion", "requiredPostage"],
+        additionalProperties: false,
+        properties: {
+          allowed: { type: "boolean" },
+          kind: {
+            type: "string",
+            enum: ["trusted", "request", "verified", "priced", "blocked"],
+            description: "Sender-actionable admission class.",
+          },
+          reason: {
+            type: "string",
+            enum: [
+              "sender_allowed",
+              "sender_blocked",
+              "unknown_senders_disabled",
+              "verification_required",
+              "receipt_required",
+              "insufficient_postage",
+              "policy_satisfied",
+              "tier_satisfied",
+            ],
+          },
+          policyVersion: {
+            type: "integer",
+            description: "Policy version evaluated at admission time. Immutable on the message.",
+          },
+          requiredPostage: {
+            $ref: "#/components/schemas/StroopAmount",
+          },
         },
       },
       RelaySubmissionResult: {
         type: "object",
-        required: ["accepted", "messageId", "queueDepth", "service"],
+        required: ["accepted", "messageId", "queueDepth", "service", "replayed", "admission"],
         additionalProperties: false,
         properties: {
           accepted: { type: "boolean", enum: [true] },
           messageId: { $ref: "#/components/schemas/Hash32" },
           queueDepth: { type: "integer" },
           service: { type: "string", description: "Service name." },
+          replayed: {
+            type: "boolean",
+            description:
+              "True when this messageId was already admitted and the original decision was returned.",
+          },
+          admission: { $ref: "#/components/schemas/RelayAdmissionDecision" },
         },
       },
       LifecycleAnchor: {
