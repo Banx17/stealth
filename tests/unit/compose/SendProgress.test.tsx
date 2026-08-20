@@ -116,7 +116,12 @@ describe("SendProgress Component (BETA-057)", () => {
     const user = userEvent.setup();
     const onInspect = vi.fn();
     const errorStages: StageState[] = [
-      { id: "resolve", label: "Resolving recipient keys", status: "error", detail: "Network error" },
+      {
+        id: "resolve",
+        label: "Resolving recipient keys",
+        status: "error",
+        detail: "Network error",
+      },
     ];
 
     render(

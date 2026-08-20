@@ -141,4 +141,3 @@ export function createEntry(input: {
 export function getIncompleteEntries(): OutboxEntry[] {
   return readAll().filter((entry) => entry.status !== "delivered");
 }
-

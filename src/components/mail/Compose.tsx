@@ -16,7 +16,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
-import { resolveRecipients, type RecipientResolutionContext } from "@/features/compose/recipientResolver";
+import {
+  resolveRecipients,
+  type RecipientResolutionContext,
+} from "@/features/compose/recipientResolver";
 import { usePostageQuote } from "@/features/compose/usePostageQuote";
 import {
   RecipientPolicyBanner,

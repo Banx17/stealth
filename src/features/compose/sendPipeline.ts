@@ -28,10 +28,7 @@ import {
   resolveRecipientKeysForSend,
   type RecipientKeyMaterial,
 } from "./recipientKeyResolution";
-import {
-  SenderBindingError,
-  verifySenderBinding,
-} from "@/services/crypto/sender-binding";
+import { SenderBindingError, verifySenderBinding } from "@/services/crypto/sender-binding";
 import {
   DEFAULT_REPLAY_WINDOW_SECONDS,
   buildSignedRelayRequest,
@@ -305,11 +302,7 @@ export class SendPipeline {
         );
       }
       this.recipientKeys = await resolveRecipientKeysForSend(accounts, this.keyResolver);
-      this.setStage(
-        "resolve",
-        "done",
-        `${this.recipientKeys.length} recipient key(s) resolved`,
-      );
+      this.setStage("resolve", "done", `${this.recipientKeys.length} recipient key(s) resolved`);
       return null;
     } catch (error) {
       const code = error instanceof RecipientKeyResolutionError ? error.recipient : undefined;
@@ -523,11 +516,7 @@ export class SendPipeline {
       return null;
     }
     this.setOutbox("failed", { errorCode: this.lastErrorCode, canRetry: false });
-    this.setStage(
-      "reconcile",
-      "error",
-      this.lastErrorMessage ?? "Relay reported delivery failure",
-    );
+    this.setStage("reconcile", "error", this.lastErrorMessage ?? "Relay reported delivery failure");
     return this.fail(
       "reconcile",
       "failed",
