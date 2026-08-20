@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
-import { resolveRecipients } from "@/features/compose/recipientResolver";
+import { resolveRecipients, type RecipientResolutionContext } from "@/features/compose/recipientResolver";
 import { usePostageQuote } from "@/features/compose/usePostageQuote";
 import {
   RecipientPolicyBanner,
@@ -66,7 +66,7 @@ export function Compose({
   mode?: ComposeMode;
   blockedRecipients?: string[];
   onSubmit?: (submission: ComposeSubmission) => void;
-  resolutionContext?: Parameters<typeof resolveRecipients>[2];
+  resolutionContext?: RecipientResolutionContext;
 }>) {
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
@@ -393,6 +393,7 @@ export function Compose({
                 {getHeaderTitle(mode)}
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
@@ -456,6 +457,7 @@ export function Compose({
                       <span className="text-xs text-foreground">{att.name}</span>
                       <span className="text-[10px] text-muted-foreground">{att.size}</span>
                       <button
+                        type="button"
                         onClick={() => removeAttachment(i)}
                         className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
                       >
@@ -478,6 +480,7 @@ export function Compose({
                   AI suggests: &quot;{aiSuggestion}&quot;
                 </span>
                 <button
+                  type="button"
                   onClick={() => insertAtCursor(aiSuggestion)}
                   className="shrink-0 rounded-md border border-white/10 bg-white/6 px-2 py-0.5 text-[10px] text-foreground/90 transition hover:bg-white/10"
                 >

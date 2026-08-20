@@ -39,6 +39,24 @@ function StageIcon({ status }: Readonly<{ status: StageState["status"] }>) {
   return <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />;
 }
 
+function renderStatusBadge(isSafeRetry: boolean, isCommitted: boolean) {
+  if (isSafeRetry) {
+    return (
+      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-300 border border-emerald-500/20">
+        Draft safe
+      </span>
+    );
+  }
+  if (isCommitted) {
+    return (
+      <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-300 border border-amber-500/20">
+        Committed to relay
+      </span>
+    );
+  }
+  return null;
+}
+
 export function SendProgress({
   stages,
   error,
@@ -141,15 +159,7 @@ export function SendProgress({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-medium text-red-200">{error}</span>
-                {isSafeRetry ? (
-                  <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-300 border border-emerald-500/20">
-                    Draft safe
-                  </span>
-                ) : isCommitted ? (
-                  <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-300 border border-amber-500/20">
-                    Committed to relay
-                  </span>
-                ) : null}
+                {renderStatusBadge(isSafeRetry, isCommitted)}
               </div>
               {failedStage?.detail && (
                 <p className="mt-0.5 text-[10px] text-red-300/80">{failedStage.detail}</p>
