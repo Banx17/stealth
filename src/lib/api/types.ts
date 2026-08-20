@@ -212,15 +212,35 @@ export interface MailboxPolicyWrite {
 
 export type SenderRule = "default" | "allow" | "block";
 
-export type PolicyReconciliationState = "synced" | "pending_write" | "failed" | "diverged";
+export type PolicyWriteStatus = "pending" | "submitted" | "confirmed" | "failed";
+
+export type PolicyReconciliationState =
+  | "synced"
+  | "pending_write"
+  | "failed"
+  | "diverged"
+  | "not_provisioned"
+  | "chain_ahead";
+
+export interface PolicyWriteIntent {
+  status: PolicyWriteStatus;
+  version: number;
+  policy: MailboxPolicy & { requireReceipt?: boolean };
+  scheduledAt: string;
+  updatedAt: string;
+  failureCount: number;
+  lastError: string | null;
+  txHash?: string | null;
+}
 
 export interface PolicyReconciliation {
   owner: string;
   state: PolicyReconciliationState;
   offchain: {
     policy: MailboxPolicy | null;
-    version: number;
-    intentStatus: "pending" | "submitted" | "confirmed" | "failed" | null;
+    source: "default" | "configured" | null;
+    version: number | null;
+    intentStatus: PolicyWriteStatus | null;
     intentUpdatedAt: string | null;
     intentError: string | null;
   };
@@ -228,6 +248,7 @@ export interface PolicyReconciliation {
     policy: MailboxPolicy | null;
     version: number | null;
   };
+  writeIntent: PolicyWriteIntent | null;
 }
 
 // ---------------------------------------------------------------------------

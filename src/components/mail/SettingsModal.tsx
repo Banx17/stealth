@@ -1032,7 +1032,7 @@ function InboxSettings({ open }: { open: boolean }) {
       await mutation.mutateAsync({
         policy: {
           ...policyToApply,
-          version: reconciliation?.offchain.version,
+          version: reconciliation?.offchain.version ?? undefined,
         },
       });
       setDraftPolicy(policyToApply);
@@ -1123,7 +1123,7 @@ function InboxSettings({ open }: { open: boolean }) {
             <button
               onClick={() =>
                 mutation.mutate({
-                  policy: { ...livePolicy, version: reconciliation.offchain.version },
+                  policy: { ...livePolicy, version: reconciliation.offchain.version ?? undefined },
                 })
               }
               className="mt-2 text-xs font-medium text-rose-300 hover:text-rose-200 underline"
