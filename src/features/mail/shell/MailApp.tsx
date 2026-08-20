@@ -185,11 +185,17 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   }
 
   return (
-    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
+    <MotionConfig transition={isTest ? { duration: 0 } : undefined} reducedMotion="user">
       <div
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[300] focus:rounded-lg focus:border focus:border-white/10 focus:bg-black/90 focus:px-4 focus:py-2 focus:text-sm focus:text-foreground"
+        >
+          Skip to mailbox
+        </a>
         <AmbientBackground />
         {isDemoMode && (
           <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
@@ -250,7 +256,11 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           )}
 
           <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
-            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="flex h-full flex-col min-w-0 pb-[72px] focus:outline-none md:pb-0"
+            >
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
@@ -404,7 +414,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   </ResizablePanelGroup>
                 )}
               </div>
-            </div>
+            </main>
           </ResizablePanel>
         </ResizablePanelGroup>
 

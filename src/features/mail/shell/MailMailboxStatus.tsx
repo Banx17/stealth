@@ -22,6 +22,7 @@ export function MailMailboxStatus({
       <div
         className="flex min-h-0 min-w-0 flex-1"
         role="status"
+        aria-label="Loading mailbox"
         aria-live="polite"
         aria-busy="true"
       >
