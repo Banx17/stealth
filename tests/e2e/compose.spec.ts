@@ -9,24 +9,39 @@ let recipientKey: Awaited<ReturnType<typeof generateRecipientKeyPair>>;
 
 function keyDirectoryBody(owner: string, spkiBase64: string) {
   const now = Date.now();
+  const notBefore = new Date(now - 60_000).toISOString();
+  const notAfter = new Date(now + 86_400_000).toISOString();
+  const updatedAt = new Date(now).toISOString();
+  const encryptionKey = {
+    keyId: "enc-e2e-0001",
+    owner,
+    algorithm: "x25519",
+    purpose: "encryption",
+    publicKey: spkiBase64,
+    version: 1,
+    notBefore,
+    notAfter,
+    status: "active",
+    signature: "e2e",
+    createdAt: updatedAt,
+    updatedAt,
+  };
+
   return {
     data: {
       owner,
       version: 1,
+      updatedAt,
       currentKeys: {
-        encryption: {
-          keyId: "enc-e2e-0001",
-          algorithm: "ecdh",
-          publicKey: spkiBase64,
-          version: 1,
-          notBefore: new Date(now - 60_000).toISOString(),
-          notAfter: new Date(now + 86_400_000).toISOString(),
-          status: "active",
-          signature: "e2e",
-        },
+        encryption: encryptionKey,
       },
       historicalKeys: [],
-      allKeys: [],
+      allKeys: [encryptionKey],
+      freshness: {
+        resolvedAt: updatedAt,
+        cached: false,
+        ttlMs: 60_000,
+      },
     },
   };
 }

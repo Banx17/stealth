@@ -33,6 +33,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Generate Route Tree
+        run: bun scripts/generate-route-tree.ts
+
       - name: Typecheck
         run: bun x tsc --noEmit
 

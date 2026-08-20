@@ -13,7 +13,6 @@
  *   <motion.div {...motionPresets.entrance.slideUp()} />
  */
 
-// Check if user prefers reduced motion
 const prefersReducedMotion =
   typeof window !== "undefined" &&
   typeof window.matchMedia === "function" &&
