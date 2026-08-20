@@ -109,6 +109,8 @@ export function MailOverlayStack({
         initialTo={overlays.composeInitial.to}
         initialSubject={overlays.composeInitial.subject}
         initialBody={overlays.composeInitial.body}
+        initialDraftId={overlays.composeInitial.draftId}
+        initialVersion={overlays.composeInitial.version}
         initialPostage={preferences.minimumPostage}
         onSubmit={onComposeSubmit}
       />

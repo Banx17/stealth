@@ -518,6 +518,32 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteContact");
     return this.inner.deleteContact(owner, contactId);
   }
+  async listDrafts(
+    owner: string,
+    options?: import("../../../src/server/api/repository").DraftQueryOptions,
+  ) {
+    this.maybeFail("listDrafts");
+    return this.inner.listDrafts(owner, options);
+  }
+  async getDraft(owner: string, draftId: string) {
+    this.maybeFail("getDraft");
+    return this.inner.getDraft(owner, draftId);
+  }
+  async createDraft(draft: import("../../../src/server/api/domain").DraftRecord) {
+    this.maybeFail("createDraft");
+    return this.inner.createDraft(draft);
+  }
+  async updateDraft(
+    draft: import("../../../src/server/api/domain").DraftRecord,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("updateDraft");
+    return this.inner.updateDraft(draft, expectedVersion);
+  }
+  async deleteDraft(owner: string, draftId: string) {
+    this.maybeFail("deleteDraft");
+    return this.inner.deleteDraft(owner, draftId);
+  }
   async enqueueJob(job: import("../../../src/server/api/domain").DurableJob) {
     this.maybeFail("enqueueJob");
     return this.inner.enqueueJob(job);

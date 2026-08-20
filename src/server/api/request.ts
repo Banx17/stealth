@@ -59,6 +59,8 @@ export const ROUTE_BODY_LIMITS = {
   "POST /contacts/merge": "compact",
   "POST /contacts/import/preview": "bulk",
   "POST /contacts/import/commit": "bulk",
+  "POST /drafts": "standard",
+  "PUT /drafts/{draftId}": "standard",
   "POST /requests": "standard",
   "POST /requests/{requestId}/decisions": "compact",
   "POST /send/coordinate": "standard",
