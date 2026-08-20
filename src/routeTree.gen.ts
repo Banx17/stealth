@@ -1350,11 +1350,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1OnboardingCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/mailbox/counts': {
-      id: '/api/v1/mailbox/counts'
-      path: '/api/v1/mailbox/counts'
-      fullPath: '/api/v1/mailbox/counts'
-      preLoaderRoute: typeof ApiV1MailboxCountsRouteImport
+    '/api/v1/mailbox/sync': {
+      id: '/api/v1/mailbox/sync'
+      path: '/api/v1/mailbox/sync'
+      fullPath: '/api/v1/mailbox/sync'
+      preLoaderRoute: typeof ApiV1MailboxSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/mailbox/queue': {
