@@ -15,6 +15,7 @@ export function useNotificationCenter({
   mail,
   requests,
   preferences,
+  browserEnabled,
 }: {
   actor: string | null;
   mail: MailboxDescriptor[];

@@ -96,7 +96,7 @@ export function NotificationsPanel({
             {/* Notifications list */}
             <ul className="max-h-[400px] overflow-y-auto divide-y divide-white/[0.04]">
               {notifications.map((n) => {
-                const Icon = icons[n.type];
+                const Icon = icons[n.category];
                 return (
                   <li key={n.id}>
                     <button
