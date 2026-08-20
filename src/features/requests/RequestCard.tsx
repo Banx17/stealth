@@ -206,7 +206,7 @@ export function RequestCard({
                   onClick={() => onTriggerAction(email.id, "approve_once")}
                   className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
                 >
-                  Approve Once
+                  Allow Once
                 </button>
                 <button
                   onClick={() => onTriggerAction(email.id, "always_allow")}
