@@ -34,7 +34,8 @@ export const queryKeys = {
   },
   requests: {
     all: ["requests"] as const,
-    list: (owner: string) => ["requests", owner] as const,
+    list: (owner: string, options?: { cursor?: string; limit?: number }) =>
+      ["requests", owner, options ?? {}] as const,
   },
   policies: {
     all: ["policies"] as const,

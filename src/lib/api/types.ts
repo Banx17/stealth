@@ -244,6 +244,15 @@ export interface UnknownSenderRequest {
   status: UnknownSenderRequestStatus;
   decidedAt?: string;
   decision?: UnknownSenderDecision;
+  postageAmount?: string;
+  verifiedSender?: boolean;
+  proofSummary?: string;
+}
+
+export interface UnknownSenderRequestsResponse {
+  items: UnknownSenderRequest[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 // ---------------------------------------------------------------------------

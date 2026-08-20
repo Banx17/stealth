@@ -37,6 +37,7 @@ import { useMailOverlays } from "../useMailOverlays";
 import { useMailSource } from "../useMailSource";
 import { useMailboxDescriptors } from "../useMailbox";
 import { useRequests } from "../useRequests";
+import { useSession, sessionActor } from "../useSession";
 import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
@@ -57,12 +58,15 @@ export interface MailAppProps {
 }
 
 export function MailApp({ isDemoMode = false }: MailAppProps) {
+  const session = useSession({ enabled: !isDemoMode });
+  const actor = sessionActor(session.data);
+
   const source = useMailSource({ isDemoMode });
   const mailboxDescriptors = useMailboxDescriptors({
     actor: source.actor ?? "anonymous",
     enabled: Boolean(source.actor) && !isDemoMode,
   });
-  const requests = useRequests(source.actor, !isDemoMode);
+  const requests = useRequests(source.actor, undefined, !isDemoMode);
   const navigation = useMailNavigation(source.emails, source.folderCounts);
   const threadRead = useThreadRead({
     actor: source.actor,
@@ -78,7 +82,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const notificationCenter = useNotificationCenter({
     actor: source.actor,
     mail: mailboxDescriptors.data?.items ?? [],
-    requests: requests.data ?? [],
+    requests: requests.data?.items ?? [],
     preferences: preferences.notifications,
     browserEnabled: preferences.desktopNotifications,
   });
@@ -116,6 +120,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     openSenderConversion,
     openSnoozeDialog: (email) => snooze.open({ emailId: email.id, subject: email.subject }),
     closeSnooze: snooze.close,
+    isDemoMode,
+    actor,
   });
 
   const bulk = useMailBulkActions({
@@ -311,6 +317,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                       emails={source.emails}
                       onUpdateEmail={source.updateEmail}
                       onShowToast={showToast}
+                      isDemoMode={isDemoMode}
                     />
                   </Suspense>
                 ) : (
