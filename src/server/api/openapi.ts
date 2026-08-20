@@ -748,7 +748,9 @@ export const openApiDocument = {
                 type: "string",
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
-                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
+                enum: API_ERROR_CODES.filter(
+                  (c) => c !== "recent_auth_required" && c !== "chain_error",
+                ),
               },
               message: {
                 type: "string",
@@ -2376,6 +2378,150 @@ export const openApiDocument = {
           },
           "500": {
             description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        operationId: "transitionPostage",
+        summary: "Transition postage lifecycle state (settle, refund, dispute, expire, reclaim)",
+        "x-max-body-bytes": 8 * 1024,
+        "x-stability": "beta",
+        security: [
+          {
+            StellarSignedRequest: [],
+          },
+        ],
+        requestBody: {
+          description: "The postage lifecycle operation to perform.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["operation"],
+                additionalProperties: false,
+                properties: {
+                  operation: {
+                    type: "string",
+                    enum: ["settle", "refund", "dispute", "expire", "reclaim"],
+                  },
+                },
+              },
+              examples: {
+                settle: {
+                  summary: "Settle the escrow to the recipient",
+                  value: { operation: "settle" },
+                },
+                refund: {
+                  summary: "Refund the escrow to the sender",
+                  value: { operation: "refund" },
+                },
+                dispute: {
+                  summary: "Dispute a pending escrow within the dispute window",
+                  value: { operation: "dispute" },
+                },
+                expire: {
+                  summary: "Expire a pending escrow",
+                  value: { operation: "expire" },
+                },
+                reclaim: {
+                  summary: "Reclaim an escrow after expiry",
+                  value: { operation: "reclaim" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          default: { description: "" },
+          "200": {
+            description: "Success",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/SuccessEnvelope",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Bad Request",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "403": {
+            description: "Forbidden",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Not Found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "409": {
+            description: "Conflict",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Internal Server Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ErrorEnvelope",
+                },
+              },
+            },
+          },
+          "502": {
+            description: "Bad Gateway — on-chain escrow operation could not be confirmed",
             content: {
               "application/json": {
                 schema: {
