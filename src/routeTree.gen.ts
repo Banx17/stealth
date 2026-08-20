@@ -38,6 +38,8 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1OnboardingDraftRouteImport } from './routes/api/v1/onboarding/draft'
+import { Route as ApiV1OnboardingCompleteRouteImport } from './routes/api/v1/onboarding/complete'
 import { Route as ApiV1MailboxSyncRouteImport } from './routes/api/v1/mailbox/sync'
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxCountsRouteImport } from './routes/api/v1/mailbox/counts'
@@ -235,6 +237,16 @@ const ApiV1PoliciesEvaluateRoute = ApiV1PoliciesEvaluateRouteImport.update({
 const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   id: '/api/v1/policies/$owner',
   path: '/api/v1/policies/$owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OnboardingDraftRoute = ApiV1OnboardingDraftRouteImport.update({
+  id: '/api/v1/onboarding/draft',
+  path: '/api/v1/onboarding/draft',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OnboardingCompleteRoute = ApiV1OnboardingCompleteRouteImport.update({
+  id: '/api/v1/onboarding/complete',
+  path: '/api/v1/onboarding/complete',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1MailboxSyncRoute = ApiV1MailboxSyncRouteImport.update({
@@ -555,6 +567,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
+  '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -639,6 +653,8 @@ export interface FileRoutesByTo {
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
+  '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -724,6 +740,8 @@ export interface FileRoutesById {
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
+  '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -810,6 +828,8 @@ export interface FileRouteTypes {
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/onboarding/complete'
+    | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -894,6 +914,8 @@ export interface FileRouteTypes {
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/onboarding/complete'
+    | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -978,6 +1000,8 @@ export interface FileRouteTypes {
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/onboarding/complete'
+    | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -1063,6 +1087,8 @@ export interface RootRouteChildren {
   ApiV1MailboxCountsRoute: typeof ApiV1MailboxCountsRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
   ApiV1MailboxSyncRoute: typeof ApiV1MailboxSyncRoute
+  ApiV1OnboardingCompleteRoute: typeof ApiV1OnboardingCompleteRoute
+  ApiV1OnboardingDraftRoute: typeof ApiV1OnboardingDraftRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -1308,6 +1334,20 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/policies/$owner'
       fullPath: '/api/v1/policies/$owner'
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/onboarding/draft': {
+      id: '/api/v1/onboarding/draft'
+      path: '/api/v1/onboarding/draft'
+      fullPath: '/api/v1/onboarding/draft'
+      preLoaderRoute: typeof ApiV1OnboardingDraftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/onboarding/complete': {
+      id: '/api/v1/onboarding/complete'
+      path: '/api/v1/onboarding/complete'
+      fullPath: '/api/v1/onboarding/complete'
+      preLoaderRoute: typeof ApiV1OnboardingCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/mailbox/sync': {
@@ -1805,6 +1845,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1MailboxCountsRoute: ApiV1MailboxCountsRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
   ApiV1MailboxSyncRoute: ApiV1MailboxSyncRoute,
+  ApiV1OnboardingCompleteRoute: ApiV1OnboardingCompleteRoute,
+  ApiV1OnboardingDraftRoute: ApiV1OnboardingDraftRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
