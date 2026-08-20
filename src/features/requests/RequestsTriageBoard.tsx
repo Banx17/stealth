@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { Email } from "@/components/mail/data";
 import { motionPresets } from "@/lib/motion-presets";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import { RequestCard } from "./RequestCard";
 import type { CardStatus, RequestCardState, TriageAction } from "./types";
 import { useSession, sessionActor } from "@/features/mail/useSession";
@@ -126,6 +127,13 @@ export function RequestsTriageBoard({
       };
     });
   }, [emails, liveRequests, isDemoMode]);
+
+  // The failure simulation toggle is a QA-only control: it never renders in
+  // production builds, so shipped code audits against the live data path.
+  const showSimulationToggle = typeof import.meta !== "undefined" && import.meta.env?.DEV === true;
+
+  const closeInspector = useCallback(() => setInspectEmail(null), []);
+  const inspectorRef = useFocusTrap(inspectEmail !== null, closeInspector);
 
   const getCardStatus = (emailId: string): CardStatus => {
     return cardStates[emailId]?.status ?? "idle";
@@ -346,18 +354,20 @@ export function RequestsTriageBoard({
           </p>
         </div>
 
-        {/* QA Control panel */}
-        <div className="flex items-center gap-4">
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none hover:text-foreground transition">
-            <input
-              type="checkbox"
-              checked={simulateFailure}
-              onChange={(e) => setSimulateFailure(e.target.checked)}
-              className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-0 focus:outline-none"
-            />
-            <span>Simulate network failure</span>
-          </label>
-        </div>
+        {/* QA Control panel (development builds only) */}
+        {showSimulationToggle && (
+          <div className="flex items-center gap-4">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none hover:text-foreground transition">
+              <input
+                type="checkbox"
+                checked={simulateFailure}
+                onChange={(e) => setSimulateFailure(e.target.checked)}
+                className="rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 focus:ring-offset-0 focus:outline-none"
+              />
+              <span>Simulate network failure</span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Main Cards Area */}
@@ -611,13 +621,15 @@ export function RequestsTriageBoard({
             {/* Backdrop */}
             <motion.div
               {...motionPresets.patterns.modal.backdrop}
-              onClick={() => setInspectEmail(null)}
+              onClick={closeInspector}
+              aria-hidden="true"
               className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md"
             />
 
             {/* Panel */}
             <motion.div
               {...motionPresets.patterns.modal.content}
+              ref={inspectorRef}
               role="dialog"
               aria-modal="true"
               aria-label="Inspect sender request context"
@@ -633,7 +645,7 @@ export function RequestsTriageBoard({
                   </h3>
                 </div>
                 <button
-                  onClick={() => setInspectEmail(null)}
+                  onClick={closeInspector}
                   className="rounded-lg p-1 text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-white/10"
                   aria-label="Close details"
                 >
@@ -734,7 +746,7 @@ export function RequestsTriageBoard({
               {/* Inspector CTAs */}
               <div className="flex items-center justify-end gap-2 border-t border-white/8 px-6 py-4">
                 <button
-                  onClick={() => setInspectEmail(null)}
+                  onClick={closeInspector}
                   className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/10"
                 >
                   Close
