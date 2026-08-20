@@ -23,6 +23,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
+import { DegradedStateBanner } from "@/features/design-system/feedback/DegradedStateBanner";
 import { useLayoutPreferences, usePreferences } from "@/features/preferences";
 import { useSenderConversion } from "@/features/sender-conversion";
 import { useSnooze } from "@/features/snooze";
@@ -39,6 +40,7 @@ import { useRequests } from "../useRequests";
 import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
+import { offlineAppFailure } from "@/lib/api";
 
 // BETA-074 (Issue #1981) — the requests triage board and the sender journey are
 // large feature surfaces only shown on demand. Loading them as async chunks
@@ -279,6 +281,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onMarkNotificationRead={notificationCenter.markRead}
                 onMarkAllNotificationsRead={notificationCenter.markAllRead}
               />
+              {source.connectivity.paused &&
+              source.sourceView.kind !== "error" &&
+              !blockingSource ? (
+                <DegradedStateBanner
+                  failure={offlineAppFailure()}
+                  compact
+                  onRetry={() => void source.retry()}
+                />
+              ) : null}
               {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
                 <MailMailboxStatus
                   view={source.sourceView}

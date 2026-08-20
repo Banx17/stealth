@@ -44,6 +44,13 @@ import { SendProgress, type FailureInspectionDetails } from "@/features/compose/
 import { useFreighter } from "@/features/onboarding/useFreighter";
 import { resolveSenderAddress } from "@/services/stellar/wallet";
 import { patchEntry } from "@/services/storage/outbox";
+import {
+  clearUnsentDraft,
+  readUnsentDraft,
+  restoreDraftIfBlank,
+  saveUnsentDraft,
+} from "@/features/mail/unsent-work";
+import { claimOnce, classifyAppFailure, releaseOnce } from "@/lib/api";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -85,6 +92,7 @@ export function Compose({
   const [canRetry, setCanRetry] = useState(true);
   const [isCommitted, setIsCommitted] = useState(false);
   const pipelineRef = useRef<SendPipeline | null>(null);
+  const sendLock = useRef(new Set<string>());
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
   const [postage, setPostage] = useState(initialPostage);
@@ -128,9 +136,13 @@ export function Compose({
   // Hydrate / reset form when opening or closing
   useEffect(() => {
     if (open) {
-      setTo(initialTo);
-      setSubject(initialSubject);
-      setBody(initialBody);
+      const restored = restoreDraftIfBlank(
+        { to: initialTo, subject: initialSubject, body: initialBody },
+        readUnsentDraft(),
+      );
+      setTo(restored.to);
+      setSubject(restored.subject);
+      setBody(restored.body);
       setSendStages([]);
       setSendError(null);
       setFailureDetails(null);
@@ -138,7 +150,7 @@ export function Compose({
       setCanRetry(true);
       setIsCommitted(false);
       pipelineRef.current = null;
-      setPostage(initialPostage);
+      setPostage(restored.restored && restored.postage ? restored.postage : initialPostage);
       postageManuallySet.current = false;
     } else {
       setTo("");
@@ -160,6 +172,14 @@ export function Compose({
       postageManuallySet.current = false;
     }
   }, [open, initialTo, initialSubject, initialBody, initialPostage]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      saveUnsentDraft({ to, subject, body, postage });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [open, to, subject, body, postage]);
 
   // Fetch relay status when compose opens
   useEffect(() => {
@@ -308,6 +328,16 @@ export function Compose({
     });
     if (!isValid) return;
 
+    if (!claimOnce(sendLock.current, "compose-send")) return;
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      saveUnsentDraft({ to, subject, body, postage });
+      setSendError("You are offline. The draft is saved on this device.");
+      onShowToast?.("Offline — unsent draft kept");
+      releaseOnce(sendLock.current, "compose-send");
+      return;
+    }
+
     setIsSending(true);
 
     // Run the staged send pipeline (immediate send only).
@@ -340,10 +370,24 @@ export function Compose({
       setSupportId(pipeline.supportId);
       setSendStages(pipeline.getStages());
 
-      const outcome = await pipeline.run();
+      let outcome: Awaited<ReturnType<SendPipeline["run"]>>;
+      try {
+        outcome = await pipeline.run();
+      } catch (error) {
+        setIsSending(false);
+        saveUnsentDraft({ to, subject, body, postage });
+        setSendError(classifyAppFailure(error).message);
+        onShowToast?.("Send failed — unsent draft kept");
+        releaseOnce(sendLock.current, "compose-send");
+        return;
+      }
 
       if (!outcome.ok) {
         setIsSending(false);
+        saveUnsentDraft({ to, subject, body, postage });
+        const failure = classifyAppFailure(new Error(outcome.message), {
+          online: typeof navigator === "undefined" ? true : navigator.onLine,
+        });
         setCanRetry(outcome.canRetry);
         setIsCommitted(outcome.isCommitted);
         setFailureDetails({
@@ -363,9 +407,10 @@ export function Compose({
           setSendError("No Stellar wallet detected. Unlock Freighter, then retry.");
           onShowToast?.("Wallet unavailable");
         } else {
-          setSendError(outcome.message);
-          onShowToast?.("Send failed — you can retry");
+          setSendError(failure.message);
+          onShowToast?.("Send failed — unsent draft kept");
         }
+        releaseOnce(sendLock.current, "compose-send");
         return;
       }
 
@@ -374,6 +419,7 @@ export function Compose({
       setFailureDetails(null);
     }
 
+    clearUnsentDraft();
     onSubmit?.({
       to: to.trim(),
       subject: subject.trim(),
@@ -386,6 +432,7 @@ export function Compose({
       mode: scheduled ? "schedule" : mode,
     });
     setIsSending(false);
+    releaseOnce(sendLock.current, "compose-send");
     onClose();
     onShowToast?.(getSuccessToastMessage(scheduled, isTrustedSender(quoteState), postage));
   };

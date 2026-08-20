@@ -11,7 +11,13 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 
-import { cacheInvalidations, queryKeys, sharedTypedApi as api } from "@/lib/api";
+import {
+  cacheInvalidations,
+  queryKeys,
+  sharedTypedApi as api,
+  shouldPauseSync,
+  shouldResumeSync,
+} from "@/lib/api";
 import type {
   MailboxCounts,
   MailboxDescriptor,
@@ -34,6 +40,8 @@ import {
 export interface UseMailboxSyncOptions {
   actor: string;
   enabled?: boolean;
+  online?: boolean;
+  visible?: boolean;
 }
 
 function mergeSyncPages(
@@ -64,11 +72,19 @@ function mergeSyncPages(
   };
 }
 
-export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions) {
+export function useMailboxSync({
+  actor,
+  enabled = true,
+  online = true,
+  visible = true,
+}: UseMailboxSyncOptions) {
   const queryClient = useQueryClient();
   const tabIdRef = useRef(`tab_${Math.random().toString(36).slice(2, 10)}`);
+  const pausedRef = useRef(false);
   const syncKey = queryKeys.mailbox.sync(actor);
   const countsKey = queryKeys.mailbox.counts(actor);
+  const paused = shouldPauseSync(online, visible);
+  const liveEnabled = enabled && online;
 
   const listQuery = useInfiniteQuery({
     queryKey: syncKey,
@@ -78,6 +94,9 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
     enabled,
+    refetchOnWindowFocus: !paused,
+    refetchOnReconnect: false,
+    retry: online ? 2 : 0,
   });
 
   const latestPage = listQuery.data?.pages.at(-1);
@@ -98,9 +117,10 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
       if (!since) return null;
       return api.mailbox.sync({ sinceCursor: since, limit: 100 }, signal);
     },
-    enabled: enabled && Boolean(sinceCursor),
-    refetchInterval: MAILBOX_DELTA_INTERVAL_MS,
-    refetchOnWindowFocus: true,
+    enabled: liveEnabled && Boolean(sinceCursor),
+    refetchInterval: paused ? false : MAILBOX_DELTA_INTERVAL_MS,
+    refetchOnWindowFocus: !paused,
+    refetchOnReconnect: false,
   });
 
   const countsQuery = useQuery({
@@ -108,6 +128,9 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
     queryFn: ({ signal }) => api.mailbox.getCounts(signal),
     enabled,
     staleTime: 10_000,
+    refetchOnWindowFocus: !paused,
+    refetchOnReconnect: false,
+    retry: online ? 2 : 0,
   });
 
   // BETA-074 — a stable latest-page snapshot held in a ref so the broadcast
@@ -221,6 +244,13 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
   const refetch = useCallback(async () => {
     await Promise.all([listQuery.refetch(), countsQuery.refetch(), deltaQuery.refetch()]);
   }, [countsQuery, deltaQuery, listQuery]);
+
+  useEffect(() => {
+    const resume = shouldResumeSync(pausedRef.current, paused);
+    pausedRef.current = paused;
+    if (!resume || !enabled) return;
+    void refetch();
+  }, [enabled, paused, refetch]);
 
   return {
     emails,
