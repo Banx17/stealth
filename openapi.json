@@ -679,8 +679,7 @@
                   "duplicate_receipt",
                   "duplicate_postage",
                   "invalid_quote",
-                  "request_in_progress",
-                  "chain_error"
+                  "request_in_progress"
                 ]
               },
               "message": {

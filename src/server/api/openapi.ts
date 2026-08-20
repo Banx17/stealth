@@ -609,7 +609,9 @@ export const openApiDocument = {
                 type: "string",
                 description: "Stable domain-specific error code.",
                 "x-optic-ignore": true,
-                enum: API_ERROR_CODES.filter((c) => c !== "recent_auth_required"),
+                enum: API_ERROR_CODES.filter(
+                  (c) => c !== "recent_auth_required" && c !== "chain_error",
+                ),
               },
               message: {
                 type: "string",
