@@ -70,7 +70,8 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
     queryFn: ({ pageParam, signal }) =>
       api.mailbox.sync({ cursor: pageParam, limit: MAILBOX_PAGE_SIZE }, signal),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => (lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
     enabled,
   });
 
@@ -127,14 +128,19 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
       const message = event.data;
       if (!message || message.actor !== actor || message.tabId === tabIdRef.current) return;
       if (message.type === "MAILBOX_MUTATION") {
-        queryClient.setQueryData(syncKey, (current: InfiniteData<MailboxSyncResponse> | undefined) =>
-          mergeSyncPages(
-            current,
-            [message.descriptor],
-            message.descriptor.isTombstone ? [message.descriptor.messageId] : [],
-            latestPage?.counts ?? firstPage?.counts ?? countsQuery.data?.counts ?? emptyCountsFallback(),
-            latestPage?.syncCursor ?? firstPage?.syncCursor ?? readSyncCursor(actor) ?? "",
-          ),
+        queryClient.setQueryData(
+          syncKey,
+          (current: InfiniteData<MailboxSyncResponse> | undefined) =>
+            mergeSyncPages(
+              current,
+              [message.descriptor],
+              message.descriptor.isTombstone ? [message.descriptor.messageId] : [],
+              latestPage?.counts ??
+                firstPage?.counts ??
+                countsQuery.data?.counts ??
+                emptyCountsFallback(),
+              latestPage?.syncCursor ?? firstPage?.syncCursor ?? readSyncCursor(actor) ?? "",
+            ),
         );
         void queryClient.invalidateQueries({ queryKey: countsKey });
         void queryClient.invalidateQueries({ queryKey: queryKeys.mailbox.delta(actor) });
@@ -146,7 +152,16 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
     return () => {
       channel.close();
     };
-  }, [actor, countsKey, countsQuery.data, firstPage?.counts, firstPage?.syncCursor, latestPage, queryClient, syncKey]);
+  }, [
+    actor,
+    countsKey,
+    countsQuery.data,
+    firstPage?.counts,
+    firstPage?.syncCursor,
+    latestPage,
+    queryClient,
+    syncKey,
+  ]);
 
   const patchMutation = useMutation({
     mutationFn: ({ messageId, patch }: { messageId: string; patch: MailboxFlagsPatch }) =>
@@ -157,7 +172,10 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
           current,
           [descriptor],
           descriptor.isTombstone ? [descriptor.messageId] : [],
-          latestPage?.counts ?? firstPage?.counts ?? countsQuery.data?.counts ?? emptyCountsFallback(),
+          latestPage?.counts ??
+            firstPage?.counts ??
+            countsQuery.data?.counts ??
+            emptyCountsFallback(),
           latestPage?.syncCursor ?? firstPage?.syncCursor ?? readSyncCursor(actor) ?? "",
         ),
       );
@@ -179,7 +197,8 @@ export function useMailboxSync({ actor, enabled = true }: UseMailboxSyncOptions)
   }, [listQuery.data]);
 
   const emails = useMemo(() => descriptors.map(mailboxDescriptorToEmail), [descriptors]);
-  const atCap = (listQuery.data?.pages.flatMap((page) => page.items).length ?? 0) >= MAILBOX_RENDER_CAP;
+  const atCap =
+    (listQuery.data?.pages.flatMap((page) => page.items).length ?? 0) >= MAILBOX_RENDER_CAP;
   const hasMore = !atCap && Boolean(latestPage?.hasMore);
   const counts = latestPage?.counts ?? firstPage?.counts ?? countsQuery.data?.counts ?? null;
 

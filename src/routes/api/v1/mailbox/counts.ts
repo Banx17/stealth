@@ -13,11 +13,7 @@ export const Route = createFileRoute("/api/v1/mailbox/counts")({
           const apiContext = await getApiContext(request);
           const actor = requireActor(apiContext);
           const envelopes = await listAllRecipientEnvelopes(apiContext.repository, actor, true);
-          return apiSuccess(
-            request,
-            { counts: countMailbox(envelopes) },
-            { status: 200 },
-          );
+          return apiSuccess(request, { counts: countMailbox(envelopes) }, { status: 200 });
         }),
     },
   },

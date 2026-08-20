@@ -16,7 +16,14 @@ export const MAILBOX_RENDER_CAP = 200;
 export const MAILBOX_SYNC_CHANNEL = "stealth_mailbox_sync";
 export const MAILBOX_DELTA_INTERVAL_MS = 15_000;
 
-const INBOX_COUNT_FOLDERS = new Set<string>(["inbox", "pending", "requests", "priority", "verified", "encrypted"]);
+const INBOX_COUNT_FOLDERS = new Set<string>([
+  "inbox",
+  "pending",
+  "requests",
+  "priority",
+  "verified",
+  "encrypted",
+]);
 
 export function emptyMailboxCounts(): MailboxCounts {
   return {
@@ -122,7 +129,11 @@ export function flagsPatchFromEmail(patch: Partial<Email>): MailboxFlagsPatch | 
 
 type CountableMail = Pick<Email, "folder" | "unread" | "starred">;
 
-function contributeCounts(counts: MailboxCounts, email: CountableMail, delta: 1 | -1): MailboxCounts {
+function contributeCounts(
+  counts: MailboxCounts,
+  email: CountableMail,
+  delta: 1 | -1,
+): MailboxCounts {
   const next = { ...counts };
   const bump = (key: keyof MailboxCounts) => {
     next[key] = Math.max(0, next[key] + delta);

@@ -79,17 +79,29 @@ describe("mailbox live helpers (BETA-054)", () => {
   it("counts inbox, unread, starred, archive, trash, and deletion", () => {
     const pending = envelope({ messageId: "1".repeat(64), status: "pending" });
     const starred = applyMailboxFlags(
-      envelope({ messageId: "2".repeat(64), status: "delivered", createdAt: "2026-08-17T11:00:00Z" }),
+      envelope({
+        messageId: "2".repeat(64),
+        status: "delivered",
+        createdAt: "2026-08-17T11:00:00Z",
+      }),
       { starred: true, unread: false },
       "2026-08-17T11:01:00Z",
     );
     const archived = applyMailboxFlags(
-      envelope({ messageId: "3".repeat(64), status: "delivered", createdAt: "2026-08-17T12:00:00Z" }),
+      envelope({
+        messageId: "3".repeat(64),
+        status: "delivered",
+        createdAt: "2026-08-17T12:00:00Z",
+      }),
       { folder: "archive", unread: false },
       "2026-08-17T12:01:00Z",
     );
     const trashed = applyMailboxFlags(
-      envelope({ messageId: "4".repeat(64), status: "delivered", createdAt: "2026-08-17T13:00:00Z" }),
+      envelope({
+        messageId: "4".repeat(64),
+        status: "delivered",
+        createdAt: "2026-08-17T13:00:00Z",
+      }),
       { folder: "trash" },
       "2026-08-17T13:01:00Z",
     );

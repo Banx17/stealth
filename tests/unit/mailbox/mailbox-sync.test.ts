@@ -147,9 +147,9 @@ describe("Live mailbox sync API (BETA-054)", () => {
       `http://localhost/api/v1/mailbox/sync?sinceCursor=${encodeURIComponent(initial.data.syncCursor)}`,
     );
     const deltaJson = await delta.json();
-    expect(deltaJson.data.items.some((item: { messageId: string }) => item.messageId === MSG1)).toBe(
-      true,
-    );
+    expect(
+      deltaJson.data.items.some((item: { messageId: string }) => item.messageId === MSG1),
+    ).toBe(true);
   });
 
   it("rejects another actor patching a message and conflicts on deleted mail", async () => {

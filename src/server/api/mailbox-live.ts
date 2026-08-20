@@ -10,22 +10,14 @@ import type {
   StoredEnvelope,
 } from "./domain";
 import { encodeCursor, decodeCursor } from "./pagination";
-import {
-  paginate,
-  PAGINATED_QUERY_ORDERINGS,
-  type ApiRepository,
-} from "./repository";
+import { paginate, PAGINATED_QUERY_ORDERINGS, type ApiRepository } from "./repository";
 
 export const MAILBOX_SYNC_SCOPE = "mailbox_sync";
 export const MAILBOX_SYNC_PAGE_SCOPE = "mailbox_sync_page";
 const LIST_WALK_PAGE_SIZE = 100;
 const LIST_WALK_MAX_PAGES = 40;
 
-const INBOX_COUNT_FOLDERS = new Set<MailboxLiveFolder>([
-  "inbox",
-  "pending",
-  "requests",
-]);
+const INBOX_COUNT_FOLDERS = new Set<MailboxLiveFolder>(["inbox", "pending", "requests"]);
 
 const LIVE_FOLDERS = new Set<MailboxLiveFolder>([
   "inbox",
@@ -109,8 +101,7 @@ export function applyMailboxFlags(
   const starred = patch.starred ?? current.starred;
   const unread = patch.unread ?? current.unread;
   const folder = patch.folder ?? current.folder;
-  const deletedAt =
-    patch.folder === "trash" ? (envelope.deletedAt ?? now) : envelope.deletedAt;
+  const deletedAt = patch.folder === "trash" ? (envelope.deletedAt ?? now) : envelope.deletedAt;
   let status = envelope.status ?? "pending";
   if (patch.unread === false) status = "delivered";
   if (patch.unread === true) status = "pending";

@@ -105,7 +105,9 @@ export function useMailSource({ isDemoMode }: UseMailSourceOptions) {
         return { ok: true };
       } catch (error) {
         pendingMutations.current.delete(key);
-        setOverlay((current) => revertEmailPatch(current, email.id, displayPatchRestore(email, patch)));
+        setOverlay((current) =>
+          revertEmailPatch(current, email.id, displayPatchRestore(email, patch)),
+        );
         return { ok: false, reason: errorLabel(normalizeApiClientError(error)) };
       }
     },
