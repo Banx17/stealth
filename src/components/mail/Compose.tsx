@@ -36,9 +36,10 @@ import {
 } from "./composeValidation";
 import { DeliveryEstimator, type RelayStatus } from "./DeliveryEstimator";
 import { SendPipeline, type StageState } from "@/features/compose/sendPipeline";
-import { SendProgress } from "@/features/compose/SendProgress";
+import { SendProgress, type FailureInspectionDetails } from "@/features/compose/SendProgress";
 import { useFreighter } from "@/features/onboarding/useFreighter";
 import { resolveSenderAddress } from "@/services/stellar/wallet";
+import { patchEntry } from "@/services/storage/outbox";
 const EMPTY_BLOCKED: string[] = [];
 const EMPTY_RESOLVED: RecipientReadiness[] = [];
 
@@ -75,6 +76,10 @@ export function Compose({
   const [isSending, setIsSending] = useState(false);
   const [sendStages, setSendStages] = useState<StageState[]>([]);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [failureDetails, setFailureDetails] = useState<FailureInspectionDetails | null>(null);
+  const [supportId, setSupportId] = useState<string | undefined>(undefined);
+  const [canRetry, setCanRetry] = useState(true);
+  const [isCommitted, setIsCommitted] = useState(false);
   const pipelineRef = useRef<SendPipeline | null>(null);
   const [encrypted, setEncrypted] = useState(true);
   const [receipt, setReceipt] = useState(true);
@@ -124,6 +129,10 @@ export function Compose({
       setBody(initialBody);
       setSendStages([]);
       setSendError(null);
+      setFailureDetails(null);
+      setSupportId(undefined);
+      setCanRetry(true);
+      setIsCommitted(false);
       pipelineRef.current = null;
       setPostage(initialPostage);
       postageManuallySet.current = false;
@@ -135,6 +144,13 @@ export function Compose({
       setEmojiOpen(false);
       setEncrypted(true);
       setReceipt(true);
+      setSendStages([]);
+      setSendError(null);
+      setFailureDetails(null);
+      setSupportId(undefined);
+      setCanRetry(true);
+      setIsCommitted(false);
+      pipelineRef.current = null;
       setPostage(initialPostage);
       setResolvedRecipients(EMPTY_RESOLVED);
       postageManuallySet.current = false;
@@ -240,7 +256,23 @@ export function Compose({
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
+  const handleSaveDraft = () => {
+    if (pipelineRef.current) {
+      patchEntry(pipelineRef.current.messageId, {
+        subject: subject.trim(),
+        recipients: parseRecipients(to),
+        sender: senderAddress,
+      });
+    }
+    onShowToast?.("Draft saved");
+    setSendStages([]);
+    setSendError(null);
+    setFailureDetails(null);
+  };
+
   const handleSend = async (scheduled = false) => {
+    if (isSending || pipelineRef.current?.isRunning()) return;
+
     const isValid = validateSendRequest({
       resolvedRecipients,
       quoteState,
@@ -255,6 +287,7 @@ export function Compose({
 
     // Run the staged send pipeline (immediate send only).
     setSendError(null);
+    setFailureDetails(null);
 
     if (!scheduled) {
       const resolvedAccounts = resolvedRecipients
@@ -273,16 +306,31 @@ export function Compose({
             subject: subject.trim(),
             body,
             recipients: resolvedAccounts,
+            postage,
+            postageQuote: quoteState.status === "quoted" ? quoteState.quote : undefined,
           },
           setSendStages,
         );
       pipelineRef.current = pipeline;
+      setSupportId(pipeline.supportId);
       setSendStages(pipeline.getStages());
 
       const outcome = await pipeline.run();
 
       if (!outcome.ok) {
         setIsSending(false);
+        setCanRetry(outcome.canRetry);
+        setIsCommitted(outcome.isCommitted);
+        setFailureDetails({
+          stage: outcome.stage,
+          code: outcome.code,
+          message: outcome.message,
+          supportId: outcome.supportId,
+          timestamp: outcome.timestamp,
+          canRetry: outcome.canRetry,
+          isCommitted: outcome.isCommitted,
+        });
+
         if (outcome.reason === "wallet_rejected") {
           setSendError("Signature declined — your draft is safe. Retry when ready.");
           onShowToast?.("Signature declined — draft kept");
@@ -298,6 +346,7 @@ export function Compose({
 
       pipelineRef.current = null;
       setSendStages([]);
+      setFailureDetails(null);
     }
 
     onSubmit?.({
@@ -382,7 +431,12 @@ export function Compose({
                 <SendProgress
                   stages={sendStages}
                   error={sendError}
+                  failureDetails={failureDetails}
+                  supportId={supportId}
+                  canRetry={canRetry}
+                  isCommitted={isCommitted}
                   onRetry={() => void handleSend(false)}
+                  onSaveDraft={handleSaveDraft}
                 />
               )}
 

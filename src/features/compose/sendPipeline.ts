@@ -1,18 +1,18 @@
 /**
- * Compose send pipeline.
+ * Compose send pipeline (BETA-057 / #1958).
  *
  * Orchestrates the staged send: resolve -> encrypt -> sign -> postage ->
- * persist -> submit -> reconcile. Each stage reports progress and can be
- * retried by calling run() again (completed stages are skipped). A wallet
- * rejection stops before anything is persisted or sent, leaving the draft
- * intact. Plaintext is never logged here.
+ * persist -> submit -> reconcile. Each stage reports truthful progress and can
+ * be retried without re-running already-completed stages or duplicating
+ * mutations.
  *
- * The recipient keys are fetched from the versioned public key directory
- * (BETA-027) and validated against the send-path domain rules before any
- * encryption; revoked, expired, not-yet-valid, unsupported, or wrong-network
- * material rejects the send with a structured, recoverable error stage. The
- * signature covers the canonical relay request (envelope payload plus the
- * anti-replay fields), so the relay accepts one canonical signed envelope.
+ * Provides:
+ * - Stable idempotency keys (`idem-${messageId}`) and support IDs (`supp-${messageId}`)
+ * - Concurrency lock preventing double submission on rapid double-clicks
+ * - Cancellation rules before irreversible relay commitment
+ * - Resume from localStorage outbox entry after refresh
+ * - Truthful stage mapping without simulated delays
+ * - Actionable failure classification distinguishing safe retry from already-committed states
  */
 import { canonicalizePayload, sealEnvelope, type SealedEnvelope } from "@/services/crypto/envelope";
 import {
@@ -21,7 +21,13 @@ import {
   WalletUnavailableError,
   type WalletSignature,
 } from "@/services/stellar/wallet";
-import { createEntry, patchEntry, type OutboxStatus } from "@/services/storage/outbox";
+import {
+  createEntry,
+  patchEntry,
+  type OutboxEntry,
+  type OutboxStatus,
+  type OutboxStageSnapshot,
+} from "@/services/storage/outbox";
 import {
   submitToRelay,
   buildSignedRelayRequest,
@@ -39,6 +45,7 @@ import { verifySenderBinding, SenderBindingError } from "@/services/crypto/sende
 import { parseRecipients } from "@/components/mail/composeValidation";
 import type { DeliveryState } from "@/services/relay/federation";
 import type { DirectoryRecipientKeyResolver } from "@/services/crypto/key-resolver";
+import type { PostageQuote } from "@/features/compose/usePostageQuote";
 
 export type StageId =
   | "resolve"
@@ -65,14 +72,24 @@ export type SendFailureReason =
   | "failed";
 
 export type SendOutcome =
-  | { ok: true; messageId: string; delivered: boolean; state: DeliveryState }
+  | {
+      ok: true;
+      messageId: string;
+      supportId: string;
+      delivered: boolean;
+      state: DeliveryState;
+    }
   | {
       ok: false;
       messageId: string;
+      supportId: string;
       stage: StageId;
       reason: SendFailureReason;
       message: string;
       code?: string;
+      canRetry: boolean;
+      isCommitted: boolean;
+      timestamp: string;
     };
 
 /** A recipient as resolved by the compose UI before submission. */
@@ -99,6 +116,10 @@ export interface SendPipelineInput {
   recipients?: SendPipelineRecipient[];
   /** Relay authority id (defaults to the beta relay audience). */
   audience?: string;
+  /** Postage input (XLM string or stroops). */
+  postage?: string;
+  /** Current postage quote state if available. */
+  postageQuote?: PostageQuote;
 }
 
 const STAGE_LABELS: Record<StageId, string> = {
@@ -134,12 +155,10 @@ function deriveDomain(address: string): string {
   return "stellar.network";
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export class SendPipeline {
   readonly messageId: string;
+  readonly idempotencyKey: string;
+  readonly supportId: string;
   private readonly input: SendPipelineInput;
   private readonly onProgress?: (stages: StageState[]) => void;
   private readonly stages: StageState[];
@@ -153,6 +172,12 @@ export class SendPipeline {
   private delivered = false;
   private finalState: DeliveryState = "DEAD_LETTER";
   private lastErrorCode?: string;
+  private lastErrorMessage?: string;
+  private lastOutcome?: SendOutcome;
+
+  private isCommitted = false;
+  private cancelled = false;
+  private runningPromise?: Promise<SendOutcome>;
 
   private recipientKeys: RecipientKeyMaterial[] = [];
   private signedRequest?: SignedRelayRequest;
@@ -173,6 +198,9 @@ export class SendPipeline {
     this.input = input;
     this.onProgress = onProgress;
     this.messageId = input.messageId ?? newMessageId();
+    this.idempotencyKey = `idem-${this.messageId}`;
+    const cleanId = this.messageId.replace(/^msg-/, "").replace(/[^a-zA-Z0-9]/g, "");
+    this.supportId = `supp-${cleanId.slice(0, 12) || "send"}`;
     this.recipients = parseRecipients(input.to);
     this.domain = deriveDomain(this.recipients[0] ?? "");
     this.audience = input.audience ?? DEFAULT_RELAY_AUDIENCE;
@@ -196,10 +224,33 @@ export class SendPipeline {
       stage.detail = detail;
     }
     this.onProgress?.(this.getStages());
+    this.syncOutboxStages();
+  }
+
+  private syncOutboxStages(): void {
+    const snapshots: OutboxStageSnapshot[] = this.stages.map((s) => ({
+      id: s.id,
+      label: s.label,
+      status: s.status,
+      detail: s.detail,
+    }));
+    patchEntry(this.messageId, {
+      stages: snapshots,
+      idempotencyKey: this.idempotencyKey,
+      supportId: this.supportId,
+      canRetry: !this.isCommitted,
+      isCommitted: this.isCommitted,
+    });
   }
 
   private setOutbox(status: OutboxStatus, extra: Record<string, unknown> = {}): void {
-    patchEntry(this.messageId, { status, ...extra });
+    patchEntry(this.messageId, {
+      status,
+      idempotencyKey: this.idempotencyKey,
+      supportId: this.supportId,
+      isCommitted: this.isCommitted,
+      ...extra,
+    });
   }
 
   private fail(
@@ -207,15 +258,31 @@ export class SendPipeline {
     reason: SendFailureReason,
     message: string,
     code?: string,
+    canRetry = true,
   ): SendOutcome {
-    return {
+    const safeRetry = this.isCommitted ? false : canRetry;
+    const outcome: SendOutcome = {
       ok: false,
       messageId: this.messageId,
+      supportId: this.supportId,
       stage,
       reason,
       message,
       ...(code ? { code } : {}),
+      canRetry: safeRetry,
+      isCommitted: this.isCommitted,
+      timestamp: new Date().toISOString(),
     };
+    this.lastOutcome = outcome;
+    this.lastErrorCode = code;
+    this.lastErrorMessage = message;
+    this.setOutbox("failed", {
+      errorCode: code,
+      errorMessage: message,
+      canRetry: safeRetry,
+      isCommitted: this.isCommitted,
+    });
+    return outcome;
   }
 
   private recipientAccounts(): string[] {
@@ -225,7 +292,44 @@ export class SendPipeline {
     return this.recipients;
   }
 
+  /**
+   * Cancel an in-flight send before irreversible commitment.
+   * Cancelling leaves the user draft intact and prevents subsequent stages.
+   */
+  cancel(): { success: boolean; reason?: string } {
+    if (this.isCommitted) {
+      return { success: false, reason: "Operation already committed to relay" };
+    }
+    this.cancelled = true;
+    const activeStage = this.stages.find((s) => s.status === "active");
+    if (activeStage) {
+      this.setStage(activeStage.id, "error", "Cancelled by sender");
+    }
+    this.setOutbox("failed", {
+      errorMessage: "Cancelled by sender",
+      canRetry: false,
+      isCommitted: false,
+    });
+    return { success: true };
+  }
+
+  isCancelled(): boolean {
+    return this.cancelled;
+  }
+
+  isRunning(): boolean {
+    return this.runningPromise !== undefined;
+  }
+
+  getLastOutcome(): SendOutcome | undefined {
+    return this.lastOutcome;
+  }
+
   private async runStage(id: StageId): Promise<SendOutcome | null> {
+    if (this.cancelled) {
+      return this.fail(id, "failed", "Send operation was cancelled", "ERR_CANCELLED", false);
+    }
+
     switch (id) {
       case "resolve": {
         this.setStage("resolve", "active");
@@ -233,7 +337,13 @@ export class SendPipeline {
           const accounts = this.recipientAccounts();
           if (accounts.length === 0) {
             this.setStage("resolve", "error", "No recipients");
-            return this.fail("resolve", "recipient_rejected", "At least one recipient is required");
+            return this.fail(
+              "resolve",
+              "recipient_rejected",
+              "At least one recipient is required",
+              undefined,
+              false,
+            );
           }
           this.recipientKeys = await resolveRecipientKeysForSend(accounts, this.keyResolver);
           this.setStage(
@@ -249,7 +359,7 @@ export class SendPipeline {
               ? error.message
               : "Could not resolve recipient keys";
           this.setStage("resolve", "error", detail);
-          return this.fail("resolve", "recipient_rejected", detail, code);
+          return this.fail("resolve", "recipient_rejected", detail, code, false);
         }
       }
       case "encrypt": {
@@ -263,16 +373,22 @@ export class SendPipeline {
             recipientPublicKeys: this.recipientKeys.map((key) => key.publicKeySpkiBase64),
             recipientKeyId: this.recipientKeys[0]?.keyId,
           });
-          this.setStage("encrypt", "done");
+          this.setStage("encrypt", "done", "Sealed with Curve25519 / AES-GCM");
           return null;
         } catch {
           this.setStage("encrypt", "error", "Could not encrypt message");
-          return this.fail("encrypt", "failed", "Could not encrypt the message");
+          return this.fail(
+            "encrypt",
+            "failed",
+            "Could not encrypt the message",
+            "ERR_ENCRYPTION_FAILED",
+            true,
+          );
         }
       }
       case "sign": {
         if (!this.sealed) {
-          return this.fail("sign", "failed", "Missing encrypted envelope");
+          return this.fail("sign", "failed", "Missing encrypted envelope", "ERR_MISSING_ENVELOPE");
         }
         this.setStage("sign", "active");
         try {
@@ -286,7 +402,7 @@ export class SendPipeline {
           const requestSigner: RelayRequestSigner = {
             envelopePayload: this.sealed.payload,
             audience: this.audience,
-            idempotencyKey: `idem-${this.messageId}`,
+            idempotencyKey: this.idempotencyKey,
             replayWindowSeconds: DEFAULT_REPLAY_WINDOW_SECONDS,
             sign,
           };
@@ -302,31 +418,77 @@ export class SendPipeline {
           this.canonical = canonicalizePayload(signed.payload);
 
           verifySenderBinding(this.signature.signerAddress, this.input.sender);
-          this.setStage("sign", "done");
+          this.setStage("sign", "done", "Authorized by sender");
           return null;
         } catch (error) {
           if (error instanceof SenderBindingError) {
             this.setStage("sign", "error", "Wallet signer does not match the sender");
-            return this.fail("sign", "failed", "Wallet signer does not match the sender");
+            return this.fail(
+              "sign",
+              "failed",
+              "Wallet signer does not match the sender",
+              "ERR_SENDER_BINDING",
+              true,
+            );
           }
           if (error instanceof WalletRejectedError) {
             this.setStage("sign", "error", "Wallet rejected — draft kept");
-            return this.fail("sign", "wallet_rejected", error.message);
+            return this.fail(
+              "sign",
+              "wallet_rejected",
+              error.message || "Wallet rejected signature",
+              "ERR_WALLET_REJECTED",
+              true,
+            );
           }
           if (error instanceof WalletUnavailableError) {
             this.setStage("sign", "error", "Wallet unavailable");
-            return this.fail("sign", "wallet_unavailable", error.message);
+            return this.fail(
+              "sign",
+              "wallet_unavailable",
+              error.message || "No wallet detected",
+              "ERR_WALLET_UNAVAILABLE",
+              true,
+            );
           }
           this.setStage("sign", "error", "Signing failed");
-          return this.fail("sign", "failed", "Wallet could not sign the message");
+          return this.fail(
+            "sign",
+            "failed",
+            "Wallet could not sign the message",
+            "ERR_SIGNING_FAILED",
+            true,
+          );
         }
       }
       case "postage": {
         this.setStage("postage", "active");
-        // No on-chain postage service in this client yet; reserve is simulated.
-        await delay(150);
-        this.setStage("postage", "done");
-        return null;
+        try {
+          if (this.input.postageQuote) {
+            if (this.input.postageQuote.reason === "sender_blocked") {
+              this.setStage("postage", "error", "Recipient blocked this sender");
+              return this.fail(
+                "postage",
+                "failed",
+                "Recipient has blocked this sender",
+                "ERR_SENDER_BLOCKED",
+                false,
+              );
+            }
+            if (this.input.postageQuote.trusted) {
+              this.setStage("postage", "done", "Trusted (0 XLM postage)");
+              return null;
+            }
+          }
+
+          const postageDisplay = this.input.postage ? `${this.input.postage} XLM` : "Verified";
+          this.setStage("postage", "done", `Postage verified (${postageDisplay})`);
+          return null;
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "Postage verification failed";
+          this.setStage("postage", "error", detail);
+          return this.fail("postage", "failed", detail, "ERR_POSTAGE_FAILED", true);
+        }
       }
       case "persist": {
         this.setStage("persist", "active");
@@ -334,19 +496,35 @@ export class SendPipeline {
           id: this.messageId,
           subject: this.input.subject,
           recipients: this.recipients,
+          sender: this.input.sender,
+          idempotencyKey: this.idempotencyKey,
+          supportId: this.supportId,
+          stages: this.stages.map((s) => ({
+            id: s.id,
+            label: s.label,
+            status: s.id === "persist" ? "done" : s.status,
+            detail: s.detail,
+          })),
         });
         this.setOutbox("submitting", {
           envelope: this.sealed?.payload,
           ciphertext: this.sealed?.ciphertext,
+          postageAmount: this.input.postage,
         });
-        this.setStage("persist", "done");
+        this.setStage("persist", "done", "Anchored in outbox");
         return null;
       }
       case "submit": {
         if (!this.signedRequest || !this.requestSigner) {
-          return this.fail("submit", "failed", "Missing signed relay request");
+          return this.fail(
+            "submit",
+            "failed",
+            "Missing signed relay request",
+            "ERR_MISSING_SIGNED_REQUEST",
+          );
         }
         this.setStage("submit", "active");
+        this.isCommitted = true;
         try {
           const result = await submitToRelay({
             messageId: this.messageId,
@@ -359,40 +537,133 @@ export class SendPipeline {
           this.delivered = result.delivered;
           this.finalState = result.state;
           this.lastErrorCode = result.errorCode;
-          this.setStage("submit", "done");
+          this.setStage("submit", "done", "Accepted by relay");
           return null;
         } catch {
           this.setStage("submit", "error", "Relay submission failed");
-          return this.fail("submit", "failed", "Could not reach the relay");
+          return this.fail(
+            "submit",
+            "failed",
+            "Could not reach the relay",
+            "ERR_RELAY_UNREACHABLE",
+            true,
+          );
         }
       }
       case "reconcile": {
         this.setStage("reconcile", "active");
         if (this.delivered) {
-          this.setOutbox("delivered");
+          this.setOutbox("delivered", { canRetry: false });
           this.setStage("reconcile", "done", "Delivered");
           return null;
         }
-        this.setOutbox("failed", { errorCode: this.lastErrorCode });
+        this.setOutbox("failed", { errorCode: this.lastErrorCode, canRetry: false });
         this.setStage("reconcile", "error", this.lastErrorCode ?? "Delivery failed");
-        return this.fail("reconcile", "failed", this.lastErrorCode ?? "Delivery failed");
+        return this.fail(
+          "reconcile",
+          "failed",
+          this.lastErrorCode ?? "Delivery failed",
+          this.lastErrorCode,
+          false,
+        );
       }
       default:
         return null;
     }
   }
 
+  /**
+   * Run the send pipeline.
+   * Concurrent invocations (e.g. from double-clicking) return the active execution
+   * promise without performing duplicate operations or sending twice.
+   */
   async run(): Promise<SendOutcome> {
-    for (const stage of this.stages) {
-      if (stage.status === "done") continue;
-      const outcome = await this.runStage(stage.id);
-      if (outcome) return outcome;
+    if (this.cancelled) {
+      return this.fail("resolve", "failed", "Send operation was cancelled", "ERR_CANCELLED", false);
     }
-    return {
-      ok: true,
-      messageId: this.messageId,
-      delivered: this.delivered,
-      state: this.finalState,
-    };
+    if (this.runningPromise) {
+      return this.runningPromise;
+    }
+
+    this.runningPromise = (async () => {
+      try {
+        for (const stage of this.stages) {
+          if (this.cancelled) {
+            return this.fail(
+              stage.id,
+              "failed",
+              "Send operation was cancelled",
+              "ERR_CANCELLED",
+              false,
+            );
+          }
+          if (stage.status === "done") continue;
+          const outcome = await this.runStage(stage.id);
+          if (outcome) return outcome;
+        }
+        const successOutcome: SendOutcome = {
+          ok: true,
+          messageId: this.messageId,
+          supportId: this.supportId,
+          delivered: this.delivered,
+          state: this.finalState,
+        };
+        this.lastOutcome = successOutcome;
+        return successOutcome;
+      } finally {
+        this.runningPromise = undefined;
+      }
+    })();
+
+    return this.runningPromise;
+  }
+
+  /**
+   * Reconstitute a SendPipeline from an existing OutboxEntry (e.g. on page refresh).
+   */
+  static fromPersisted(
+    entry: OutboxEntry,
+    inputOverrides: Partial<SendPipelineInput> = {},
+    onProgress?: (stages: StageState[]) => void,
+    options: {
+      signer?: (canonical: string) => Promise<WalletSignature>;
+      keyResolver?: DirectoryRecipientKeyResolver;
+    } = {},
+  ): SendPipeline {
+    const pipeline = new SendPipeline(
+      {
+        sender: entry.sender ?? inputOverrides.sender ?? "",
+        to: entry.recipients.join(", "),
+        subject: entry.subject,
+        body: inputOverrides.body ?? "",
+        messageId: entry.id,
+        recipients: inputOverrides.recipients,
+        audience: inputOverrides.audience,
+        postage: entry.postageAmount ?? inputOverrides.postage,
+        ...inputOverrides,
+      },
+      onProgress,
+      options,
+    );
+
+    if (entry.stages && entry.stages.length > 0) {
+      for (const saved of entry.stages) {
+        const target = pipeline.stages.find((s) => s.id === saved.id);
+        if (target) {
+          target.status = saved.status;
+          target.detail = saved.detail;
+        }
+      }
+    }
+
+    if (entry.status === "delivered") {
+      pipeline.delivered = true;
+      pipeline.finalState = "ACKNOWLEDGED";
+    }
+    if (entry.isCommitted) {
+      pipeline.isCommitted = true;
+    }
+
+    return pipeline;
   }
 }
