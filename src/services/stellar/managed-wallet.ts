@@ -124,7 +124,7 @@ export class ManagedWalletService {
       }
       // Note: Full parameter introspection can be done here.
     } else if (intent.type === "postage") {
-      const allowedFuncs = ["submit_postage", "settle_postage"];
+      const allowedFuncs = ["submit", "settle", "refund", "dispute", "expire", "reclaim"];
       if (!allowedFuncs.includes(functionName)) {
         throw new Error(`Function ${functionName} is not allowed for postage intents`);
       }

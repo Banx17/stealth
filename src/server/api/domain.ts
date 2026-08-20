@@ -30,7 +30,20 @@ export const stroopAmountSchema = z
   }, "Amount exceeds Soroban i128");
 
 export const senderRuleSchema = z.enum(["default", "allow", "block"]);
-export const postageStatusSchema = z.enum(["pending", "settled", "refunded"]);
+export const postageStatusSchema = z.enum([
+  "pending",
+  "expired",
+  "disputed",
+  "settled",
+  "refunded",
+  "reclaimed",
+]);
+export const postageChainStatusSchema = z.enum([
+  "not_submitted",
+  "submitted",
+  "confirmed",
+  "failed",
+]);
 
 export const mailboxPolicySchema = z.object({
   allowUnknown: z.boolean(),
@@ -101,6 +114,16 @@ export const postageSchema = z.object({
   recipient: stellarAddressSchema,
   sender: stellarAddressSchema,
   status: postageStatusSchema,
+  // BETA-042: chain-sync bookkeeping fields. Kept optional so pre-existing
+  // records and test fixtures remain assignable; the service writes all of
+  // them explicitly when it touches the chain.
+  chainStatus: postageChainStatusSchema.optional(),
+  txHash: z.string().nullable().optional(),
+  ledger: z.number().int().nonnegative().nullable().optional(),
+  retryCount: z.number().int().nonnegative().optional(),
+  lastError: z.string().max(500).nullable().optional(),
+  submittedAt: z.string().datetime().nullable().optional(),
+  confirmedAt: z.string().datetime().nullable().optional(),
 });
 
 export const DEFAULT_RECEIPT_FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
@@ -166,6 +189,7 @@ export type PolicyWriteIntent = z.infer<typeof policyWriteIntentSchema>;
 export type PolicyWriteStatus = z.infer<typeof policyWriteStatusSchema>;
 export type Postage = z.infer<typeof postageSchema>;
 export type PostageStatus = z.infer<typeof postageStatusSchema>;
+export type PostageChainStatus = z.infer<typeof postageChainStatusSchema>;
 export type Receipt = z.infer<typeof receiptSchema>;
 export type SenderRule = z.infer<typeof senderRuleSchema>;
 
