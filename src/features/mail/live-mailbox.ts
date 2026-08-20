@@ -212,6 +212,40 @@ export type MailboxBroadcast =
       tabId: string;
     };
 
+function firstHeaderString(
+  headers: Record<string, unknown>,
+  keys: readonly string[],
+): string | null {
+  for (const key of keys) {
+    const value = headers[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+/** Stable conversation id from trusted envelope headers, else sender+recipient+subject. */
+export function threadIdFromDescriptor(descriptor: MailboxDescriptor): string {
+  const headers = descriptor.protectedHeaders ?? {};
+  const explicit = firstHeaderString(headers, [
+    "threadId",
+    "thread-id",
+    "Thread-Id",
+    "inReplyTo",
+    "In-Reply-To",
+  ]);
+  if (explicit) return explicit;
+  const subject = firstHeaderString(headers, ["subject", "Subject"]) ?? "";
+  const normalized = subject
+    .replace(/^(re|fwd|fw):\s*/gi, "")
+    .trim()
+    .toLowerCase();
+  const participants = [descriptor.senderId, descriptor.recipientId]
+    .map((value) => value.toUpperCase().trim())
+    .sort()
+    .join(":");
+  return `thread:${participants}:${normalized || descriptor.messageId}`;
+}
+
 export function descriptorFolder(descriptor: MailboxDescriptor): MailLocation {
   if (descriptor.isTombstone) return "trash";
   const folder = descriptor.folder as MailboxLiveFolder | undefined;

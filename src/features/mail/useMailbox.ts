@@ -12,7 +12,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { sharedTypedApi as api, queryKeys, cacheInvalidations } from "@/lib/api";
 import type { MailboxDescriptor, MailboxQueueResponse } from "@/lib/api";
 import type { Email } from "@/components/mail/data";
-import { descriptorFolder } from "./live-mailbox";
+import { descriptorFolder, threadIdFromDescriptor } from "./live-mailbox";
 
 export interface UseMailboxOptions {
   /** Authenticated actor (Stellar G-address) owning the mailbox. */
@@ -58,6 +58,7 @@ export function mailboxDescriptorToEmail(descriptor: MailboxDescriptor): Email {
     attachments: [],
     avatarColor: "#5b6470",
     verifiedSender: false,
+    threadId: threadIdFromDescriptor(descriptor),
   };
 }
 
