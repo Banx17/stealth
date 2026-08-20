@@ -4,6 +4,9 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Workflow 2 is a Vitest integration suite. Keep it under e2e for protocol
+  // ownership, but prevent Playwright from loading Vitest hooks as browser tests.
+  testIgnore: ["**/live-beta/**"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
