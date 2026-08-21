@@ -16,7 +16,13 @@ import { validateReturnTo } from "./returnTo";
  * "verified-but-incomplete-onboarding" state.
  */
 export type GateState =
-  "loading" | "anonymous" | "onboarding" | "verified" | "suspended" | "outage" | "active";
+  | "loading"
+  | "anonymous"
+  | "onboarding"
+  | "verified"
+  | "suspended"
+  | "outage"
+  | "active";
 
 export const SIGN_IN_ROUTE = "/auth/sign-in";
 export const ONBOARDING_ROUTE = "/onboarding";

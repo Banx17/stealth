@@ -39,6 +39,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   User,
@@ -107,6 +108,35 @@ export class HybridApiRepository implements ApiRepository {
       await this.kv.put(ruleKey, rule);
     }
     return rule;
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const record = await this.kv.get(this.key("sender-rule-record", owner, sender), "json");
+    return (record as SenderRuleRecord) ?? null;
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    await this.kv.put(
+      this.key("sender-rule-record", record.owner, record.sender),
+      JSON.stringify(record),
+    );
+    return record;
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    const existing = await this.getSenderRuleRecord(owner, sender);
+    if (!existing) return false;
+    await this.kv.delete(this.key("sender-rule-record", owner, sender));
+    return true;
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    // BETA-037: Delegate to the DO coordinator for consistent listing.
+    return this.getStub().listSenderRuleRecords(owner, options);
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -468,7 +498,8 @@ export class HybridApiRepository implements ApiRepository {
 
   async setExternalWallet(owner: string, wallet: ExternalWallet): Promise<ExternalWallet> {
     const wallets = (await this.kv.get(this.key("external-wallet", owner), "json")) as
-      ExternalWallet[] | null;
+      | ExternalWallet[]
+      | null;
     const existing = wallets ?? [];
     const idx = existing.findIndex((w) => w.address === wallet.address);
     if (idx >= 0) {
@@ -484,7 +515,8 @@ export class HybridApiRepository implements ApiRepository {
   async removeExternalWallet(owner: string, address: string): Promise<void> {
     const wallets =
       ((await this.kv.get(this.key("external-wallet", owner), "json")) as
-        ExternalWallet[] | null) ?? [];
+        | ExternalWallet[]
+        | null) ?? [];
     await this.kv.put(
       this.key("external-wallet", owner),
       JSON.stringify(wallets.filter((w) => w.address !== address)),

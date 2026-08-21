@@ -75,4 +75,5 @@ export interface DraftImproverError {
  * (near-instant) call. Success and error states are modelled explicitly.
  */
 export type DraftImproverResult =
-  { ok: true; analysis: DraftAnalysis } | { ok: false; error: DraftImproverError };
+  | { ok: true; analysis: DraftAnalysis }
+  | { ok: false; error: DraftImproverError };

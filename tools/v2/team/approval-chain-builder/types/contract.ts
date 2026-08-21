@@ -67,7 +67,8 @@ export interface ApprovalChainError {
 }
 
 export type ApprovalChainBuilderResult =
-  { ok: true; data: ApprovalChain } | { ok: false; error: ApprovalChainError };
+  | { ok: true; data: ApprovalChain }
+  | { ok: false; error: ApprovalChainError };
 
 export type ExecuteApprovalChainBuilder = (
   input: ApprovalChainBuilderInput,

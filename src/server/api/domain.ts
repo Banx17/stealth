@@ -29,7 +29,81 @@ export const stroopAmountSchema = z
     }
   }, "Amount exceeds Soroban i128");
 
-export const senderRuleSchema = z.enum(["default", "allow", "block"]);
+export const senderRuleSchema = z.enum(["default", "allow", "block", "verify", "price"]);
+
+/**
+ * BETA-037 (Issue #1944) — live, versioned sender rules.
+ *
+ * `senderRuleActionSchema` covers the subset of rule types that can be explicitly
+ * set via the API. "default" is the absence of a rule and is set by deleting.
+ */
+export const senderRuleActionSchema = z.enum(["allow", "block", "verify", "price"]);
+export type SenderRuleAction = z.infer<typeof senderRuleActionSchema>;
+
+/**
+ * Chain synchronization status for a sender rule. Each state-changing
+ * operation schedules a testnet contract write; this field tracks where
+ * that write is in its lifecycle and whether local state matches chain state.
+ *
+ * - pending:   local rule recorded, testnet write scheduled but not yet submitted
+ * - submitted: signed transaction submitted to testnet, awaiting confirmation
+ * - confirmed: chain confirmed the rule matches local state
+ * - failed:    testnet write failed after retries; local rule still applies off-chain
+ * - drift:     chain version diverged from local (e.g. external set_sender_rule call)
+ */
+export const senderRuleChainStatusSchema = z.enum([
+  "pending",
+  "submitted",
+  "confirmed",
+  "failed",
+  "drift",
+]);
+
+export type SenderRuleChainStatus = z.infer<typeof senderRuleChainStatusSchema>;
+
+/**
+ * Price rule payload: the minimum postage (in stroops) the sender must attach.
+ * Only valid when rule is "price".
+ */
+export const senderRulePricePayloadSchema = z
+  .object({
+    minimumPostage: stroopAmountSchema,
+  })
+  .optional();
+
+/**
+ * Full versioned sender rule record. Persisted server-side (survives refresh)
+ * and reconciled against testnet.
+ */
+export const senderRuleRecordSchema = z.object({
+  owner: stellarAddressSchema,
+  sender: stellarAddressSchema,
+  rule: senderRuleActionSchema,
+  pricePayload: senderRulePricePayloadSchema,
+  version: z.number().int().nonnegative(),
+  chainStatus: senderRuleChainStatusSchema,
+  scheduledAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  confirmedAt: z.string().datetime().nullable().default(null),
+  failureCount: z.number().int().nonnegative().default(0),
+  lastError: z.string().max(300).nullable().default(null),
+  txHash: z.string().nullable().default(null),
+  idempotencyKey: z.string().min(1).optional(),
+});
+
+export type SenderRuleRecord = z.infer<typeof senderRuleRecordSchema>;
+
+/**
+ * Chain-side representation of a sender rule for reconciliation. Queried
+ * from the Policies contract to compare against local state.
+ */
+export const chainSenderRuleSchema = z.object({
+  rule: senderRuleActionSchema,
+  minimumPostage: stroopAmountSchema.optional(),
+  version: z.number().int().nonnegative(),
+});
+
+export type ChainSenderRule = z.infer<typeof chainSenderRuleSchema>;
 export const postageStatusSchema = z.enum([
   "pending",
   "expired",
@@ -64,9 +138,27 @@ export const mailboxPolicyWriteSchema = z.object({
   version: z.number().int().nonnegative().optional(),
 });
 
-export const senderRuleWriteSchema = z.object({
-  rule: senderRuleSchema,
-});
+/**
+ * Request body for creating or updating a versioned sender rule.
+ * `version` is required for updates (optimistic concurrency check);
+ * omitted for creates.
+ */
+export const senderRuleWriteSchema = z
+  .object({
+    rule: senderRuleActionSchema,
+    pricePayload: senderRulePricePayloadSchema,
+    version: z.number().int().nonnegative().optional(),
+    idempotencyKey: z.string().min(1).max(128).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.rule === "price" && !data.pricePayload?.minimumPostage) {
+        return false;
+      }
+      return true;
+    },
+    { message: "pricePayload.minimumPostage is required when rule is 'price'" },
+  );
 
 // ---------------------------------------------------------------------------
 // BETA-023 (Issue #1930) — privacy-safe mailbox policy provisioning

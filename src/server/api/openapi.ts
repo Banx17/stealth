@@ -509,7 +509,7 @@ export const openApiDocument = {
           rule: {
             type: "string",
             description: "Applied sender override rule.",
-            enum: ["allow", "block", "default"],
+            enum: ["allow", "block", "default", "verify", "price"],
           },
         },
       },
@@ -1030,7 +1030,10 @@ export const openApiDocument = {
               { type: "null" },
             ],
           },
-          senderRule: { type: "string", enum: ["default", "allow", "block"] },
+          senderRule: {
+            type: "string",
+            enum: ["default", "allow", "block"],
+          },
           senderRuleConfigured: {
             type: "boolean",
             description: "True when the owner has an explicit policy rule for this address.",

@@ -92,7 +92,9 @@ export type IntegrityIssueKind =
   | "corrupt_envelope";
 
 export type MigrationFailureKind =
-  "precondition_failed" | "rollback_blocked" | "compatibility_failed";
+  | "precondition_failed"
+  | "rollback_blocked"
+  | "compatibility_failed";
 
 export interface IntegrityIssue {
   kind: IntegrityIssueKind;

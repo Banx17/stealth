@@ -1,7 +1,11 @@
 import type { MailboxPolicy } from "@/lib/api/types";
 
 export type MailboxPolicyTemplateId =
-  "private" | "public-paid-inbox" | "investor-inbox" | "recruiting-inbox" | "allowlist-only";
+  | "private"
+  | "public-paid-inbox"
+  | "investor-inbox"
+  | "recruiting-inbox"
+  | "allowlist-only";
 
 export type MailboxPolicyTemplate = {
   id: MailboxPolicyTemplateId;

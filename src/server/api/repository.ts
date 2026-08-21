@@ -24,6 +24,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   MailboxFlagsPatch,
@@ -52,7 +53,8 @@ import { ApiError, DataIntegrityError, RetryExhaustedError } from "./errors";
  *   `current` reflects the authoritative state for reconciliation.
  */
 export type UpdateDraftResult =
-  { updated: true; draft: DraftRecord } | { updated: false; current: DraftRecord | null };
+  | { updated: true; draft: DraftRecord }
+  | { updated: false; current: DraftRecord | null };
 
 export interface DraftQueryOptions {
   limit?: number;
@@ -115,7 +117,8 @@ export type AcquireIdempotencyResult =
  *   (or fail) deterministically; a match bumps the stored version by 1.
  */
 export type UpdateRecoveryCodeSetResult =
-  { updated: true; set: RecoveryCodeSet } | { updated: false; current: RecoveryCodeSet | null };
+  | { updated: true; set: RecoveryCodeSet }
+  | { updated: false; current: RecoveryCodeSet | null };
 
 /**
  * Outcome of an atomic read-receipt publication.
@@ -144,7 +147,8 @@ export type MarkReceiptReadResult =
   | { outcome: "marked"; receipt: Receipt };
 
 export type UpdateUserResult =
-  { updated: true; user: User } | { updated: false; current: User | null };
+  | { updated: true; user: User }
+  | { updated: false; current: User | null };
 export type CreateSenderRequestResult = { created: boolean; request: UnknownSenderRequest };
 export type SenderRequestTransitionResult =
   | { outcome: "not_found" }
@@ -160,7 +164,8 @@ export type SenderRequestTransitionResult =
  *   re-read and reconcile instead of blindly overwriting.
  */
 export type UpdateContactResult =
-  { updated: true; contact: Contact } | { updated: false; current: Contact | null };
+  | { updated: true; contact: Contact }
+  | { updated: false; current: Contact | null };
 
 // ---------------------------------------------------------------------------
 // BETA-014: Account-provisioning repository contracts
@@ -200,7 +205,8 @@ export type UsernameReservationResult =
  *   returned unchanged (idempotent retry).
  */
 export type WalletCreationResult =
-  { outcome: "created"; wallet: Wallet } | { outcome: "already-exists"; wallet: Wallet };
+  | { outcome: "created"; wallet: Wallet }
+  | { outcome: "already-exists"; wallet: Wallet };
 
 export type IssueVerificationTokenResult =
   | {
@@ -270,6 +276,14 @@ export interface ApiRepository {
   setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null>;
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord>;
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean>;
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }>;
   getPostage(messageId: string): Promise<Postage | null>;
   setPostage(postage: Postage): Promise<Postage>;
   /**
@@ -724,6 +738,32 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.inner.setSenderRule(owner, sender, versionRecord("senderRule", rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const raw = await this.inner.getSenderRuleRecord(owner, sender);
+    return raw ? validateRecord<SenderRuleRecord>("senderRuleRecord", raw) : null;
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    const result = await this.inner.setSenderRuleRecord(versionRecord("senderRuleRecord", record));
+    return validateRecord<SenderRuleRecord>("senderRuleRecord", result);
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    const result = await this.inner.listSenderRuleRecords(owner, options);
+    return {
+      ...result,
+      records: result.records.map((r) => validateRecord<SenderRuleRecord>("senderRuleRecord", r)),
+    };
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -1496,6 +1536,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicyWriteIntent",
   "getLifecycleAnchor",
   "getSenderRule",
+  "getSenderRuleRecord",
+  "listSenderRuleRecords",
   "getPostage",
   "getReceipt",
   "getIdempotencyRecord",
@@ -1509,6 +1551,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setPolicyWriteIntent",
   "setLifecycleAnchor",
   "setSenderRule",
+  "setSenderRuleRecord",
+  "deleteSenderRuleRecord",
   "setPostage",
   "setReceipt",
   "createReceiptIfAbsent",
@@ -1649,6 +1693,32 @@ export class RetryableApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.withRetry("setSenderRule", () => this.inner.setSenderRule(owner, sender, rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return this.withRetry("getSenderRuleRecord", () =>
+      this.inner.getSenderRuleRecord(owner, sender),
+    );
+  }
+
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    return this.withRetry("setSenderRuleRecord", () => this.inner.setSenderRuleRecord(record));
+  }
+
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.withRetry("deleteSenderRuleRecord", () =>
+      this.inner.deleteSenderRuleRecord(owner, sender),
+    );
+  }
+
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    return this.withRetry("listSenderRuleRecords", () =>
+      this.inner.listSenderRuleRecords(owner, options),
+    );
   }
 
   getPostage(messageId: string): Promise<Postage | null> {

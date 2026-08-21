@@ -206,7 +206,14 @@ interface ConditionGroup {
 
 // Available actions
 type RuleActionType =
-  "fileToFolder" | "forwardTo" | "markAs" | "flag" | "notify" | "autoReply" | "addLabel" | "delete";
+  | "fileToFolder"
+  | "forwardTo"
+  | "markAs"
+  | "flag"
+  | "notify"
+  | "autoReply"
+  | "addLabel"
+  | "delete";
 
 // Action configuration
 interface RuleAction {

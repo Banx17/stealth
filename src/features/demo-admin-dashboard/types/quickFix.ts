@@ -3,7 +3,10 @@ import type { ValidationIssue } from "../validation-types";
 
 /** The kinds of safe, one-click fixes the framework can apply. */
 export type QuickFixKind =
-  "fill-subject" | "fill-body" | "add-recipient" | "replace-unsafe-recipient";
+  | "fill-subject"
+  | "fill-body"
+  | "add-recipient"
+  | "replace-unsafe-recipient";
 
 /**
  * A safe, deterministic repair for a common demo-data validation issue.
