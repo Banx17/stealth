@@ -170,19 +170,22 @@ test.describe("attachment preview drawer (BETA-067)", () => {
   });
 
   test("mobile responsive layout: drawer fills screen", async ({ page }) => {
-    // Navigate to email first at desktop viewport (sidebar needs space)
+    // Navigate to email at desktop viewport and open the drawer there.
+    // On mobile (<=768px) the EmailView is unmounted by the responsive layout,
+    // so attachment tiles only exist in the DOM at wider viewports.
     await openEmailWithAttachments(page);
 
-    // Switch to mobile viewport after navigation
-    await page.setViewportSize({ width: 375, height: 812 });
-
-    // After resize the React tree re-renders; use force to bypass the
-    // stability check that fails when React detaches the element mid-click.
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
-    await attachmentTile.click({ force: true });
+    await attachmentTile.click();
 
     const drawer = page.getByRole("dialog");
+    await expect(drawer).toBeVisible({ timeout: 5000 });
+
+    // Now resize to mobile — the drawer (Sheet) lives in the overlay stack
+    // which stays mounted, so it should still be visible and fill the screen.
+    await page.setViewportSize({ width: 375, height: 812 });
+
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // On mobile, the drawer should take full width
