@@ -13,6 +13,8 @@
     "test:watch": "vitest tests/unit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
+    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots",
     "test:load": "bun run tests/load/scenarios.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
