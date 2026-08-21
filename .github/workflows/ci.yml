@@ -191,8 +191,8 @@ jobs:
       - name: Install Playwright browsers
         run: bun x playwright install --with-deps chromium firefox webkit
 
-      - name: Run visual & cross-browser tests
-        run: bun run test:visual
+      - name: Run visual & cross-browser tests (update baselines)
+        run: bun run test:visual:update
         env:
           CI: true
 

@@ -42,17 +42,23 @@ bun run test:visual:update   # regenerate baselines after an intentional change
 ## Baselines
 
 Baselines are stored under `tests/e2e/visual/__screenshots__/<project>/` and are
-keyed by `{projectName}-{platform}` because rendering differs by engine and host
-OS font stack. Baselines are committed so CI can detect regressions, and any
-difference is reviewed (never blindly updated):
+keyed by `{projectName}` only — the CI platform (Linux) is the canonical
+baseline source. Cross-browser diffs are detected per project; cross-platform
+diffs are intentionally out of scope.
+
+Baselines are committed so CI can detect regressions, and any difference is
+reviewed (never blindly updated):
 
 1. Run `bun run test:visual` to see the diff.
 2. Inspect the HTML report (`playwright-report/`) to confirm the change is
    intended and not a regression.
 3. Only then run `bun run test:visual:update` and commit the changed baselines.
 
-When a new platform (e.g. Linux CI) is introduced, seed its baselines once with
-`bun run test:visual:update` on that platform and commit the result.
+### Seeding Linux baselines (first-time setup)
+
+The CI job uses `--update-snapshots` on the first run to generate Linux
+baselines. After the first CI pass, download the baselines from the CI
+artifacts and commit them so subsequent runs can detect regressions.
 
 ## CI
 

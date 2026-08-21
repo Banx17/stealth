@@ -9,10 +9,9 @@ import { defineConfig, devices } from "@playwright/test";
 // Firefox/WebKit and mobile viewports here does not multiply the runtime of the
 // existing functional suite or break desktop-only functional assertions.
 //
-// Snapshots are keyed by {projectName}-{platform} because browser engines and
-// host OS font rendering are intentionally not pixel-identical. A change that
-// only affects one engine or platform produces a diff in that slice only, and
-// diffs are reviewed (never blindly updated) per the release acceptance rules.
+// Snapshots are keyed by {projectName} only — the CI platform (Linux) is the
+// canonical baseline source. Cross-browser diffs are detected per project;
+// cross-platform diffs are intentionally out of scope for this suite.
 // ---------------------------------------------------------------------------
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
@@ -38,9 +37,9 @@ export default defineConfig({
       threshold: 0.2,
     },
   },
-  // Baselines are stored per project and per host platform. See
-  // tests/e2e/visual/README.md for the update workflow.
-  snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{arg}-{platform}{ext}",
+  // Baselines are stored per project. The CI platform (Linux) is the canonical
+  // source; see tests/e2e/visual/README.md for the update workflow.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{arg}{ext}",
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never" }]]
     : [["list"], ["html", { open: "on-failure" }]],
