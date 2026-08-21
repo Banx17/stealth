@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useCallback } from "react";
 /**
  * BETA-067 (Issue #1974): Live attachment preview, download, and malware-safe handling.
  *
@@ -43,8 +42,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { useAttachmentDownload, type DownloadStatus } from "@/hooks/useAttachmentDownload";
-
 import {
   useAttachmentDownload,
   isPreviewableType,
@@ -447,9 +444,6 @@ export function AttachmentPreviewDrawer({
 
   if (!attachment) return null;
 
-  const type = attachment.type.toLowerCase();
-  }, [attachment?.name]);
-
   const type = attachment?.type?.toLowerCase() ?? "";
   const isPDF = type === "pdf";
   const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(type);
@@ -475,7 +469,7 @@ export function AttachmentPreviewDrawer({
     await navigator.clipboard.writeText(textContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [textContent]);
 
   // Icon switcher for header
   const getHeaderIcon = () => {
@@ -565,7 +559,6 @@ export function AttachmentPreviewDrawer({
       </div>
     );
   };
-  }, [textContent]);
 
   const handleDownloadFile = useCallback(() => {
     if (!download.result) return;
