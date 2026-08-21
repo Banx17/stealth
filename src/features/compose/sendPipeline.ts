@@ -119,6 +119,10 @@ export interface SendPipelineInput {
     data?: ArrayBuffer;
     content_hash?: string;
   }>;
+  attachmentUploadSessions?: Array<{
+    sessionId: string;
+    attachmentIndex: number;
+  }>;
   postage?: string;
   postageQuote?: PostageQuote;
 }
