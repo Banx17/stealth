@@ -108,6 +108,22 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setSenderRule");
     return this.inner.setSenderRule(owner, sender, rule);
   }
+  async getSenderRuleRecord(owner: string, sender: string) {
+    this.maybeFail("getSenderRuleRecord");
+    return this.inner.getSenderRuleRecord(owner, sender);
+  }
+  async setSenderRuleRecord(record: import("../../../src/server/api/domain").SenderRuleRecord) {
+    this.maybeFail("setSenderRuleRecord");
+    return this.inner.setSenderRuleRecord(record);
+  }
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    this.maybeFail("deleteSenderRuleRecord");
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+  async listSenderRuleRecords(owner: string, options?: { limit?: number; after?: string }) {
+    this.maybeFail("listSenderRuleRecords");
+    return this.inner.listSenderRuleRecords(owner, options);
+  }
   async getPostage(messageId: string): Promise<Postage | null> {
     this.maybeFail("getPostage");
     return this.inner.getPostage(messageId);

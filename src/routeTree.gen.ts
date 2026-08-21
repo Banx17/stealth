@@ -94,10 +94,13 @@ import { Route as ApiV1AuthPasswordResetCompleteRouteImport } from './routes/api
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
+import { Route as ApiV1PoliciesOwnerSendersIndexRouteImport } from './routes/api/v1/policies/$owner/senders/index'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
 import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
+import { Route as ApiV1PoliciesOwnerSendersSenderRetryRouteImport } from './routes/api/v1/policies/$owner/senders/$sender/retry'
+import { Route as ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport } from './routes/api/v1/policies/$owner/senders/$sender/chain-status'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -543,6 +546,12 @@ const ApiV1AccountsProvisioningRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiV1AccountsProvisioningRoute,
   } as any)
+const ApiV1PoliciesOwnerSendersIndexRoute =
+  ApiV1PoliciesOwnerSendersIndexRouteImport.update({
+    id: '/senders/',
+    path: '/senders/',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -564,6 +573,18 @@ const ApiV1AccountsUserIdWalletProvisionRoute =
     id: '/api/v1/accounts/$userId/wallet/provision',
     path: '/api/v1/accounts/$userId/wallet/provision',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1PoliciesOwnerSendersSenderRetryRoute =
+  ApiV1PoliciesOwnerSendersSenderRetryRouteImport.update({
+    id: '/retry',
+    path: '/retry',
+    getParentRoute: () => ApiV1PoliciesOwnerSendersSenderRoute,
+  } as any)
+const ApiV1PoliciesOwnerSendersSenderChainStatusRoute =
+  ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport.update({
+    id: '/chain-status',
+    path: '/chain-status',
+    getParentRoute: () => ApiV1PoliciesOwnerSendersSenderRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -655,7 +676,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
-  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
+  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/policies/$owner/senders/': typeof ApiV1PoliciesOwnerSendersIndexRoute
+  '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  '/api/v1/policies/$owner/senders/$sender/retry': typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -746,7 +770,10 @@ export interface FileRoutesByTo {
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
-  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
+  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/policies/$owner/senders': typeof ApiV1PoliciesOwnerSendersIndexRoute
+  '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  '/api/v1/policies/$owner/senders/$sender/retry': typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -838,7 +865,10 @@ export interface FileRoutesById {
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
-  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
+  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/policies/$owner/senders/': typeof ApiV1PoliciesOwnerSendersIndexRoute
+  '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  '/api/v1/policies/$owner/senders/$sender/retry': typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -932,6 +962,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/policies/$owner/senders/'
+    | '/api/v1/policies/$owner/senders/$sender/chain-status'
+    | '/api/v1/policies/$owner/senders/$sender/retry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1023,6 +1056,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/policies/$owner/senders'
+    | '/api/v1/policies/$owner/senders/$sender/chain-status'
+    | '/api/v1/policies/$owner/senders/$sender/retry'
   id:
     | '__root__'
     | '/'
@@ -1114,6 +1150,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/policies/$owner/senders/'
+    | '/api/v1/policies/$owner/senders/$sender/chain-status'
+    | '/api/v1/policies/$owner/senders/$sender/retry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1794,6 +1833,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
       parentRoute: typeof ApiV1AccountsProvisioningRoute
     }
+    '/api/v1/policies/$owner/senders/': {
+      id: '/api/v1/policies/$owner/senders/'
+      path: '/senders'
+      fullPath: '/api/v1/policies/$owner/senders/'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersIndexRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -1821,6 +1867,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/accounts/$userId/wallet/provision'
       preLoaderRoute: typeof ApiV1AccountsUserIdWalletProvisionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/policies/$owner/senders/$sender/retry': {
+      id: '/api/v1/policies/$owner/senders/$sender/retry'
+      path: '/retry'
+      fullPath: '/api/v1/policies/$owner/senders/$sender/retry'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderRetryRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
+    }
+    '/api/v1/policies/$owner/senders/$sender/chain-status': {
+      id: '/api/v1/policies/$owner/senders/$sender/chain-status'
+      path: '/chain-status'
+      fullPath: '/api/v1/policies/$owner/senders/$sender/chain-status'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
     }
   }
 }
@@ -1856,16 +1916,37 @@ const ApiV1LifecycleMessageIdRouteWithChildren =
     ApiV1LifecycleMessageIdRouteChildren,
   )
 
+interface ApiV1PoliciesOwnerSendersSenderRouteChildren {
+  ApiV1PoliciesOwnerSendersSenderChainStatusRoute: typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  ApiV1PoliciesOwnerSendersSenderRetryRoute: typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
+}
+
+const ApiV1PoliciesOwnerSendersSenderRouteChildren: ApiV1PoliciesOwnerSendersSenderRouteChildren =
+  {
+    ApiV1PoliciesOwnerSendersSenderChainStatusRoute:
+      ApiV1PoliciesOwnerSendersSenderChainStatusRoute,
+    ApiV1PoliciesOwnerSendersSenderRetryRoute:
+      ApiV1PoliciesOwnerSendersSenderRetryRoute,
+  }
+
+const ApiV1PoliciesOwnerSendersSenderRouteWithChildren =
+  ApiV1PoliciesOwnerSendersSenderRoute._addFileChildren(
+    ApiV1PoliciesOwnerSendersSenderRouteChildren,
+  )
+
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
   ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
-  ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
+  ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  ApiV1PoliciesOwnerSendersIndexRoute: typeof ApiV1PoliciesOwnerSendersIndexRoute
 }
 
 const ApiV1PoliciesOwnerRouteChildren: ApiV1PoliciesOwnerRouteChildren = {
   ApiV1PoliciesOwnerProvisionRoute: ApiV1PoliciesOwnerProvisionRoute,
   ApiV1PoliciesOwnerReconciliationRoute: ApiV1PoliciesOwnerReconciliationRoute,
-  ApiV1PoliciesOwnerSendersSenderRoute: ApiV1PoliciesOwnerSendersSenderRoute,
+  ApiV1PoliciesOwnerSendersSenderRoute:
+    ApiV1PoliciesOwnerSendersSenderRouteWithChildren,
+  ApiV1PoliciesOwnerSendersIndexRoute: ApiV1PoliciesOwnerSendersIndexRoute,
 }
 
 const ApiV1PoliciesOwnerRouteWithChildren =

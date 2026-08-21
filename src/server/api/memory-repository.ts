@@ -24,6 +24,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   UnknownSenderDecision,
@@ -78,6 +79,8 @@ export class MemoryApiRepository implements ApiRepository {
   private readonly deliveryStatuses = new Map<string, MessageDeliveryStatusRecord>();
 
   private readonly senderRules = new Map<string, SenderRule>();
+  // BETA-037 (Issue #1944): versioned sender rule records keyed by `${owner}:${sender}`
+  private readonly senderRuleRecords = new Map<string, SenderRuleRecord>();
   private readonly counters = new Map<string, number[]>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly externalWallets = new Map<string, ExternalWallet[]>();
@@ -292,6 +295,42 @@ export class MemoryApiRepository implements ApiRepository {
     if (rule === "default") this.senderRules.delete(ruleKey);
     else this.senderRules.set(ruleKey, rule);
     return rule;
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return structuredClone(this.senderRuleRecords.get(key(owner, sender)) ?? null);
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    this.senderRuleRecords.set(key(record.owner, record.sender), structuredClone(record));
+    return structuredClone(record);
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.senderRuleRecords.delete(key(owner, sender));
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    const limit = options?.limit ?? 50;
+    const after = options?.after;
+    let records: SenderRuleRecord[] = [];
+    const ownerPrefix = `${owner}:`;
+    for (const [k, v] of this.senderRuleRecords) {
+      if (k.startsWith(ownerPrefix)) {
+        records.push(structuredClone(v));
+      }
+    }
+    records.sort((a, b) => a.sender.localeCompare(b.sender));
+    if (after) {
+      const idx = records.findIndex((r) => r.sender === after);
+      if (idx >= 0) records = records.slice(idx + 1);
+    }
+    const nextCursor = records.length > limit ? records[limit - 1].sender : undefined;
+    return { records: records.slice(0, limit), nextCursor };
   }
 
   async getPostage(messageId: string) {
@@ -1617,6 +1656,7 @@ export class MemoryApiRepository implements ApiRepository {
     this.receipts.clear();
     this.deliveryStatuses.clear();
     this.senderRules.clear();
+    this.senderRuleRecords.clear();
     this.counters.clear();
     this.idempotency.clear();
     this.externalWallets.clear();

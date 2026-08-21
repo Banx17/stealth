@@ -1080,6 +1080,35 @@ export class StealthCoordinator extends DurableObjectBase {
     return matches.slice(0, limit);
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-037 (Issue #1944): versioned sender rule records
+  // ---------------------------------------------------------------------------
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: import("./domain").SenderRuleRecord[]; nextCursor?: string }> {
+    const limit = options?.limit ?? 50;
+    const records: import("./domain").SenderRuleRecord[] = [];
+    const all = (await this.ctx.storage.list({
+      prefix: `sender-rule-record:${owner}:`,
+    })) as Map<string, import("./domain").SenderRuleRecord>;
+    for (const record of all.values()) {
+      if (record && record.owner === owner) {
+        records.push(record);
+      }
+    }
+    records.sort((a, b) => a.sender.localeCompare(b.sender));
+    let startIndex = 0;
+    if (options?.after) {
+      startIndex = records.findIndex((r) => r.sender === options.after) + 1;
+    }
+    const page = records.slice(startIndex, startIndex + limit);
+    const nextCursor =
+      startIndex + limit < records.length ? page[page.length - 1]?.sender : undefined;
+    return { records: page, nextCursor };
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
