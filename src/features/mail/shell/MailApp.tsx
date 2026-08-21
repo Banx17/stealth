@@ -42,6 +42,15 @@ import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
 import { offlineAppFailure } from "@/lib/api";
+import {
+  useMarkReadReceipt,
+  useReceiptQueueReplay,
+  useReceiptBroadcastListener,
+  resolveReceiptPreference,
+  resolveSenderType,
+  getReceiptOverride,
+  type ReceiptSenderType,
+} from "../useReceipts";
 
 // BETA-074 (Issue #1981) — the requests triage board and the sender journey are
 // large feature surfaces only shown on demand. Loading them as async chunks
@@ -92,6 +101,10 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
+  const { mutateAsync: markReadReceipt } = useMarkReadReceipt(source.actor);
+  useReceiptQueueReplay(source.actor, source.connectivity.online);
+  useReceiptBroadcastListener(source.actor);
+
   const openSenderConversion = useCallback(
     (email: Email) =>
       senderConversion.open({
@@ -123,6 +136,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     isDemoMode,
     actor,
     refreshOutbox: source.refreshOutbox,
+    markReadReceipt,
   });
 
   const bulk = useMailBulkActions({
@@ -155,8 +169,33 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   useEffect(() => {
     if (!navigation.selectedId) return;
     const current = source.emails.find((email) => email.id === navigation.selectedId);
-    if (current?.unread) void source.mutateMailbox(current, { unread: false });
-  }, [navigation.selectedId, source.emails, source.mutateMailbox]);
+    if (!current?.unread) return;
+
+    source.mutateMailbox(current, { unread: false });
+
+    if (isDemoMode) return;
+
+    const senderType = resolveSenderType(current);
+    const override = getReceiptOverride(current.id);
+    const pref =
+      override ??
+      resolveReceiptPreference(senderType, {
+        receiptOnDelivery: preferences.receiptOnDelivery,
+        receipts: preferences.receipts,
+      });
+
+    if (pref === "auto") {
+      void markReadReceipt(current.id);
+    }
+  }, [
+    navigation.selectedId,
+    source.emails,
+    source.mutateMailbox,
+    preferences.receiptOnDelivery,
+    preferences.receipts,
+    isDemoMode,
+    markReadReceipt,
+  ]);
 
   const handleImportSave = useCallback(
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
