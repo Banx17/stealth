@@ -128,7 +128,7 @@ describe("attachment-stream integration", () => {
     const source = [plaintext];
 
     const encrypted = encryptAttachmentStream(key, toAsyncSource(source), {
-      chunkSizeBytes: 16,
+      chunkSizeBytes: MIN_CHUNK_SIZE_BYTES,
     });
 
     const frames: EncryptedChunkFrame[] = [];
