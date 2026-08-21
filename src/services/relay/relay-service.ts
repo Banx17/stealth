@@ -370,6 +370,7 @@ export class RelayService {
         ciphertext: envelope.payload,
         protectedHeaders: {},
         createdAt: receivedAt,
+        status: "pending",
         metadata: { admission: toSafeAdmissionDecision(evidence) },
       });
     }
