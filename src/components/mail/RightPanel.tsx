@@ -45,7 +45,17 @@ export function RightPanel({
   onShowToast?: (message: string) => void;
   onOpenCalendar: (eventId?: string) => void;
   onCreateEvent: () => void;
-  onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
+  onPreviewAttachment?: (attachment: {
+    name: string;
+    size: string;
+    type: string;
+    senderAddress?: string;
+    encryptedCiphertext?: string;
+    encryptedNonce?: string;
+    encryptedMac?: string;
+    expectedContentHash?: string;
+    contentKey?: CryptoKey;
+  }) => void;
 }) {
   const [prompt, setPrompt] = useState("");
   const [summary, setSummary] = useState<string | null>(null);
@@ -145,7 +155,9 @@ export function RightPanel({
                   >
                     <span
                       className="h-8 w-1 rounded-full"
-                      style={{ background: calendar?.color ?? "oklch(0.75 0.005 270)" }}
+                      style={{
+                        background: calendar?.color ?? "oklch(0.75 0.005 270)",
+                      }}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] tabular-nums text-muted-foreground">
@@ -175,7 +187,31 @@ export function RightPanel({
             {email.attachments.map((attachment) => (
               <li
                 key={attachment.name}
-                onClick={() => onPreviewAttachment?.(attachment)}
+                onClick={() =>
+                  onPreviewAttachment?.({
+                    ...attachment,
+                    senderAddress: email?.email,
+                    ...(email?.attachmentCrypto?.attachments.find(
+                      (a) => a.filename === attachment.name,
+                    )
+                      ? {
+                          encryptedCiphertext: email!.attachmentCrypto!.attachments.find(
+                            (a) => a.filename === attachment.name,
+                          )!.ciphertext,
+                          encryptedNonce: email!.attachmentCrypto!.attachments.find(
+                            (a) => a.filename === attachment.name,
+                          )!.nonce,
+                          encryptedMac: email!.attachmentCrypto!.attachments.find(
+                            (a) => a.filename === attachment.name,
+                          )!.mac,
+                          expectedContentHash: email!.attachmentCrypto!.attachments.find(
+                            (a) => a.filename === attachment.name,
+                          )!.contentHash,
+                          contentKey: email!.attachmentCrypto!.contentKey,
+                        }
+                      : {}),
+                  })
+                }
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-2 py-1.5 transition duration-150",
                   onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]",
@@ -209,7 +245,9 @@ export function RightPanel({
           <div className="mt-3 flex items-center gap-3">
             <div
               className="grid h-10 w-10 place-items-center rounded-full text-xs font-medium text-white/90"
-              style={{ background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)` }}
+              style={{
+                background: `linear-gradient(135deg, ${email.avatarColor}, #1a1a1d)`,
+              }}
             >
               {email.from
                 .split(" ")
