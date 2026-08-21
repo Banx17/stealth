@@ -328,6 +328,7 @@ export function EmailView({
                     key={label}
                     whileTap={{ scale: 0.96 }}
                     whileHover={{ y: -1 }}
+                    aria-label={label}
                     onClick={() => {
                       if (label === "Reply all") setInlineMode("reply-all");
                       else if (label === "Forward") setInlineMode("forward");

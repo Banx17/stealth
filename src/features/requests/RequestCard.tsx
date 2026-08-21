@@ -121,6 +121,7 @@ export function RequestCard({
                     type="checkbox"
                     checked={isSelected}
                     onChange={onToggleSelect}
+                    aria-label={`Select request from ${email.from}`}
                     className="mt-2.5 rounded border-white/20 bg-black/40 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
                   />
                 )}

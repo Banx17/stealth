@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { TrustBadge, type TrustState } from "@/features/design-system";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import {
   resolveRecipients,
   type RecipientResolutionContext,
@@ -113,6 +114,20 @@ export function Compose({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Stable close handler so the focus trap does not re-arm on every render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const close = useCallback(() => closeRef.current(), []);
+  const composerRef = useFocusTrap(open, close);
+
+  // Move focus to the first field on open, after the trap has mounted.
+  const toFieldRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const t = globalThis.setTimeout(() => toFieldRef.current?.focus(), 0);
+    return () => globalThis.clearTimeout(t);
+  }, [open]);
 
   const aiSuggestion =
     "Confirming Friday's review at 10am — let me know if that still works for you.";
@@ -300,7 +315,7 @@ export function Compose({
         if (emojiOpen) {
           setEmojiOpen(false);
         } else {
-          onClose();
+          close();
         }
       }
       // Tab to insert AI suggestion
@@ -311,7 +326,7 @@ export function Compose({
     };
     if (open) globalThis.addEventListener("keydown", handler);
     return () => globalThis.removeEventListener("keydown", handler);
-  }, [open, onClose, emojiOpen, insertAtCursor]);
+  }, [open, emojiOpen, insertAtCursor, close]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "file" | "image") => {
     const files = e.target.files;
@@ -482,10 +497,15 @@ export function Compose({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            onClick={onClose}
+            onClick={close}
+            aria-hidden="true"
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
           <motion.div
+            ref={composerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={getHeaderTitle(mode)}
             initial={{ opacity: 0, y: 24, scale: 0.96, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 24, scale: 0.97, filter: "blur(6px)" }}
@@ -505,7 +525,8 @@ export function Compose({
               </div>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={close}
+                aria-label="Close compose"
                 className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -521,7 +542,14 @@ export function Compose({
               />
             )}
             <div className="space-y-0 px-4">
-              <Field label="To" placeholder="recipients@…" value={to} onChange={setTo} />
+              <Field
+                innerRef={toFieldRef}
+                id="compose-to"
+                label="To"
+                placeholder="recipients@…"
+                value={to}
+                onChange={setTo}
+              />
               <RecipientReadinessChips recipients={resolvedRecipients} />
               <RecipientPolicyBanner quoteState={quoteState} className="mt-1.5" />
               <DeliveryEstimator
@@ -536,7 +564,13 @@ export function Compose({
                   el?.focus();
                 }}
               />
-              <Field label="Subject" placeholder="Subject" value={subject} onChange={setSubject} />
+              <Field
+                id="compose-subject"
+                label="Subject"
+                placeholder="Subject"
+                value={subject}
+                onChange={setSubject}
+              />
             </div>
             <div className="px-4 pb-2">
               <textarea
@@ -545,6 +579,7 @@ export function Compose({
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Write your message…"
+                aria-label="Message"
                 className="glow-ring w-full resize-none rounded-lg border border-transparent bg-transparent px-1 py-2 text-sm placeholder:text-muted-foreground focus:border-white/10"
               />
 
@@ -579,6 +614,7 @@ export function Compose({
                       <button
                         type="button"
                         onClick={() => removeAttachment(i)}
+                        aria-label={`Remove attachment ${att.name}`}
                         className="ml-1 rounded p-0.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
                       >
                         <X className="h-3 w-3" />
@@ -676,6 +712,7 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach files"
                 className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <Paperclip className="h-4 w-4" />
@@ -685,6 +722,7 @@ export function Compose({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => imageInputRef.current?.click()}
+                aria-label="Attach image"
                 className="rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground"
               >
                 <ImageIcon className="h-4 w-4" />
@@ -695,6 +733,9 @@ export function Compose({
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setEmojiOpen(!emojiOpen)}
+                  aria-label="Insert emoji"
+                  aria-expanded={emojiOpen}
+                  aria-haspopup="dialog"
                   className={cn(
                     "rounded-lg p-2 text-muted-foreground transition hover:bg-white/6 hover:text-foreground",
                     emojiOpen && "bg-white/6 text-foreground",
@@ -964,22 +1005,31 @@ function ProtocolToggle({
 }
 
 function Field({
+  id,
   label,
   placeholder,
   value,
   onChange,
+  innerRef,
 }: Readonly<{
+  id: string;
   label: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
+  innerRef?: React.Ref<HTMLInputElement>;
 }>) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 py-2">
-      <span className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <label
+        htmlFor={id}
+        className="w-16 shrink-0 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+      >
         {label}
-      </span>
+      </label>
       <input
+        id={id}
+        ref={innerRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
