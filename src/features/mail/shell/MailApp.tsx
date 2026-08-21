@@ -122,6 +122,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     closeSnooze: snooze.close,
     isDemoMode,
     actor,
+    refreshOutbox: source.refreshOutbox,
   });
 
   const bulk = useMailBulkActions({
