@@ -442,8 +442,6 @@ export function AttachmentPreviewDrawer({
     }
   }, [hasRealMetadata, attachment, download]);
 
-  if (!attachment) return null;
-
   const type = attachment?.type?.toLowerCase() ?? "";
   const isPDF = type === "pdf";
   const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(type);
