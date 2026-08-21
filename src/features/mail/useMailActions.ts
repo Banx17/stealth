@@ -48,7 +48,17 @@ export function useMailActions(input: {
   calendarEvents: CalendarEvent[];
   updateCalendarResponse: (eventId: string, response: CalendarResponse) => void;
   updateCalendarReminder: (eventId: string, reminder: string) => void;
-  previewAttachment: (attachment: { name: string; size: string; type: string }) => void;
+  previewAttachment: (attachment: {
+    name: string;
+    size: string;
+    type: string;
+    senderAddress?: string;
+    encryptedCiphertext?: string;
+    encryptedNonce?: string;
+    encryptedMac?: string;
+    expectedContentHash?: string;
+    contentKey?: CryptoKey;
+  }) => void;
   openSenderConversion: (email: Email) => void;
   openSnoozeDialog: (email: Email) => void;
   closeSnooze: () => void;
