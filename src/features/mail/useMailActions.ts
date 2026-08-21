@@ -22,6 +22,9 @@ import type { TrashResult } from "./useMailSource";
 import type { FeedbackTone } from "@/features/design-system/feedback/use-feedback";
 import type { MailboxFlagsPatch } from "@/lib/api";
 import { flagsPatchFromEmail } from "./live-mailbox";
+import { getEntry, removeEntry, patchEntry } from "@/services/storage/outbox";
+import { SendPipeline } from "@/features/compose/sendPipeline";
+import { authorizeSend } from "@/services/stellar/wallet";
 
 import { sharedTypedApi as api } from "@/lib/api";
 
@@ -51,6 +54,7 @@ export function useMailActions(input: {
   closeSnooze: () => void;
   isDemoMode?: boolean;
   actor?: string | null;
+  refreshOutbox?: () => void;
 }) {
   const {
     emails,
@@ -69,7 +73,62 @@ export function useMailActions(input: {
     closeSnooze,
     isDemoMode = false,
     actor = null,
+    refreshOutbox,
   } = input;
+
+  const handleRetrySend = useCallback(
+    async (email: Email) => {
+      const entry = getEntry(email.id);
+      if (!entry) return;
+
+      patchEntry(email.id, {
+        status: "queued",
+        errorCode: undefined,
+        errorMessage: undefined,
+      });
+      refreshOutbox?.();
+
+      const pipeline = SendPipeline.fromPersisted(
+        entry,
+        {},
+        () => {
+          refreshOutbox?.();
+        },
+        { signer: authorizeSend },
+      );
+
+      try {
+        const outcome = await pipeline.run();
+        if (outcome.ok) {
+          showToast("Message sent successfully");
+        } else {
+          showToast(`Send failed: ${outcome.message}`);
+        }
+        refreshOutbox?.();
+      } catch (error) {
+        showToast("Send failed due to an unexpected error");
+        refreshOutbox?.();
+      }
+    },
+    [refreshOutbox, showToast],
+  );
+
+  const handleCancelSend = useCallback(
+    (email: Email) => {
+      const entry = getEntry(email.id);
+      if (!entry) return;
+
+      if (entry.isCommitted) {
+        showToast("Cannot cancel: message is already committed to the relay");
+        return;
+      }
+
+      removeEntry(email.id);
+      refreshOutbox?.();
+      showToast("Send operation cancelled");
+    },
+    [refreshOutbox, showToast],
+  );
 
   const handleConvertSender = useCallback(
     (target: SenderConversionTarget, choice: SenderPolicyChoice) => {
@@ -321,6 +380,8 @@ export function useMailActions(input: {
       onCalendarResponseChange: input.updateCalendarResponse,
       onCalendarReminderChange: input.updateCalendarReminder,
       onPreviewAttachment: previewAttachment,
+      onRetrySend: handleRetrySend,
+      onCancelSend: handleCancelSend,
     }),
     [
       addMailEvent,
@@ -338,6 +399,8 @@ export function useMailActions(input: {
       previewAttachment,
       showToast,
       updateEmail,
+      handleRetrySend,
+      handleCancelSend,
     ],
   );
 

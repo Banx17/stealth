@@ -300,6 +300,12 @@ export class SendPipeline {
     if (entry.isCommitted) {
       pipeline.isCommitted = true;
     }
+    if (entry.envelope && entry.ciphertext) {
+      pipeline.sealed = {
+        payload: entry.envelope,
+        ciphertext: entry.ciphertext,
+      };
+    }
 
     return pipeline;
   }
@@ -608,6 +614,34 @@ export class SendPipeline {
   }
 
   private async executeSubmitStage(): Promise<SendOutcome | null> {
+    if (!this.requestSigner && this.sealed) {
+      const sign = async (canonical: string) => {
+        const signature = await this.signer(canonical);
+        return signature;
+      };
+      this.requestSigner = {
+        envelopePayload: this.sealed.payload,
+        audience: this.audience,
+        idempotencyKey: this.idempotencyKey,
+        replayWindowSeconds: DEFAULT_REPLAY_WINDOW_SECONDS,
+        sign,
+      };
+    }
+    if (!this.signedRequest && this.requestSigner) {
+      try {
+        this.signedRequest = await buildSignedRelayRequest(this.requestSigner);
+      } catch (error) {
+        this.setStage("submit", "error", error instanceof Error ? error.message : "Signing failed");
+        return this.fail(
+          "submit",
+          "failed",
+          error instanceof Error ? error.message : "Wallet could not sign the request",
+          "ERR_SIGNING_FAILED",
+          true,
+        );
+      }
+    }
+
     if (!this.signedRequest || !this.requestSigner) {
       return this.fail(
         "submit",
