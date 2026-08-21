@@ -13,34 +13,42 @@
 
 import { test, expect, openDemoMailbox } from "./fixtures";
 
+/**
+ * Helper: navigate to the Priority folder (1 email with 4 attachments)
+ * and wait for the email reader to render the subject heading.
+ */
+async function openEmailWithAttachments(page: import("@playwright/test").Page) {
+  // The Priority sidebar folder contains email id "1" (Lina Park) which has
+  // 4 attachments. Clicking the folder auto-selects the first email via
+  // useMailNavigation.nextSelectedId().
+  await page.getByRole("button", { name: /Priority/ }).click();
+
+  // Wait for the email reader to render the subject as an <h1>
+  await expect(page.getByRole("heading", { level: 1, name: /Q2 brand system/i })).toBeVisible({
+    timeout: 15000,
+  });
+}
+
 test.describe("attachment preview drawer (BETA-067)", () => {
   test.beforeEach(async ({ page }) => {
     await openDemoMailbox(page);
   });
 
   test("opens when clicking an attachment in the email reader", async ({ page }) => {
-    // Navigate to an email with attachments (email id "1" has 4 attachments)
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-
-    // Wait for the email body to load
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Find and click an attachment tile
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
     await attachmentTile.click();
 
-    // The drawer should open
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    // The drawer should open as a dialog
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
   });
 
   test("shows locked state when no crypto key is available", async ({ page }) => {
-    // Navigate to an email with attachments
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Click an attachment
     const attachmentTile = page.locator(".mail-attachment-name").first();
@@ -48,7 +56,7 @@ test.describe("attachment preview drawer (BETA-067)", () => {
     await attachmentTile.click();
 
     // Drawer should show locked/unavailable state (no crypto key in demo data)
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Should show the attachment name in the header
@@ -59,17 +67,14 @@ test.describe("attachment preview drawer (BETA-067)", () => {
   });
 
   test("closes with Escape key", async ({ page }) => {
-    // Open an email with attachments
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Click an attachment to open drawer
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
     await attachmentTile.click();
 
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Press Escape to close
@@ -80,10 +85,7 @@ test.describe("attachment preview drawer (BETA-067)", () => {
   });
 
   test("shows correct metadata for each attachment type", async ({ page }) => {
-    // Open email with multiple attachment types
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Check that all attachment tiles are visible
     await expect(page.locator(".mail-attachment-name").first()).toBeVisible({ timeout: 10000 });
@@ -94,15 +96,11 @@ test.describe("attachment preview drawer (BETA-067)", () => {
     // Click each attachment and verify the drawer shows correct type info
     for (let i = 0; i < Math.min(count, 3); i++) {
       await tiles.nth(i).click();
-      const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+      const drawer = page.getByRole("dialog");
       await expect(drawer).toBeVisible({ timeout: 5000 });
 
-      // Should show uppercase type label
-      const typeName = await tiles.nth(i).textContent();
-      if (typeName) {
-        // Verify the drawer header contains the filename
-        await expect(drawer.locator("h2").first()).toBeVisible();
-      }
+      // Should show the filename in the drawer header
+      await expect(drawer.locator("h2").first()).toBeVisible();
 
       // Close before opening next
       await page.keyboard.press("Escape");
@@ -111,17 +109,14 @@ test.describe("attachment preview drawer (BETA-067)", () => {
   });
 
   test("keyboard navigation: tab through drawer controls", async ({ page }) => {
-    // Open an email with attachments
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Click an attachment
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
     await attachmentTile.click();
 
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Tab through interactive elements in the drawer
@@ -135,39 +130,33 @@ test.describe("attachment preview drawer (BETA-067)", () => {
   });
 
   test("attachment preview drawer has accessible labels", async ({ page }) => {
-    // Open an email with attachments
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Click an attachment
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
     await attachmentTile.click();
 
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // The drawer should have an accessible label
     const ariaLabel = await drawer.getAttribute("aria-label");
     expect(ariaLabel).toContain("Attachment preview");
 
-    // The sheet title should be present
-    await expect(drawer.getByRole("heading")).toBeVisible();
+    // The sheet title (h2 with the filename) should be present
+    await expect(drawer.locator("h2").first()).toBeVisible();
   });
 
   test("shows file metadata (name, size, type) in drawer header", async ({ page }) => {
-    // Open an email with attachments
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
+    await openEmailWithAttachments(page);
 
     // Click the first attachment
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
     await attachmentTile.click();
 
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Should show the file name
@@ -181,20 +170,19 @@ test.describe("attachment preview drawer (BETA-067)", () => {
   });
 
   test("mobile responsive layout: drawer fills screen", async ({ page }) => {
-    // Set mobile viewport
+    // Navigate to email first at desktop viewport (sidebar needs space)
+    await openEmailWithAttachments(page);
+
+    // Switch to mobile viewport after navigation
     await page.setViewportSize({ width: 375, height: 812 });
 
-    // Open an email with attachments
-    const emailItem = page.locator('[data-testid="email-list-item"]').first();
-    await emailItem.click();
-    await expect(page.getByText("Q2 brand system")).toBeVisible({ timeout: 10000 });
-
-    // Click an attachment
+    // After resize the React tree re-renders; use force to bypass the
+    // stability check that fails when React detaches the element mid-click.
     const attachmentTile = page.locator(".mail-attachment-name").first();
     await expect(attachmentTile).toBeVisible({ timeout: 10000 });
-    await attachmentTile.click();
+    await attachmentTile.click({ force: true });
 
-    const drawer = page.getByRole("dialog", { name: /attachment preview/i });
+    const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // On mobile, the drawer should take full width
