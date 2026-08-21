@@ -34,6 +34,11 @@ import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/regi
 import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
 import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
+import { Route as ApiV1AttachmentsInitiateRouteImport } from './routes/api/v1/attachments/initiate'
+import { Route as ApiV1AttachmentsFinalizeRouteImport } from './routes/api/v1/attachments/finalize'
+import { Route as ApiV1AttachmentsDownloadRouteImport } from './routes/api/v1/attachments/download'
+import { Route as ApiV1AttachmentsChunkRouteImport } from './routes/api/v1/attachments/chunk'
+import { Route as ApiV1AttachmentsAbortRouteImport } from './routes/api/v1/attachments/abort'
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
 import { Route as ApiV1WalletLinkVerifyRouteImport } from './routes/api/v1/wallet/link/verify'
@@ -176,6 +181,34 @@ const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
   path: '/api/v1/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AttachmentsInitiateRoute =
+  ApiV1AttachmentsInitiateRouteImport.update({
+    id: '/api/v1/attachments/initiate',
+    path: '/api/v1/attachments/initiate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsFinalizeRoute =
+  ApiV1AttachmentsFinalizeRouteImport.update({
+    id: '/api/v1/attachments/finalize',
+    path: '/api/v1/attachments/finalize',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsDownloadRoute =
+  ApiV1AttachmentsDownloadRouteImport.update({
+    id: '/api/v1/attachments/download',
+    path: '/api/v1/attachments/download',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsChunkRoute = ApiV1AttachmentsChunkRouteImport.update({
+  id: '/api/v1/attachments/chunk',
+  path: '/api/v1/attachments/chunk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AttachmentsAbortRoute = ApiV1AttachmentsAbortRouteImport.update({
+  id: '/api/v1/attachments/abort',
+  path: '/api/v1/attachments/abort',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1WalletLinkIndexRoute = ApiV1WalletLinkIndexRouteImport.update({
   id: '/api/v1/wallet/link/',
   path: '/api/v1/wallet/link/',
@@ -266,6 +299,11 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -308,6 +346,11 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -351,6 +394,11 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -395,6 +443,11 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -437,6 +490,11 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -479,6 +537,11 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -522,6 +585,11 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
+  ApiV1AttachmentsAbortRoute: typeof ApiV1AttachmentsAbortRoute
+  ApiV1AttachmentsChunkRoute: typeof ApiV1AttachmentsChunkRoute
+  ApiV1AttachmentsDownloadRoute: typeof ApiV1AttachmentsDownloadRoute
+  ApiV1AttachmentsFinalizeRoute: typeof ApiV1AttachmentsFinalizeRoute
+  ApiV1AttachmentsInitiateRoute: typeof ApiV1AttachmentsInitiateRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
   ApiV1AuthLogoutAllRoute: typeof ApiV1AuthLogoutAllRoute
@@ -729,6 +797,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/attachments/initiate': {
+      id: '/api/v1/attachments/initiate'
+      path: '/api/v1/attachments/initiate'
+      fullPath: '/api/v1/attachments/initiate'
+      preLoaderRoute: typeof ApiV1AttachmentsInitiateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/finalize': {
+      id: '/api/v1/attachments/finalize'
+      path: '/api/v1/attachments/finalize'
+      fullPath: '/api/v1/attachments/finalize'
+      preLoaderRoute: typeof ApiV1AttachmentsFinalizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/download': {
+      id: '/api/v1/attachments/download'
+      path: '/api/v1/attachments/download'
+      fullPath: '/api/v1/attachments/download'
+      preLoaderRoute: typeof ApiV1AttachmentsDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/chunk': {
+      id: '/api/v1/attachments/chunk'
+      path: '/api/v1/attachments/chunk'
+      fullPath: '/api/v1/attachments/chunk'
+      preLoaderRoute: typeof ApiV1AttachmentsChunkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/abort': {
+      id: '/api/v1/attachments/abort'
+      path: '/api/v1/attachments/abort'
+      fullPath: '/api/v1/attachments/abort'
+      preLoaderRoute: typeof ApiV1AttachmentsAbortRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/wallet/link/': {
       id: '/api/v1/wallet/link/'
       path: '/api/v1/wallet/link'
@@ -888,6 +991,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
+  ApiV1AttachmentsAbortRoute: ApiV1AttachmentsAbortRoute,
+  ApiV1AttachmentsChunkRoute: ApiV1AttachmentsChunkRoute,
+  ApiV1AttachmentsDownloadRoute: ApiV1AttachmentsDownloadRoute,
+  ApiV1AttachmentsFinalizeRoute: ApiV1AttachmentsFinalizeRoute,
+  ApiV1AttachmentsInitiateRoute: ApiV1AttachmentsInitiateRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
   ApiV1AuthLogoutAllRoute: ApiV1AuthLogoutAllRoute,

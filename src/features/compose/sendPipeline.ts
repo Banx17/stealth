@@ -54,6 +54,10 @@ export interface SendPipelineInput {
     size_bytes: number;
     data?: ArrayBuffer;
   }>;
+  attachmentUploadSessions?: Array<{
+    sessionId: string;
+    attachmentIndex: number;
+  }>;
 }
 
 const STAGE_LABELS: Record<StageId, string> = {

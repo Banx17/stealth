@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Download,
   Copy,
@@ -16,8 +16,10 @@ import {
   ChevronRight,
   ShieldAlert,
   FileCode,
+  Loader2,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useAttachmentDownload, type DownloadStatus } from "@/hooks/useAttachmentDownload";
 
 // Mock database of file contents
 const MOCK_FILE_CONTENTS: Record<string, string | { [key: string]: any }> = {
@@ -124,6 +126,19 @@ export type Attachment = {
   name: string;
   size: string;
   type: string;
+  messageId?: string;
+  contentHash?: string;
+  totalChunks?: number;
+  encryptionKey?: CryptoKey;
+  ownerAddress?: string;
+  manifest?: {
+    algorithm: string;
+    chunk_size: number;
+    chunk_count: number;
+    total_size_bytes: number;
+    base_nonce: string;
+    manifest_mac: string;
+  };
 };
 
 interface AttachmentPreviewDrawerProps {
@@ -144,6 +159,31 @@ export function AttachmentPreviewDrawer({
   const [rotation, setRotation] = useState(0);
   const [pdfPage, setPdfPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+
+  const hasRealMetadata = Boolean(
+    attachment?.messageId &&
+    attachment?.contentHash &&
+    attachment?.totalChunks &&
+    attachment?.encryptionKey &&
+    attachment?.manifest,
+  );
+
+  const { download, status: downloadStatus } = useAttachmentDownload({
+    messageId: attachment?.messageId ?? "",
+    contentHash: attachment?.contentHash ?? "",
+    totalChunks: attachment?.totalChunks ?? 0,
+    encryptionKey: attachment?.encryptionKey ?? ({} as CryptoKey),
+    manifest: attachment?.manifest ?? {
+      algorithm: "AES-256-GCM-STREAM-v1",
+      chunk_size: 1048576,
+      chunk_count: 0,
+      total_size_bytes: 0,
+      base_nonce: "",
+      manifest_mac: "",
+    },
+    ownerAddress: attachment?.ownerAddress ?? "",
+  });
 
   // Reset local state when attachment changes
   useEffect(() => {
@@ -152,7 +192,76 @@ export function AttachmentPreviewDrawer({
     setRotation(0);
     setPdfPage(1);
     setSearchQuery("");
+    setDownloadProgress(null);
   }, [attachment?.name]);
+
+  const getMimeType = (ext: string) => {
+    if (ext === "json") return "application/json";
+    if (ext === "pdf") return "application/pdf";
+    if (ext === "txt") return "text/plain";
+    if (ext === "png") return "image/png";
+    if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+    return "application/octet-stream";
+  };
+
+  const handleDownload = useCallback(async () => {
+    if (!attachment) return;
+
+    const attachmentType = attachment.type.toLowerCase();
+    const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(attachmentType);
+
+    if (
+      hasRealMetadata &&
+      attachment.messageId &&
+      attachment.contentHash &&
+      attachment.totalChunks
+    ) {
+      try {
+        setDownloadProgress(0);
+        const result = await download();
+        const url = URL.createObjectURL(result.blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = attachment.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        setDownloadProgress(null);
+      } catch {
+        setDownloadProgress(null);
+      }
+      return;
+    }
+
+    if (isImage || attachmentType === "pdf") {
+      const link = document.createElement("a");
+      link.href = `/${attachment.name}`;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      const content = MOCK_FILE_CONTENTS[attachment.name];
+      const text =
+        typeof content === "string"
+          ? content
+          : content
+            ? JSON.stringify(content, null, 2)
+            : `Mock content for ${attachment.name}`;
+      const blob = new Blob([text], {
+        type: getMimeType(attachmentType),
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+  }, [hasRealMetadata, attachment, download]);
 
   if (!attachment) return null;
 
@@ -205,38 +314,6 @@ export function AttachmentPreviewDrawer({
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const getMimeType = (ext: string) => {
-    if (ext === "json") return "application/json";
-    if (ext === "pdf") return "application/pdf";
-    if (ext === "txt") return "text/plain";
-    if (ext === "png") return "image/png";
-    if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
-    return "application/octet-stream";
-  };
-
-  const handleDownload = () => {
-    if (isImage) {
-      const link = document.createElement("a");
-      // Use locally copied image or fall back to base image path
-      link.href = `/${attachment.name}`;
-      link.download = attachment.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } else {
-      const text = getMockFileString();
-      const blob = new Blob([text], { type: getMimeType(type) });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = attachment.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    }
   };
 
   // Icon switcher for header
@@ -372,11 +449,16 @@ export function AttachmentPreviewDrawer({
             )}
             <button
               onClick={handleDownload}
+              disabled={downloadStatus === "downloading"}
               title="Download file"
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150"
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150 disabled:opacity-50"
             >
-              <Download className="h-3.5 w-3.5" />
-              <span>Download</span>
+              {downloadStatus === "downloading" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              <span>{downloadStatus === "downloading" ? "Downloading..." : "Download"}</span>
             </button>
           </div>
         </div>
@@ -684,9 +766,15 @@ export function AttachmentPreviewDrawer({
 
               <button
                 onClick={handleDownload}
-                className="mt-6 w-full flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-xs font-semibold text-background hover:opacity-90 transition"
+                disabled={downloadStatus === "downloading"}
+                className="mt-6 w-full flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-xs font-semibold text-background hover:opacity-90 transition disabled:opacity-50"
               >
-                <Download className="h-4 w-4" /> Download file locally
+                {downloadStatus === "downloading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}{" "}
+                {downloadStatus === "downloading" ? "Downloading..." : "Download file locally"}
               </button>
             </div>
           )}
