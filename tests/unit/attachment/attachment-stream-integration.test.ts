@@ -12,12 +12,16 @@ import {
 } from "../../../src/services/crypto/attachment-stream";
 
 describe("attachment-stream integration", () => {
+  async function* toAsyncSource(chunks: Uint8Array[]) {
+    for (const chunk of chunks) yield chunk;
+  }
+
   it("encrypts and decrypts a small file round-trip", async () => {
     const key = await generateAttachmentKey();
     const plaintext = new TextEncoder().encode("Hello, Stealth attachment!");
     const source = [plaintext];
 
-    const encrypted = encryptAttachmentStream(key, source, {
+    const encrypted = encryptAttachmentStream(key, toAsyncSource(source), {
       chunkSizeBytes: MIN_CHUNK_SIZE_BYTES,
     });
 
@@ -58,7 +62,7 @@ describe("attachment-stream integration", () => {
     crypto.getRandomValues(plaintext);
     const source = [plaintext];
 
-    const encrypted = encryptAttachmentStream(key, source, {
+    const encrypted = encryptAttachmentStream(key, toAsyncSource(source), {
       chunkSizeBytes: 1024,
     });
 
@@ -98,7 +102,7 @@ describe("attachment-stream integration", () => {
     const plaintext = new TextEncoder().encode("Secret data");
     const source = [plaintext];
 
-    const encrypted = encryptAttachmentStream(key, source);
+    const encrypted = encryptAttachmentStream(key, toAsyncSource(source));
     const frames: EncryptedChunkFrame[] = [];
     for await (const frame of encrypted.chunks) {
       frames.push(frame);
@@ -123,7 +127,7 @@ describe("attachment-stream integration", () => {
     const plaintext = new TextEncoder().encode("Corruption test data for verification");
     const source = [plaintext];
 
-    const encrypted = encryptAttachmentStream(key, source, {
+    const encrypted = encryptAttachmentStream(key, toAsyncSource(source), {
       chunkSizeBytes: 16,
     });
 

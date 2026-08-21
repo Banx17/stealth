@@ -329,22 +329,6 @@ export function AttachmentPreviewDrawer({
     attachment?.manifest,
   );
 
-  const { download, status: downloadStatus } = useAttachmentDownload({
-    messageId: attachment?.messageId ?? "",
-    contentHash: attachment?.contentHash ?? "",
-    totalChunks: attachment?.totalChunks ?? 0,
-    encryptionKey: attachment?.encryptionKey ?? ({} as CryptoKey),
-    manifest: attachment?.manifest ?? {
-      algorithm: "AES-256-GCM-STREAM-v1",
-      chunk_size: 1048576,
-      chunk_count: 0,
-      total_size_bytes: 0,
-      base_nonce: "",
-      manifest_mac: "",
-    },
-    ownerAddress: attachment?.ownerAddress ?? "",
-  });
-
   // Reset local state when attachment changes
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -354,7 +338,7 @@ export function AttachmentPreviewDrawer({
   const contentHash = expectedContentHash ?? attachment?.expectedContentHash;
   const key = contentKey ?? attachment?.contentKey;
 
-  const download = useAttachmentDownload({
+  const { startDownload, ...download } = useAttachmentDownload({
     attachment,
     encryptedCiphertext: ciphertext,
     encryptedNonce: nonce,
@@ -387,7 +371,6 @@ export function AttachmentPreviewDrawer({
     if (!attachment) return;
 
     const attachmentType = attachment.type.toLowerCase();
-    const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(attachmentType);
 
     if (
       hasRealMetadata &&
@@ -395,21 +378,7 @@ export function AttachmentPreviewDrawer({
       attachment.contentHash &&
       attachment.totalChunks
     ) {
-      try {
-        setDownloadProgress(0);
-        const result = await download();
-        const url = URL.createObjectURL(result.blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = attachment.name;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        setDownloadProgress(null);
-      } catch {
-        setDownloadProgress(null);
-      }
+      startDownload();
       return;
     }
 
@@ -421,13 +390,7 @@ export function AttachmentPreviewDrawer({
       link.click();
       link.remove();
     } else {
-      const content = MOCK_FILE_CONTENTS[attachment.name];
-      const text =
-        typeof content === "string"
-          ? content
-          : content
-            ? JSON.stringify(content, null, 2)
-            : `Mock content for ${attachment.name}`;
+      const text = `Content for ${attachment.name}`;
       const blob = new Blob([text], {
         type: getMimeType(attachmentType),
       });
@@ -440,7 +403,7 @@ export function AttachmentPreviewDrawer({
       link.remove();
       URL.revokeObjectURL(url);
     }
-  }, [hasRealMetadata, attachment, download]);
+  }, [hasRealMetadata, attachment, startDownload]);
 
   const type = attachment?.type?.toLowerCase() ?? "";
   const isPDF = type === "pdf";
@@ -468,95 +431,6 @@ export function AttachmentPreviewDrawer({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [textContent]);
-
-  // Icon switcher for header
-  const getHeaderIcon = () => {
-    if (isPDF) return <FileText className="h-5 w-5 text-red-300 animate-pulse" />;
-    if (isImage) return <ImageIcon className="h-5 w-5 text-violet-300" />;
-    if (isJSON) return <Braces className="h-5 w-5 text-emerald-300" />;
-    if (isText) return <FileCode className="h-5 w-5 text-sky-200" />;
-    if (isEncrypted) return <Lock className="h-5 w-5 text-amber-300" />;
-    return <File className="h-5 w-5 text-slate-300" />;
-  };
-
-  // Helper for JSON syntax highlighting
-  const renderHighlightedJson = (jsonStr: string) => {
-    const stringPattern = String.raw`"(?:\\.|[^"\\])*"(?:\s*:)?`;
-    const keywordPattern = String.raw`\b(?:true|false|null)\b`;
-    const numberPattern = String.raw`-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?`;
-    const regex = new RegExp(`(${stringPattern}|${keywordPattern}|${numberPattern})`, "g");
-    const parts = jsonStr.split(regex);
-    let offset = 0;
-
-    return parts.map((part) => {
-      if (!part) return null;
-
-      // Use character offset as a stable, unique key instead of array index
-      const key = `token-${offset}`;
-      offset += part.length;
-
-      if (part.startsWith('"') && part.endsWith(":")) {
-        return (
-          <span key={key} className="text-sky-300">
-            {part}
-          </span>
-        );
-      } else if (part.startsWith('"')) {
-        return (
-          <span key={key} className="text-emerald-300">
-            {part}
-          </span>
-        );
-      } else if (/^(true|false)$/.test(part)) {
-        return (
-          <span key={key} className="text-amber-300 font-semibold">
-            {part}
-          </span>
-        );
-      } else if (part === "null") {
-        return (
-          <span key={key} className="text-gray-400 italic">
-            {part}
-          </span>
-        );
-      } else if (/^-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(part)) {
-        return (
-          <span key={key} className="text-violet-300">
-            {part}
-          </span>
-        );
-      }
-      return (
-        <span key={key} className="text-white/80">
-          {part}
-        </span>
-      );
-    });
-  };
-
-  // Helper for safe text line numbers
-  const renderTextWithLines = (text: string) => {
-    let lineCounter = 1;
-    const lines = text.split("\n").map((content) => {
-      const num = lineCounter++;
-      return { id: `line-${num}`, num, content };
-    });
-
-    return (
-      <div className="flex font-mono text-[13px] leading-6 select-text">
-        <div className="w-10 text-right select-none text-muted-foreground/45 border-r border-white/5 pr-2.5 mr-3 font-semibold tabular-nums">
-          {lines.map((line) => (
-            <div key={`num-${line.id}`}>{line.num}</div>
-          ))}
-        </div>
-        <div className="flex-1 overflow-x-auto whitespace-pre text-foreground/90">
-          {lines.map((line) => (
-            <div key={`content-${line.id}`}>{line.content || " "}</div>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   const handleDownloadFile = useCallback(() => {
     if (!download.result) return;
@@ -623,16 +497,16 @@ export function AttachmentPreviewDrawer({
             )}
             <button
               onClick={handleDownload}
-              disabled={downloadStatus === "downloading"}
+              disabled={download.state === "loading"}
               title="Download file"
               className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150 disabled:opacity-50"
             >
-              {downloadStatus === "downloading" ? (
+              {download.state === "loading" ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
-              <span>{downloadStatus === "downloading" ? "Downloading..." : "Download"}</span>
+              <span>{download.state === "loading" ? "Downloading..." : "Download"}</span>
             </button>
             {download.state === "ready" && (
               <button
@@ -931,15 +805,15 @@ export function AttachmentPreviewDrawer({
 
               <button
                 onClick={handleDownload}
-                disabled={downloadStatus === "downloading"}
+                disabled={download.state === "loading"}
                 className="mt-6 w-full flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-xs font-semibold text-background hover:opacity-90 transition disabled:opacity-50"
               >
-                {downloadStatus === "downloading" ? (
+                {download.state === "loading" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Download className="h-4 w-4" />
                 )}{" "}
-                {downloadStatus === "downloading" ? "Downloading..." : "Download file locally"}
+                {download.state === "loading" ? "Downloading..." : "Download file locally"}
               </button>
               {download.state === "ready" && download.result ? (
                 <button

@@ -48,6 +48,7 @@ export const Route = createFileRoute("/api/v1/attachments/chunk")({
 
           const nonceBytes = hexToBytes(input.nonce);
           const ciphertextBytes = Uint8Array.from(atob(input.ciphertext), (c) => c.charCodeAt(0));
+          const macBytes = hexToBytes(input.mac);
 
           const chunkBytes = new Uint8Array(
             nonceBytes.length + ciphertextBytes.length + macBytes.length,
