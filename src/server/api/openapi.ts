@@ -1032,7 +1032,7 @@ export const openApiDocument = {
           },
           senderRule: {
             type: "string",
-            enum: ["default", "allow", "block", "verify", "price"],
+            enum: ["default", "allow", "block"],
           },
           senderRuleConfigured: {
             type: "boolean",
