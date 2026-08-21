@@ -24,6 +24,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   MailboxFlagsPatch,
@@ -275,6 +276,14 @@ export interface ApiRepository {
   setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null>;
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord>;
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean>;
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }>;
   getPostage(messageId: string): Promise<Postage | null>;
   setPostage(postage: Postage): Promise<Postage>;
   /**
@@ -729,6 +738,32 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.inner.setSenderRule(owner, sender, versionRecord("senderRule", rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const raw = await this.inner.getSenderRuleRecord(owner, sender);
+    return raw ? validateRecord<SenderRuleRecord>("senderRuleRecord", raw) : null;
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    const result = await this.inner.setSenderRuleRecord(versionRecord("senderRuleRecord", record));
+    return validateRecord<SenderRuleRecord>("senderRuleRecord", result);
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    const result = await this.inner.listSenderRuleRecords(owner, options);
+    return {
+      ...result,
+      records: result.records.map((r) => validateRecord<SenderRuleRecord>("senderRuleRecord", r)),
+    };
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -1501,6 +1536,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicyWriteIntent",
   "getLifecycleAnchor",
   "getSenderRule",
+  "getSenderRuleRecord",
+  "listSenderRuleRecords",
   "getPostage",
   "getReceipt",
   "getIdempotencyRecord",
@@ -1514,6 +1551,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setPolicyWriteIntent",
   "setLifecycleAnchor",
   "setSenderRule",
+  "setSenderRuleRecord",
+  "deleteSenderRuleRecord",
   "setPostage",
   "setReceipt",
   "createReceiptIfAbsent",
@@ -1654,6 +1693,32 @@ export class RetryableApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.withRetry("setSenderRule", () => this.inner.setSenderRule(owner, sender, rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return this.withRetry("getSenderRuleRecord", () =>
+      this.inner.getSenderRuleRecord(owner, sender),
+    );
+  }
+
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    return this.withRetry("setSenderRuleRecord", () => this.inner.setSenderRuleRecord(record));
+  }
+
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.withRetry("deleteSenderRuleRecord", () =>
+      this.inner.deleteSenderRuleRecord(owner, sender),
+    );
+  }
+
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    return this.withRetry("listSenderRuleRecords", () =>
+      this.inner.listSenderRuleRecords(owner, options),
+    );
   }
 
   getPostage(messageId: string): Promise<Postage | null> {

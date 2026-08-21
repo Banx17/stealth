@@ -39,6 +39,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   User,
@@ -107,6 +108,35 @@ export class HybridApiRepository implements ApiRepository {
       await this.kv.put(ruleKey, rule);
     }
     return rule;
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const record = await this.kv.get(this.key("sender-rule-record", owner, sender), "json");
+    return (record as SenderRuleRecord) ?? null;
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    await this.kv.put(
+      this.key("sender-rule-record", record.owner, record.sender),
+      JSON.stringify(record),
+    );
+    return record;
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    const existing = await this.getSenderRuleRecord(owner, sender);
+    if (!existing) return false;
+    await this.kv.delete(this.key("sender-rule-record", owner, sender));
+    return true;
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    // BETA-037: Delegate to the DO coordinator for consistent listing.
+    return this.getStub().listSenderRuleRecords(owner, options);
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
