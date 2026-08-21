@@ -55,6 +55,7 @@ export function useMailActions(input: {
   isDemoMode?: boolean;
   actor?: string | null;
   refreshOutbox?: () => void;
+  markReadReceipt?: (messageId: string) => Promise<unknown>;
 }) {
   const {
     emails,
@@ -74,6 +75,7 @@ export function useMailActions(input: {
     isDemoMode = false,
     actor = null,
     refreshOutbox,
+    markReadReceipt,
   } = input;
 
   const handleRetrySend = useCallback(
@@ -382,6 +384,13 @@ export function useMailActions(input: {
       onPreviewAttachment: previewAttachment,
       onRetrySend: handleRetrySend,
       onCancelSend: handleCancelSend,
+      onSendReadReceipt: markReadReceipt
+        ? (email: Email) => {
+            void markReadReceipt(email.id).then(() => {
+              showToast(`Read receipt sent for "${email.subject}"`);
+            });
+          }
+        : undefined,
     }),
     [
       addMailEvent,
@@ -392,6 +401,7 @@ export function useMailActions(input: {
       handleUnsnooze,
       input.updateCalendarReminder,
       input.updateCalendarResponse,
+      markReadReceipt,
       openCalendar,
       openCompose,
       openSenderConversion,

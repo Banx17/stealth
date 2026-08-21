@@ -377,6 +377,14 @@ export class ReceiptsClient {
   get(messageId: string, signal?: AbortSignal): Promise<ReceiptRecord> {
     return this.client.get<ReceiptRecord>(`/receipts/${encodeURIComponent(messageId)}`, { signal });
   }
+
+  markRead(messageId: string, signal?: AbortSignal): Promise<ReceiptRecord> {
+    return this.client.post<ReceiptRecord>(
+      `/receipts/${encodeURIComponent(messageId)}/read`,
+      undefined,
+      { signal },
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

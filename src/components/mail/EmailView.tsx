@@ -881,11 +881,11 @@ function ReceiptStatus({
   email: Email;
   onSendReadReceipt?: (email: Email) => void;
 }) {
-  if (!email.receiptState || email.receiptState === "none") {
-    return null;
-  }
+  const receiptState = email.receiptState ?? "none";
 
-  if (email.receiptState === "sent") {
+  if (receiptState === "none") return null;
+
+  if (receiptState === "sent") {
     return (
       <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200/15 bg-emerald-200/[0.03] px-3 py-2">
         <CheckCheck className="h-4 w-4 text-emerald-300" />
@@ -894,14 +894,14 @@ function ReceiptStatus({
     );
   }
 
-  if (email.receiptState === "pending") {
+  if (receiptState === "pending") {
     return (
       <div className="mt-3 flex items-center gap-3 rounded-lg border border-amber-200/15 bg-amber-200/[0.03] px-3 py-2">
         <CheckCheck className="h-4 w-4 text-amber-200" />
         <div className="flex-1">
           <div className="text-xs font-medium text-foreground">Read receipt pending</div>
           <div className="text-[11px] text-muted-foreground">
-            Send a read receipt to let them know you've seen this
+            Send a read receipt to let them know you&apos;ve seen this
           </div>
         </div>
         {onSendReadReceipt && (
