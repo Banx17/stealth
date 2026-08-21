@@ -234,7 +234,12 @@ export function MailOverlayStack({
         isOpen={!!overlays.previewAttachment}
         onClose={() => overlays.setPreviewAttachment(null)}
         attachment={overlays.previewAttachment}
-        senderAddress={selected?.email}
+        senderAddress={overlays.previewAttachment?.senderAddress ?? selected?.email}
+        encryptedCiphertext={overlays.previewAttachment?.encryptedCiphertext}
+        encryptedNonce={overlays.previewAttachment?.encryptedNonce}
+        encryptedMac={overlays.previewAttachment?.encryptedMac}
+        expectedContentHash={overlays.previewAttachment?.expectedContentHash}
+        contentKey={overlays.previewAttachment?.contentKey}
       />
       <AuthModal
         open={overlays.authModalOpen}

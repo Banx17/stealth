@@ -71,7 +71,17 @@ export type EmailViewActions = {
   onOpenCalendar?: (eventId?: string) => void;
   onCalendarResponseChange?: (eventId: string, response: CalendarResponse) => void;
   onCalendarReminderChange?: (eventId: string, reminder: string) => void;
-  onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
+  onPreviewAttachment?: (attachment: {
+    name: string;
+    size: string;
+    type: string;
+    senderAddress?: string;
+    encryptedCiphertext?: string;
+    encryptedNonce?: string;
+    encryptedMac?: string;
+    expectedContentHash?: string;
+    contentKey?: CryptoKey;
+  }) => void;
   onRetrySend?: (email: Email) => void;
   onCancelSend?: (email: Email) => void;
 };
@@ -539,7 +549,31 @@ export function EmailView({
                       {email.attachments.map((attachment) => (
                         <motion.div
                           key={attachment.name}
-                          onClick={() => actions.onPreviewAttachment?.(attachment)}
+                          onClick={() =>
+                            actions.onPreviewAttachment?.({
+                              ...attachment,
+                              senderAddress: email.email,
+                              ...(email.attachmentCrypto?.attachments.find(
+                                (a) => a.filename === attachment.name,
+                              )
+                                ? {
+                                    encryptedCiphertext: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.ciphertext,
+                                    encryptedNonce: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.nonce,
+                                    encryptedMac: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.mac,
+                                    expectedContentHash: email.attachmentCrypto!.attachments.find(
+                                      (a) => a.filename === attachment.name,
+                                    )!.contentHash,
+                                    contentKey: email.attachmentCrypto!.contentKey,
+                                  }
+                                : {}),
+                            })
+                          }
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className={cn(
