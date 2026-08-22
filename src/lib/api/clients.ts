@@ -44,6 +44,7 @@ import type {
   ProfileUpdateResponse,
   SearchQueryInput,
   SearchResponseDto,
+  ActiveSessionDto,
 } from "./types";
 
 export interface ApiContext {
@@ -111,6 +112,18 @@ export class AuthClient {
 
   logoutAll(): Promise<{ success: boolean }> {
     return this.client.post<{ success: boolean }>("/auth/logout-all");
+  }
+
+  listSessions(signal?: AbortSignal): Promise<ActiveSessionDto[]> {
+    return this.client.get<ActiveSessionDto[]>("/auth/sessions", { signal });
+  }
+
+  revokeSession(id: string): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>("/auth/sessions/revoke", { id });
+  }
+
+  revokeOthers(): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>("/auth/sessions/revoke-others");
   }
 }
 

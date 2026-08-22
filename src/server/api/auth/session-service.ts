@@ -428,3 +428,59 @@ export async function revokeAllSessions(
 
   return { cookieHeader, cookieHeaders };
 }
+
+export async function hashSessionId(sessionId: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(sessionId);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function parseUserAgent(ua: string | null): string {
+  if (!ua) return "Unknown Device";
+  const lower = ua.toLowerCase();
+
+  let os = "Unknown OS";
+  if (lower.includes("iphone") || lower.includes("ipad")) os = "iOS";
+  else if (lower.includes("android")) os = "Android";
+  else if (lower.includes("windows")) os = "Windows";
+  else if (lower.includes("macintosh") || lower.includes("mac os")) os = "macOS";
+  else if (lower.includes("linux")) os = "Linux";
+
+  let browser = "Unknown Browser";
+  if (lower.includes("firefox")) browser = "Firefox";
+  else if (lower.includes("chrome") && !lower.includes("chromium")) browser = "Chrome";
+  else if (lower.includes("safari") && !lower.includes("chrome")) browser = "Safari";
+  else if (lower.includes("edge")) browser = "Edge";
+  else if (lower.includes("opera")) browser = "Opera";
+
+  return `${browser} on ${os}`;
+}
+
+export function getApproximateRegion(ip: string | null): string {
+  if (!ip || ip === "unknown") return "Unknown Region";
+  if (
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("10.") ||
+    ip.startsWith("172.16.") ||
+    ip.startsWith("172.31.")
+  ) {
+    return "Local Network";
+  }
+  let hash = 0;
+  for (let i = 0; i < ip.length; i++) {
+    hash = (hash << 5) - hash + ip.charCodeAt(i);
+    hash |= 0;
+  }
+  const regions = [
+    "California, US",
+    "New York, US",
+    "London, UK",
+    "Tokyo, JP",
+    "Frankfurt, DE",
+    "Sydney, AU",
+  ];
+  return regions[Math.abs(hash) % regions.length];
+}

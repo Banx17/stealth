@@ -331,6 +331,14 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteUserSessions");
     return this.inner.deleteUserSessions(userId);
   }
+  async listUserSessions(userId: string) {
+    this.maybeFail("listUserSessions");
+    return this.inner.listUserSessions(userId);
+  }
+  async deleteOtherUserSessions(userId: string, currentSessionId: string) {
+    this.maybeFail("deleteOtherUserSessions");
+    return this.inner.deleteOtherUserSessions(userId, currentSessionId);
+  }
   async getRetiredSession(sessionId: string) {
     this.maybeFail("getRetiredSession");
     return this.inner.getRetiredSession(sessionId);

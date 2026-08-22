@@ -678,6 +678,37 @@ export class StealthCoordinator extends DurableObjectBase {
     }
   }
 
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const keys: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      keys.push(`session:${key.slice(prefix.length)}`);
+    }
+    if (keys.length === 0) return [];
+    const sessionsMap = (await this.ctx.storage.get(keys)) as Map<string, Session>;
+    const sessions: Session[] = [];
+    for (const s of sessionsMap.values()) {
+      if (s) sessions.push(s);
+    }
+    return sessions;
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const deletes: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      const sessionId = key.slice(prefix.length);
+      if (sessionId !== currentSessionId) {
+        deletes.push(key, `session:${sessionId}`);
+      }
+    }
+    if (deletes.length > 0) {
+      await this.ctx.storage.delete(deletes);
+    }
+  }
+
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     const retiredSession = (await this.ctx.storage.get(`retired-session:${sessionId}`)) as
       | RetiredSession

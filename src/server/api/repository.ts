@@ -458,6 +458,8 @@ export interface ApiRepository {
   updateSession(session: Session): Promise<Session>;
   deleteSession(sessionId: string): Promise<void>;
   deleteUserSessions(userId: string): Promise<void>;
+  listUserSessions(userId: string): Promise<Session[]>;
+  deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void>;
   getRetiredSession(sessionId: string): Promise<RetiredSession | null>;
   createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession>;
 
@@ -1105,6 +1107,15 @@ export class ValidatedApiRepository implements ApiRepository {
 
   deleteUserSessions(userId: string): Promise<void> {
     return this.inner.deleteUserSessions(userId);
+  }
+
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const raw = await this.inner.listUserSessions(userId);
+    return raw.map((s) => validateRecord<Session>("session", s));
+  }
+
+  deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    return this.inner.deleteOtherUserSessions(userId, currentSessionId);
   }
 
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
@@ -1970,6 +1981,14 @@ export class RetryableApiRepository implements ApiRepository {
 
   deleteUserSessions(userId: string): Promise<void> {
     return this.inner.deleteUserSessions(userId);
+  }
+
+  listUserSessions(userId: string): Promise<Session[]> {
+    return this.withRetry("listUserSessions", () => this.inner.listUserSessions(userId));
+  }
+
+  deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    return this.inner.deleteOtherUserSessions(userId, currentSessionId);
   }
 
   getRetiredSession(sessionId: string): Promise<RetiredSession | null> {

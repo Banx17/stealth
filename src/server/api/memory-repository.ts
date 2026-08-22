@@ -822,6 +822,24 @@ export class MemoryApiRepository implements ApiRepository {
     }
   }
 
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const list: Session[] = [];
+    for (const session of this.sessions.values()) {
+      if (session.userId === userId) {
+        list.push(structuredClone(session));
+      }
+    }
+    return list;
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    for (const [sessionId, session] of this.sessions.entries()) {
+      if (session.userId === userId && sessionId !== currentSessionId) {
+        this.sessions.delete(sessionId);
+      }
+    }
+  }
+
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     return structuredClone(this.retiredSessions.get(sessionId) ?? null);
   }
