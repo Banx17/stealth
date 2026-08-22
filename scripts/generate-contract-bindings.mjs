@@ -246,7 +246,7 @@ function emitClient(spec, contractName, xdrBase64Entries) {
     `// Source: contracts/soroban/${contractName}/spec.json`,
     `// Regenerate: npm run generate:bindings`,
     ``,
-    `import { contract, Keypair } from "@stellar/stellar-sdk";`,
+    `import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";`,
     ``,
   ];
 
@@ -309,7 +309,9 @@ function emitClient(spec, contractName, xdrBase64Entries) {
   lines.push(`      networkPassphrase: opts.networkPassphrase,`);
   lines.push(`      rpcUrl: opts.rpcUrl,`);
   lines.push(`      ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),`);
-  lines.push(`      ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),`);
+  lines.push(
+    `      ...(opts.signer ? { signTransaction: async (xdr: string, signOpts?: { networkPassphrase?: string }) => { const keypair = Keypair.fromSecret(opts.signer!); const tx = new Transaction(xdr, signOpts?.networkPassphrase ?? opts.networkPassphrase); tx.sign(keypair); return { signedTxXdr: tx.toXDR(), signerAddress: keypair.publicKey() }; } } : {}),`,
+  );
   lines.push(`    }`);
   lines.push(`  );`);
   lines.push(`}`);

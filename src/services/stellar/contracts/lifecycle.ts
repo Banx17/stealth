@@ -2,7 +2,7 @@
 // Source: contracts/soroban/lifecycle/spec.json
 // Regenerate: npm run generate:bindings
 
-import { contract, Keypair } from "@stellar/stellar-sdk";
+import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";
 
 export interface LifecycleConfig {
   policies: string;
@@ -142,7 +142,16 @@ export function createLifecycleClient(opts: LifecycleClientOptions): contract.Cl
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
-    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: async (xdr: string, signOpts?: { networkPassphrase?: string }) => {
+            const keypair = Keypair.fromSecret(opts.signer!);
+            const tx = new Transaction(xdr, signOpts?.networkPassphrase ?? opts.networkPassphrase);
+            tx.sign(keypair);
+            return { signedTxXdr: tx.toXDR(), signerAddress: keypair.publicKey() };
+          },
+        }
+      : {}),
   });
 }
 

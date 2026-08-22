@@ -2,7 +2,7 @@
 // Source: contracts/soroban/postage/spec.json
 // Regenerate: npm run generate:bindings
 
-import { contract, Keypair } from "@stellar/stellar-sdk";
+import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";
 
 export interface Postage {
   amount: bigint;
@@ -93,7 +93,16 @@ export function createPostageClient(opts: PostageClientOptions): contract.Client
     networkPassphrase: opts.networkPassphrase,
     rpcUrl: opts.rpcUrl,
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
-    ...(opts.signer ? { signTransaction: Keypair.fromSecret(opts.signer) } : {}),
+    ...(opts.signer
+      ? {
+          signTransaction: async (xdr: string, signOpts?: { networkPassphrase?: string }) => {
+            const keypair = Keypair.fromSecret(opts.signer!);
+            const tx = new Transaction(xdr, signOpts?.networkPassphrase ?? opts.networkPassphrase);
+            tx.sign(keypair);
+            return { signedTxXdr: tx.toXDR(), signerAddress: keypair.publicKey() };
+          },
+        }
+      : {}),
   });
 }
 
@@ -168,12 +177,7 @@ export async function submit(
   recipient: string,
   amount: bigint,
 ): Promise<contract.Ok<Postage> | contract.Err<{ message: string }>> {
-  const tx = await (client as any).submit({
-    message_id,
-    sender,
-    recipient,
-    amount,
-  });
+  const tx = await (client as any).submit({ message_id, sender, recipient, amount });
   return tx.result;
 }
 
