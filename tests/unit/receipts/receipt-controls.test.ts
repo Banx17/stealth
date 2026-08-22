@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 // ---------------------------------------------------------------------------
 // BETA-064 (Issue #1971) — delivery and read-receipt controls tests.
 //
@@ -10,9 +13,6 @@
 //  6. Cross-device reads (read on device A reflected on device B)
 // ---------------------------------------------------------------------------
 
-/**
- * @vitest-environment jsdom
- */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   resolveReceiptPreference,
@@ -21,6 +21,19 @@ import {
   setReceiptOverride,
   type ReceiptSenderType,
 } from "@/features/mail/useReceipts";
+
+const storage = new Map<string, string>();
+const localStorageMock = {
+  getItem: (key: string) => storage.get(key) ?? null,
+  setItem: (key: string, val: string) => storage.set(key, String(val)),
+  removeItem: (key: string) => storage.delete(key),
+  clear: () => storage.clear(),
+  get length() {
+    return storage.size;
+  },
+  key: (i: number) => Array.from(storage.keys())[i] ?? null,
+};
+vi.stubGlobal("localStorage", localStorageMock);
 
 // ---------------------------------------------------------------------------
 // Pure function tests — no DOM, no React, no mocking needed

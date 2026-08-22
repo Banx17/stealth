@@ -1,6 +1,7 @@
 // AUTO-GENERATED — do not edit by hand.
 // Source: contracts/soroban/receipts/spec.json
 // Regenerate: npm run generate:bindings
+
 import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";
 
 export interface Receipt {
