@@ -51,8 +51,8 @@ export enum PoliciesError {
   UnauthorizedDelegate = 2,
 }
 
-// Embedded XDR spec entries derived from spec.json
-const SPEC_ENTRIES: string[] = [
+/** Base64-encoded XDR contract spec entries used to initialize the contract Spec. */
+export const SPEC_ENTRIES: string[] = [
   "AAAAAQAAAAAAAAAAAAAADU1haWxib3hQb2xpY3kAAAAAAAAEAAAAAAAAAA1hbGxvd191bmtub3duAAAAAAAAAQAAAAAAAAAPbWluaW11bV9wb3N0YWdlAAAAAAsAAAAAAAAAD3JlcXVpcmVfcmVjZWlwdAAAAAABAAAAAAAAABByZXF1aXJlX3ZlcmlmaWVkAAAAAQ==",
   "AAAAAQAAAAAAAAAAAAAAFlZlcnNpb25lZE1haWxib3hQb2xpY3kAAAAAAAIAAAAAAAAABnBvbGljeQAAAAAH0AAAAA1NYWlsYm94UG9saWN5AAAAAAAAAAAAAAd2ZXJzaW9uAAAAAAQ=",
   "AAAAAQAAAAAAAAAAAAAADURlbGVnYXRlU2NvcGUAAAAAAAACAAAAAAAAAA5jYW5fc2V0X3BvbGljeQAAAAAAAQAAAAAAAAAPY2FuX3NldF9zZW5kZXJzAAAAAAE=",
@@ -103,11 +103,15 @@ export function createPoliciesClient(opts: PoliciesClientOptions): contract.Clie
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
     ...(opts.signer
       ? {
-          signTransaction: async (xdr: string, signOpts?: { networkPassphrase?: string }) => {
-            const keypair = Keypair.fromSecret(opts.signer!);
-            const tx = new Transaction(xdr, signOpts?.networkPassphrase ?? opts.networkPassphrase);
-            tx.sign(keypair);
-            return { signedTxXdr: tx.toXDR(), signerAddress: keypair.publicKey() };
+          signTransaction: async (xdrString: string, signOpts?: { networkPassphrase?: string }) => {
+            const kp = Keypair.fromSecret(opts.signer!);
+            const networkPassphrase = signOpts?.networkPassphrase ?? opts.networkPassphrase;
+            const tx = new Transaction(xdrString, networkPassphrase);
+            tx.sign(kp);
+            return {
+              signedTxXdr: tx.toXDR(),
+              signerAddress: kp.publicKey(),
+            };
           },
         }
       : {}),

@@ -33,11 +33,13 @@ export class KvRelayPersistence implements RelayPersistence {
     return this.readCounter(KvRelayPersistence.DEAD_LETTER_KEY);
   }
 
+  async get(messageId: string): Promise<RelayEnvelope | null> {
+    const existing = await this.kv.get(`${KvRelayPersistence.MESSAGE_PREFIX}${messageId}`, "json");
+    return existing ? (existing as RelayEnvelope) : null;
+  }
+
   async enqueue(envelope: RelayEnvelope): Promise<{ messageId: string }> {
-    const existing = await this.kv.get(
-      `${KvRelayPersistence.MESSAGE_PREFIX}${envelope.messageId}`,
-      "json",
-    );
+    const existing = await this.get(envelope.messageId);
     if (existing) {
       return { messageId: envelope.messageId };
     }

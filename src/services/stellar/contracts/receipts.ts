@@ -21,8 +21,8 @@ export enum ReceiptsError {
   CommitmentMismatch = 4,
 }
 
-// Embedded XDR spec entries derived from spec.json
-const SPEC_ENTRIES: string[] = [
+/** Base64-encoded XDR contract spec entries used to initialize the contract Spec. */
+export const SPEC_ENTRIES: string[] = [
   "AAAAAQAAAAAAAAAAAAAAB1JlY2VpcHQAAAAABwAAAAAAAAAKbWVzc2FnZV9pZAAAAAAD7gAAACAAAAAAAAAADHBheWxvYWRfaGFzaAAAA+4AAAAgAAAAAAAAABBwcm90b2NvbF92ZXJzaW9uAAAABAAAAAAAAAAGc2VuZGVyAAAAAAATAAAAAAAAAAlyZWNpcGllbnQAAAAAAAATAAAAAAAAAAxkZWxpdmVyZWRfYXQAAAAGAAAAAAAAAAdyZWFkX2F0AAAAA+gAAAAG",
   "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAABAAAAAAAAAAQRHVwbGljYXRlUmVjZWlwdAAAAAEAAAAAAAAAD1JlY2VpcHROb3RGb3VuZAAAAAACAAAAAAAAAAtBbHJlYWR5UmVhZAAAAAADAAAAAAAAABJDb21taXRtZW50TWlzbWF0Y2gAAAAAAAQ=",
   "AAAAAAAAAAAAAAAJZGVsaXZlcmVkAAAAAAAABQAAAAAAAAAKbWVzc2FnZV9pZAAAAAAD7gAAACAAAAAAAAAADHBheWxvYWRfaGFzaAAAA+4AAAAgAAAAAAAAABBwcm90b2NvbF92ZXJzaW9uAAAABAAAAAAAAAAGc2VuZGVyAAAAAAATAAAAAAAAAAlyZWNpcGllbnQAAAAAAAATAAAAAQAAA+kAAAfQAAAAB1JlY2VpcHQAAAAH0AAAAAVFcnJvcgAAAA==",
@@ -56,11 +56,15 @@ export function createReceiptsClient(opts: ReceiptsClientOptions): contract.Clie
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
     ...(opts.signer
       ? {
-          signTransaction: async (xdr: string, signOpts?: { networkPassphrase?: string }) => {
-            const keypair = Keypair.fromSecret(opts.signer!);
-            const tx = new Transaction(xdr, signOpts?.networkPassphrase ?? opts.networkPassphrase);
-            tx.sign(keypair);
-            return { signedTxXdr: tx.toXDR(), signerAddress: keypair.publicKey() };
+          signTransaction: async (xdrString: string, signOpts?: { networkPassphrase?: string }) => {
+            const kp = Keypair.fromSecret(opts.signer!);
+            const networkPassphrase = signOpts?.networkPassphrase ?? opts.networkPassphrase;
+            const tx = new Transaction(xdrString, networkPassphrase);
+            tx.sign(kp);
+            return {
+              signedTxXdr: tx.toXDR(),
+              signerAddress: kp.publicKey(),
+            };
           },
         }
       : {}),

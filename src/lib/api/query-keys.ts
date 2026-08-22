@@ -34,7 +34,8 @@ export const queryKeys = {
   },
   requests: {
     all: ["requests"] as const,
-    list: (owner: string) => ["requests", owner] as const,
+    list: (owner: string, options?: { cursor?: string; limit?: number }) =>
+      ["requests", owner, options ?? {}] as const,
   },
   policies: {
     all: ["policies"] as const,
@@ -53,6 +54,10 @@ export const queryKeys = {
     all: ["receipts"] as const,
     byMessage: (messageId: string) => ["receipts", messageId] as const,
   },
+  lifecycle: {
+    all: ["lifecycle"] as const,
+    byMessage: (messageId: string) => ["lifecycle", messageId] as const,
+  },
   contacts: {
     all: ["contacts"] as const,
     list: (owner: string) => ["contacts", owner] as const,
@@ -64,6 +69,10 @@ export const queryKeys = {
   wallet: {
     all: ["wallet"] as const,
     status: ["wallet", "status"] as const,
+  },
+  search: {
+    all: ["search"] as const,
+    query: (actor: string, query: Record<string, unknown>) => ["search", actor, query] as const,
   },
 } as const;
 

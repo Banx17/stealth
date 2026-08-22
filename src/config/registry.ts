@@ -24,13 +24,17 @@ export interface ContractManifest {
 
 export function loadManifest(): ContractManifest | null {
   try {
-    // Attempt to load from the src/config directory where the deploy script places it
-    const manifestPath = resolve(__dirname, "contract-manifest.json");
-    if (!existsSync(manifestPath)) {
-      return null;
+    const candidates = [
+      resolve(process.cwd(), "src/config/contract-manifest.json"),
+      resolve(process.cwd(), "contract-manifest.json"),
+    ];
+    for (const manifestPath of candidates) {
+      if (existsSync(manifestPath)) {
+        const data = readFileSync(manifestPath, "utf-8");
+        return JSON.parse(data) as ContractManifest;
+      }
     }
-    const data = readFileSync(manifestPath, "utf-8");
-    return JSON.parse(data) as ContractManifest;
+    return null;
   } catch (error) {
     console.warn("Failed to load contract-manifest.json", error);
     return null;
@@ -115,6 +119,21 @@ export function validateRegistryDrift(config: BetaRuntimeConfig) {
     ) {
       throw new Error(
         `Drift Validation Error: STEALTH_LIFECYCLE_CONTRACT_ID '${config.contract.lifecycleContractId}' does not match deployed manifest ID '${manifest.contracts.lifecycle?.contractId}'`,
+      );
+    }
+  }
+
+  if (
+    config.contract.policiesContractId !== "placeholder" &&
+    manifest.contracts.policies?.contractId &&
+    config.contract.policiesContractId !== manifest.contracts.policies.contractId
+  ) {
+    if (
+      config.profile === "production" ||
+      !config.contract.policiesContractId.startsWith("CCCCC")
+    ) {
+      throw new Error(
+        `Drift Validation Error: STEALTH_POLICIES_CONTRACT_ID '${config.contract.policiesContractId}' does not match deployed policies manifest ID '${manifest.contracts.policies.contractId}'`,
       );
     }
   }

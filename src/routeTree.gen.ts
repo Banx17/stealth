@@ -21,9 +21,11 @@ import { Route as ApiV1ProtocolRouteImport } from './routes/api/v1/protocol'
 import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
+import { Route as ApiV1SearchIndexRouteImport } from './routes/api/v1/search/index'
 import { Route as ApiV1RequestsIndexRouteImport } from './routes/api/v1/requests/index'
 import { Route as ApiV1ReceiptsIndexRouteImport } from './routes/api/v1/receipts/index'
 import { Route as ApiV1PostageIndexRouteImport } from './routes/api/v1/postage/index'
+import { Route as ApiV1DraftsIndexRouteImport } from './routes/api/v1/drafts/index'
 import { Route as ApiV1ContactsIndexRouteImport } from './routes/api/v1/contacts/index'
 import { Route as ApiV1AccountsIndexRouteImport } from './routes/api/v1/accounts/index'
 import { Route as ApiV1WalletStatusRouteImport } from './routes/api/v1/wallet/status'
@@ -38,12 +40,15 @@ import { Route as ApiV1PostageQuoteRouteImport } from './routes/api/v1/postage/q
 import { Route as ApiV1PostageMessageIdRouteImport } from './routes/api/v1/postage/$messageId'
 import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/policies/evaluate'
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
+import { Route as ApiV1OnboardingDraftRouteImport } from './routes/api/v1/onboarding/draft'
+import { Route as ApiV1OnboardingCompleteRouteImport } from './routes/api/v1/onboarding/complete'
 import { Route as ApiV1MailboxSyncRouteImport } from './routes/api/v1/mailbox/sync'
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxCountsRouteImport } from './routes/api/v1/mailbox/counts'
 import { Route as ApiV1MailboxMessageIdRouteImport } from './routes/api/v1/mailbox/$messageId'
 import { Route as ApiV1LifecycleMessageIdRouteImport } from './routes/api/v1/lifecycle/$messageId'
 import { Route as ApiV1IdentityResolveRouteImport } from './routes/api/v1/identity/resolve'
+import { Route as ApiV1DraftsDraftIdRouteImport } from './routes/api/v1/drafts/$draftId'
 import { Route as ApiV1DeliveryMessageIdRouteImport } from './routes/api/v1/delivery/$messageId'
 import { Route as ApiV1ContactsMergeRouteImport } from './routes/api/v1/contacts/merge'
 import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts/$contactId'
@@ -54,8 +59,16 @@ import { Route as ApiV1AuthRegisterRouteImport } from './routes/api/v1/auth/regi
 import { Route as ApiV1AuthLogoutAllRouteImport } from './routes/api/v1/auth/logout-all'
 import { Route as ApiV1AuthLogoutRouteImport } from './routes/api/v1/auth/logout'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth/login'
+import { Route as ApiV1AttachmentsInitiateRouteImport } from './routes/api/v1/attachments/initiate'
+import { Route as ApiV1AttachmentsFinalizeRouteImport } from './routes/api/v1/attachments/finalize'
+import { Route as ApiV1AttachmentsDownloadRouteImport } from './routes/api/v1/attachments/download'
+import { Route as ApiV1AttachmentsChunkRouteImport } from './routes/api/v1/attachments/chunk'
+import { Route as ApiV1AttachmentsAbortRouteImport } from './routes/api/v1/attachments/abort'
 import { Route as ApiV1AccountsProvisioningRouteImport } from './routes/api/v1/accounts/provisioning'
 import { Route as ApiV1AccountsProfileRouteImport } from './routes/api/v1/accounts/profile'
+import { Route as ApiV1AccountsExportRouteImport } from './routes/api/v1/accounts/export'
+import { Route as ApiV1AccountsDeletionCancelRouteImport } from './routes/api/v1/accounts/deletion-cancel'
+import { Route as ApiV1AccountsDeletionRouteImport } from './routes/api/v1/accounts/deletion'
 import { Route as ApiV1AccountsAccountInfoRouteImport } from './routes/api/v1/accounts/account-info'
 import { Route as ApiV1WalletLinkIndexRouteImport } from './routes/api/v1/wallet/link/index'
 import { Route as ApiV1IdentityKeysIndexRouteImport } from './routes/api/v1/identity/keys/index'
@@ -87,10 +100,13 @@ import { Route as ApiV1AuthPasswordResetCompleteRouteImport } from './routes/api
 import { Route as ApiV1AdminJobsIdRouteImport } from './routes/api/v1/admin/jobs/$id'
 import { Route as ApiV1AdminDlqIdRouteImport } from './routes/api/v1/admin/dlq/$id'
 import { Route as ApiV1AccountsProvisioningRetryRouteImport } from './routes/api/v1/accounts/provisioning/retry'
+import { Route as ApiV1PoliciesOwnerSendersIndexRouteImport } from './routes/api/v1/policies/$owner/senders/index'
 import { Route as ApiV1PoliciesOwnerSendersSenderRouteImport } from './routes/api/v1/policies/$owner/senders/$sender'
 import { Route as ApiV1AdminDlqIdRetryRouteImport } from './routes/api/v1/admin/dlq/$id/retry'
 import { Route as ApiV1AdminDlqIdAbandonRouteImport } from './routes/api/v1/admin/dlq/$id/abandon'
 import { Route as ApiV1AccountsUserIdWalletProvisionRouteImport } from './routes/api/v1/accounts/$userId/wallet/provision'
+import { Route as ApiV1PoliciesOwnerSendersSenderRetryRouteImport } from './routes/api/v1/policies/$owner/senders/$sender/retry'
+import { Route as ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport } from './routes/api/v1/policies/$owner/senders/$sender/chain-status'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -152,6 +168,11 @@ const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
   path: '/api/v1/bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1SearchIndexRoute = ApiV1SearchIndexRouteImport.update({
+  id: '/api/v1/search/',
+  path: '/api/v1/search/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1RequestsIndexRoute = ApiV1RequestsIndexRouteImport.update({
   id: '/api/v1/requests/',
   path: '/api/v1/requests/',
@@ -165,6 +186,11 @@ const ApiV1ReceiptsIndexRoute = ApiV1ReceiptsIndexRouteImport.update({
 const ApiV1PostageIndexRoute = ApiV1PostageIndexRouteImport.update({
   id: '/api/v1/postage/',
   path: '/api/v1/postage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DraftsIndexRoute = ApiV1DraftsIndexRouteImport.update({
+  id: '/api/v1/drafts/',
+  path: '/api/v1/drafts/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ContactsIndexRoute = ApiV1ContactsIndexRouteImport.update({
@@ -237,6 +263,16 @@ const ApiV1PoliciesOwnerRoute = ApiV1PoliciesOwnerRouteImport.update({
   path: '/api/v1/policies/$owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1OnboardingDraftRoute = ApiV1OnboardingDraftRouteImport.update({
+  id: '/api/v1/onboarding/draft',
+  path: '/api/v1/onboarding/draft',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OnboardingCompleteRoute = ApiV1OnboardingCompleteRouteImport.update({
+  id: '/api/v1/onboarding/complete',
+  path: '/api/v1/onboarding/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1MailboxSyncRoute = ApiV1MailboxSyncRouteImport.update({
   id: '/api/v1/mailbox/sync',
   path: '/api/v1/mailbox/sync',
@@ -265,6 +301,11 @@ const ApiV1LifecycleMessageIdRoute = ApiV1LifecycleMessageIdRouteImport.update({
 const ApiV1IdentityResolveRoute = ApiV1IdentityResolveRouteImport.update({
   id: '/api/v1/identity/resolve',
   path: '/api/v1/identity/resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DraftsDraftIdRoute = ApiV1DraftsDraftIdRouteImport.update({
+  id: '/api/v1/drafts/$draftId',
+  path: '/api/v1/drafts/$draftId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1DeliveryMessageIdRoute = ApiV1DeliveryMessageIdRouteImport.update({
@@ -318,6 +359,34 @@ const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
   path: '/api/v1/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AttachmentsInitiateRoute =
+  ApiV1AttachmentsInitiateRouteImport.update({
+    id: '/api/v1/attachments/initiate',
+    path: '/api/v1/attachments/initiate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsFinalizeRoute =
+  ApiV1AttachmentsFinalizeRouteImport.update({
+    id: '/api/v1/attachments/finalize',
+    path: '/api/v1/attachments/finalize',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsDownloadRoute =
+  ApiV1AttachmentsDownloadRouteImport.update({
+    id: '/api/v1/attachments/download',
+    path: '/api/v1/attachments/download',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AttachmentsChunkRoute = ApiV1AttachmentsChunkRouteImport.update({
+  id: '/api/v1/attachments/chunk',
+  path: '/api/v1/attachments/chunk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AttachmentsAbortRoute = ApiV1AttachmentsAbortRouteImport.update({
+  id: '/api/v1/attachments/abort',
+  path: '/api/v1/attachments/abort',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AccountsProvisioningRoute =
   ApiV1AccountsProvisioningRouteImport.update({
     id: '/api/v1/accounts/provisioning',
@@ -327,6 +396,22 @@ const ApiV1AccountsProvisioningRoute =
 const ApiV1AccountsProfileRoute = ApiV1AccountsProfileRouteImport.update({
   id: '/api/v1/accounts/profile',
   path: '/api/v1/accounts/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AccountsExportRoute = ApiV1AccountsExportRouteImport.update({
+  id: '/api/v1/accounts/export',
+  path: '/api/v1/accounts/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AccountsDeletionCancelRoute =
+  ApiV1AccountsDeletionCancelRouteImport.update({
+    id: '/api/v1/accounts/deletion-cancel',
+    path: '/api/v1/accounts/deletion-cancel',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AccountsDeletionRoute = ApiV1AccountsDeletionRouteImport.update({
+  id: '/api/v1/accounts/deletion',
+  path: '/api/v1/accounts/deletion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AccountsAccountInfoRoute =
@@ -500,6 +585,12 @@ const ApiV1AccountsProvisioningRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiV1AccountsProvisioningRoute,
   } as any)
+const ApiV1PoliciesOwnerSendersIndexRoute =
+  ApiV1PoliciesOwnerSendersIndexRouteImport.update({
+    id: '/senders/',
+    path: '/senders/',
+    getParentRoute: () => ApiV1PoliciesOwnerRoute,
+  } as any)
 const ApiV1PoliciesOwnerSendersSenderRoute =
   ApiV1PoliciesOwnerSendersSenderRouteImport.update({
     id: '/senders/$sender',
@@ -522,6 +613,18 @@ const ApiV1AccountsUserIdWalletProvisionRoute =
     path: '/api/v1/accounts/$userId/wallet/provision',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1PoliciesOwnerSendersSenderRetryRoute =
+  ApiV1PoliciesOwnerSendersSenderRetryRouteImport.update({
+    id: '/retry',
+    path: '/retry',
+    getParentRoute: () => ApiV1PoliciesOwnerSendersSenderRoute,
+  } as any)
+const ApiV1PoliciesOwnerSendersSenderChainStatusRoute =
+  ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport.update({
+    id: '/chain-status',
+    path: '/chain-status',
+    getParentRoute: () => ApiV1PoliciesOwnerSendersSenderRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -537,8 +640,16 @@ export interface FileRoutesByFullPath {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
+  '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
+  '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -549,12 +660,15 @@ export interface FileRoutesByFullPath {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
+  '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -569,9 +683,11 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
+  '/api/v1/drafts/': typeof ApiV1DraftsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
+  '/api/v1/search/': typeof ApiV1SearchIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
@@ -605,7 +721,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
-  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
+  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/policies/$owner/senders/': typeof ApiV1PoliciesOwnerSendersIndexRoute
+  '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  '/api/v1/policies/$owner/senders/$sender/retry': typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -621,8 +740,16 @@ export interface FileRoutesByTo {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
+  '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
+  '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -633,12 +760,15 @@ export interface FileRoutesByTo {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
+  '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -653,9 +783,11 @@ export interface FileRoutesByTo {
   '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts': typeof ApiV1ContactsIndexRoute
+  '/api/v1/drafts': typeof ApiV1DraftsIndexRoute
   '/api/v1/postage': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests': typeof ApiV1RequestsIndexRoute
+  '/api/v1/search': typeof ApiV1SearchIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
@@ -689,7 +821,10 @@ export interface FileRoutesByTo {
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
-  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
+  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/policies/$owner/senders': typeof ApiV1PoliciesOwnerSendersIndexRoute
+  '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  '/api/v1/policies/$owner/senders/$sender/retry': typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -706,8 +841,16 @@ export interface FileRoutesById {
   '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/protocol': typeof ApiV1ProtocolRoute
   '/api/v1/accounts/account-info': typeof ApiV1AccountsAccountInfoRoute
+  '/api/v1/accounts/deletion': typeof ApiV1AccountsDeletionRoute
+  '/api/v1/accounts/deletion-cancel': typeof ApiV1AccountsDeletionCancelRoute
+  '/api/v1/accounts/export': typeof ApiV1AccountsExportRoute
   '/api/v1/accounts/profile': typeof ApiV1AccountsProfileRoute
   '/api/v1/accounts/provisioning': typeof ApiV1AccountsProvisioningRouteWithChildren
+  '/api/v1/attachments/abort': typeof ApiV1AttachmentsAbortRoute
+  '/api/v1/attachments/chunk': typeof ApiV1AttachmentsChunkRoute
+  '/api/v1/attachments/download': typeof ApiV1AttachmentsDownloadRoute
+  '/api/v1/attachments/finalize': typeof ApiV1AttachmentsFinalizeRoute
+  '/api/v1/attachments/initiate': typeof ApiV1AttachmentsInitiateRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/auth/logout': typeof ApiV1AuthLogoutRoute
   '/api/v1/auth/logout-all': typeof ApiV1AuthLogoutAllRoute
@@ -718,12 +861,15 @@ export interface FileRoutesById {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/contacts/merge': typeof ApiV1ContactsMergeRoute
   '/api/v1/delivery/$messageId': typeof ApiV1DeliveryMessageIdRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdRoute
   '/api/v1/identity/resolve': typeof ApiV1IdentityResolveRoute
   '/api/v1/lifecycle/$messageId': typeof ApiV1LifecycleMessageIdRouteWithChildren
   '/api/v1/mailbox/$messageId': typeof ApiV1MailboxMessageIdRoute
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
+  '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
   '/api/v1/policies/evaluate': typeof ApiV1PoliciesEvaluateRoute
   '/api/v1/postage/$messageId': typeof ApiV1PostageMessageIdRouteWithChildren
@@ -738,9 +884,11 @@ export interface FileRoutesById {
   '/api/v1/wallet/status': typeof ApiV1WalletStatusRoute
   '/api/v1/accounts/': typeof ApiV1AccountsIndexRoute
   '/api/v1/contacts/': typeof ApiV1ContactsIndexRoute
+  '/api/v1/drafts/': typeof ApiV1DraftsIndexRoute
   '/api/v1/postage/': typeof ApiV1PostageIndexRoute
   '/api/v1/receipts/': typeof ApiV1ReceiptsIndexRoute
   '/api/v1/requests/': typeof ApiV1RequestsIndexRoute
+  '/api/v1/search/': typeof ApiV1SearchIndexRoute
   '/api/v1/accounts/provisioning/retry': typeof ApiV1AccountsProvisioningRetryRoute
   '/api/v1/admin/dlq/$id': typeof ApiV1AdminDlqIdRouteWithChildren
   '/api/v1/admin/jobs/$id': typeof ApiV1AdminJobsIdRoute
@@ -774,7 +922,10 @@ export interface FileRoutesById {
   '/api/v1/accounts/$userId/wallet/provision': typeof ApiV1AccountsUserIdWalletProvisionRoute
   '/api/v1/admin/dlq/$id/abandon': typeof ApiV1AdminDlqIdAbandonRoute
   '/api/v1/admin/dlq/$id/retry': typeof ApiV1AdminDlqIdRetryRoute
-  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRoute
+  '/api/v1/policies/$owner/senders/$sender': typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  '/api/v1/policies/$owner/senders/': typeof ApiV1PoliciesOwnerSendersIndexRoute
+  '/api/v1/policies/$owner/senders/$sender/chain-status': typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  '/api/v1/policies/$owner/senders/$sender/retry': typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -792,8 +943,16 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/deletion'
+    | '/api/v1/accounts/deletion-cancel'
+    | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -804,12 +963,15 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/onboarding/complete'
+    | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -824,9 +986,11 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/status'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
+    | '/api/v1/drafts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
+    | '/api/v1/search/'
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
@@ -861,6 +1025,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/policies/$owner/senders/'
+    | '/api/v1/policies/$owner/senders/$sender/chain-status'
+    | '/api/v1/policies/$owner/senders/$sender/retry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -876,8 +1043,16 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/deletion'
+    | '/api/v1/accounts/deletion-cancel'
+    | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -888,12 +1063,15 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/onboarding/complete'
+    | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -908,9 +1086,11 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/status'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
+    | '/api/v1/drafts'
     | '/api/v1/postage'
     | '/api/v1/receipts'
     | '/api/v1/requests'
+    | '/api/v1/search'
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
@@ -945,6 +1125,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/policies/$owner/senders'
+    | '/api/v1/policies/$owner/senders/$sender/chain-status'
+    | '/api/v1/policies/$owner/senders/$sender/retry'
   id:
     | '__root__'
     | '/'
@@ -960,8 +1143,16 @@ export interface FileRouteTypes {
     | '/api/v1/openapi.json'
     | '/api/v1/protocol'
     | '/api/v1/accounts/account-info'
+    | '/api/v1/accounts/deletion'
+    | '/api/v1/accounts/deletion-cancel'
+    | '/api/v1/accounts/export'
     | '/api/v1/accounts/profile'
     | '/api/v1/accounts/provisioning'
+    | '/api/v1/attachments/abort'
+    | '/api/v1/attachments/chunk'
+    | '/api/v1/attachments/download'
+    | '/api/v1/attachments/finalize'
+    | '/api/v1/attachments/initiate'
     | '/api/v1/auth/login'
     | '/api/v1/auth/logout'
     | '/api/v1/auth/logout-all'
@@ -972,12 +1163,15 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/contacts/merge'
     | '/api/v1/delivery/$messageId'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/identity/resolve'
     | '/api/v1/lifecycle/$messageId'
     | '/api/v1/mailbox/$messageId'
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/onboarding/complete'
+    | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
     | '/api/v1/policies/evaluate'
     | '/api/v1/postage/$messageId'
@@ -992,9 +1186,11 @@ export interface FileRouteTypes {
     | '/api/v1/wallet/status'
     | '/api/v1/accounts/'
     | '/api/v1/contacts/'
+    | '/api/v1/drafts/'
     | '/api/v1/postage/'
     | '/api/v1/receipts/'
     | '/api/v1/requests/'
+    | '/api/v1/search/'
     | '/api/v1/accounts/provisioning/retry'
     | '/api/v1/admin/dlq/$id'
     | '/api/v1/admin/jobs/$id'
@@ -1029,6 +1225,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/dlq/$id/abandon'
     | '/api/v1/admin/dlq/$id/retry'
     | '/api/v1/policies/$owner/senders/$sender'
+    | '/api/v1/policies/$owner/senders/'
+    | '/api/v1/policies/$owner/senders/$sender/chain-status'
+    | '/api/v1/policies/$owner/senders/$sender/retry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1045,8 +1244,16 @@ export interface RootRouteChildren {
   ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1ProtocolRoute: typeof ApiV1ProtocolRoute
   ApiV1AccountsAccountInfoRoute: typeof ApiV1AccountsAccountInfoRoute
+  ApiV1AccountsDeletionRoute: typeof ApiV1AccountsDeletionRoute
+  ApiV1AccountsDeletionCancelRoute: typeof ApiV1AccountsDeletionCancelRoute
+  ApiV1AccountsExportRoute: typeof ApiV1AccountsExportRoute
   ApiV1AccountsProfileRoute: typeof ApiV1AccountsProfileRoute
   ApiV1AccountsProvisioningRoute: typeof ApiV1AccountsProvisioningRouteWithChildren
+  ApiV1AttachmentsAbortRoute: typeof ApiV1AttachmentsAbortRoute
+  ApiV1AttachmentsChunkRoute: typeof ApiV1AttachmentsChunkRoute
+  ApiV1AttachmentsDownloadRoute: typeof ApiV1AttachmentsDownloadRoute
+  ApiV1AttachmentsFinalizeRoute: typeof ApiV1AttachmentsFinalizeRoute
+  ApiV1AttachmentsInitiateRoute: typeof ApiV1AttachmentsInitiateRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1AuthLogoutRoute: typeof ApiV1AuthLogoutRoute
   ApiV1AuthLogoutAllRoute: typeof ApiV1AuthLogoutAllRoute
@@ -1057,12 +1264,15 @@ export interface RootRouteChildren {
   ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
   ApiV1ContactsMergeRoute: typeof ApiV1ContactsMergeRoute
   ApiV1DeliveryMessageIdRoute: typeof ApiV1DeliveryMessageIdRoute
+  ApiV1DraftsDraftIdRoute: typeof ApiV1DraftsDraftIdRoute
   ApiV1IdentityResolveRoute: typeof ApiV1IdentityResolveRoute
   ApiV1LifecycleMessageIdRoute: typeof ApiV1LifecycleMessageIdRouteWithChildren
   ApiV1MailboxMessageIdRoute: typeof ApiV1MailboxMessageIdRoute
   ApiV1MailboxCountsRoute: typeof ApiV1MailboxCountsRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
   ApiV1MailboxSyncRoute: typeof ApiV1MailboxSyncRoute
+  ApiV1OnboardingCompleteRoute: typeof ApiV1OnboardingCompleteRoute
+  ApiV1OnboardingDraftRoute: typeof ApiV1OnboardingDraftRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
   ApiV1PoliciesEvaluateRoute: typeof ApiV1PoliciesEvaluateRoute
   ApiV1PostageMessageIdRoute: typeof ApiV1PostageMessageIdRouteWithChildren
@@ -1077,9 +1287,11 @@ export interface RootRouteChildren {
   ApiV1WalletStatusRoute: typeof ApiV1WalletStatusRoute
   ApiV1AccountsIndexRoute: typeof ApiV1AccountsIndexRoute
   ApiV1ContactsIndexRoute: typeof ApiV1ContactsIndexRoute
+  ApiV1DraftsIndexRoute: typeof ApiV1DraftsIndexRoute
   ApiV1PostageIndexRoute: typeof ApiV1PostageIndexRoute
   ApiV1ReceiptsIndexRoute: typeof ApiV1ReceiptsIndexRoute
   ApiV1RequestsIndexRoute: typeof ApiV1RequestsIndexRoute
+  ApiV1SearchIndexRoute: typeof ApiV1SearchIndexRoute
   ApiV1AdminDlqIdRoute: typeof ApiV1AdminDlqIdRouteWithChildren
   ApiV1AdminJobsIdRoute: typeof ApiV1AdminJobsIdRoute
   ApiV1AuthPasswordResetCompleteRoute: typeof ApiV1AuthPasswordResetCompleteRoute
@@ -1191,6 +1403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/search/': {
+      id: '/api/v1/search/'
+      path: '/api/v1/search'
+      fullPath: '/api/v1/search/'
+      preLoaderRoute: typeof ApiV1SearchIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/requests/': {
       id: '/api/v1/requests/'
       path: '/api/v1/requests'
@@ -1210,6 +1429,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/postage'
       fullPath: '/api/v1/postage/'
       preLoaderRoute: typeof ApiV1PostageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/drafts/': {
+      id: '/api/v1/drafts/'
+      path: '/api/v1/drafts'
+      fullPath: '/api/v1/drafts/'
+      preLoaderRoute: typeof ApiV1DraftsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/contacts/': {
@@ -1310,6 +1536,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PoliciesOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/onboarding/draft': {
+      id: '/api/v1/onboarding/draft'
+      path: '/api/v1/onboarding/draft'
+      fullPath: '/api/v1/onboarding/draft'
+      preLoaderRoute: typeof ApiV1OnboardingDraftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/onboarding/complete': {
+      id: '/api/v1/onboarding/complete'
+      path: '/api/v1/onboarding/complete'
+      fullPath: '/api/v1/onboarding/complete'
+      preLoaderRoute: typeof ApiV1OnboardingCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/mailbox/sync': {
       id: '/api/v1/mailbox/sync'
       path: '/api/v1/mailbox/sync'
@@ -1350,6 +1590,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/identity/resolve'
       fullPath: '/api/v1/identity/resolve'
       preLoaderRoute: typeof ApiV1IdentityResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/drafts/$draftId': {
+      id: '/api/v1/drafts/$draftId'
+      path: '/api/v1/drafts/$draftId'
+      fullPath: '/api/v1/drafts/$draftId'
+      preLoaderRoute: typeof ApiV1DraftsDraftIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/delivery/$messageId': {
@@ -1422,6 +1669,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/attachments/initiate': {
+      id: '/api/v1/attachments/initiate'
+      path: '/api/v1/attachments/initiate'
+      fullPath: '/api/v1/attachments/initiate'
+      preLoaderRoute: typeof ApiV1AttachmentsInitiateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/finalize': {
+      id: '/api/v1/attachments/finalize'
+      path: '/api/v1/attachments/finalize'
+      fullPath: '/api/v1/attachments/finalize'
+      preLoaderRoute: typeof ApiV1AttachmentsFinalizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/download': {
+      id: '/api/v1/attachments/download'
+      path: '/api/v1/attachments/download'
+      fullPath: '/api/v1/attachments/download'
+      preLoaderRoute: typeof ApiV1AttachmentsDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/chunk': {
+      id: '/api/v1/attachments/chunk'
+      path: '/api/v1/attachments/chunk'
+      fullPath: '/api/v1/attachments/chunk'
+      preLoaderRoute: typeof ApiV1AttachmentsChunkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/attachments/abort': {
+      id: '/api/v1/attachments/abort'
+      path: '/api/v1/attachments/abort'
+      fullPath: '/api/v1/attachments/abort'
+      preLoaderRoute: typeof ApiV1AttachmentsAbortRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/accounts/provisioning': {
       id: '/api/v1/accounts/provisioning'
       path: '/api/v1/accounts/provisioning'
@@ -1434,6 +1716,27 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/accounts/profile'
       fullPath: '/api/v1/accounts/profile'
       preLoaderRoute: typeof ApiV1AccountsProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/export': {
+      id: '/api/v1/accounts/export'
+      path: '/api/v1/accounts/export'
+      fullPath: '/api/v1/accounts/export'
+      preLoaderRoute: typeof ApiV1AccountsExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/deletion-cancel': {
+      id: '/api/v1/accounts/deletion-cancel'
+      path: '/api/v1/accounts/deletion-cancel'
+      fullPath: '/api/v1/accounts/deletion-cancel'
+      preLoaderRoute: typeof ApiV1AccountsDeletionCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/accounts/deletion': {
+      id: '/api/v1/accounts/deletion'
+      path: '/api/v1/accounts/deletion'
+      fullPath: '/api/v1/accounts/deletion'
+      preLoaderRoute: typeof ApiV1AccountsDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/accounts/account-info': {
@@ -1653,6 +1956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsProvisioningRetryRouteImport
       parentRoute: typeof ApiV1AccountsProvisioningRoute
     }
+    '/api/v1/policies/$owner/senders/': {
+      id: '/api/v1/policies/$owner/senders/'
+      path: '/senders'
+      fullPath: '/api/v1/policies/$owner/senders/'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersIndexRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerRoute
+    }
     '/api/v1/policies/$owner/senders/$sender': {
       id: '/api/v1/policies/$owner/senders/$sender'
       path: '/senders/$sender'
@@ -1680,6 +1990,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/accounts/$userId/wallet/provision'
       preLoaderRoute: typeof ApiV1AccountsUserIdWalletProvisionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/policies/$owner/senders/$sender/retry': {
+      id: '/api/v1/policies/$owner/senders/$sender/retry'
+      path: '/retry'
+      fullPath: '/api/v1/policies/$owner/senders/$sender/retry'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderRetryRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
+    }
+    '/api/v1/policies/$owner/senders/$sender/chain-status': {
+      id: '/api/v1/policies/$owner/senders/$sender/chain-status'
+      path: '/chain-status'
+      fullPath: '/api/v1/policies/$owner/senders/$sender/chain-status'
+      preLoaderRoute: typeof ApiV1PoliciesOwnerSendersSenderChainStatusRouteImport
+      parentRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
     }
   }
 }
@@ -1715,16 +2039,37 @@ const ApiV1LifecycleMessageIdRouteWithChildren =
     ApiV1LifecycleMessageIdRouteChildren,
   )
 
+interface ApiV1PoliciesOwnerSendersSenderRouteChildren {
+  ApiV1PoliciesOwnerSendersSenderChainStatusRoute: typeof ApiV1PoliciesOwnerSendersSenderChainStatusRoute
+  ApiV1PoliciesOwnerSendersSenderRetryRoute: typeof ApiV1PoliciesOwnerSendersSenderRetryRoute
+}
+
+const ApiV1PoliciesOwnerSendersSenderRouteChildren: ApiV1PoliciesOwnerSendersSenderRouteChildren =
+  {
+    ApiV1PoliciesOwnerSendersSenderChainStatusRoute:
+      ApiV1PoliciesOwnerSendersSenderChainStatusRoute,
+    ApiV1PoliciesOwnerSendersSenderRetryRoute:
+      ApiV1PoliciesOwnerSendersSenderRetryRoute,
+  }
+
+const ApiV1PoliciesOwnerSendersSenderRouteWithChildren =
+  ApiV1PoliciesOwnerSendersSenderRoute._addFileChildren(
+    ApiV1PoliciesOwnerSendersSenderRouteChildren,
+  )
+
 interface ApiV1PoliciesOwnerRouteChildren {
   ApiV1PoliciesOwnerProvisionRoute: typeof ApiV1PoliciesOwnerProvisionRoute
   ApiV1PoliciesOwnerReconciliationRoute: typeof ApiV1PoliciesOwnerReconciliationRoute
-  ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRoute
+  ApiV1PoliciesOwnerSendersSenderRoute: typeof ApiV1PoliciesOwnerSendersSenderRouteWithChildren
+  ApiV1PoliciesOwnerSendersIndexRoute: typeof ApiV1PoliciesOwnerSendersIndexRoute
 }
 
 const ApiV1PoliciesOwnerRouteChildren: ApiV1PoliciesOwnerRouteChildren = {
   ApiV1PoliciesOwnerProvisionRoute: ApiV1PoliciesOwnerProvisionRoute,
   ApiV1PoliciesOwnerReconciliationRoute: ApiV1PoliciesOwnerReconciliationRoute,
-  ApiV1PoliciesOwnerSendersSenderRoute: ApiV1PoliciesOwnerSendersSenderRoute,
+  ApiV1PoliciesOwnerSendersSenderRoute:
+    ApiV1PoliciesOwnerSendersSenderRouteWithChildren,
+  ApiV1PoliciesOwnerSendersIndexRoute: ApiV1PoliciesOwnerSendersIndexRoute,
 }
 
 const ApiV1PoliciesOwnerRouteWithChildren =
@@ -1787,8 +2132,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1ProtocolRoute: ApiV1ProtocolRoute,
   ApiV1AccountsAccountInfoRoute: ApiV1AccountsAccountInfoRoute,
+  ApiV1AccountsDeletionRoute: ApiV1AccountsDeletionRoute,
+  ApiV1AccountsDeletionCancelRoute: ApiV1AccountsDeletionCancelRoute,
+  ApiV1AccountsExportRoute: ApiV1AccountsExportRoute,
   ApiV1AccountsProfileRoute: ApiV1AccountsProfileRoute,
   ApiV1AccountsProvisioningRoute: ApiV1AccountsProvisioningRouteWithChildren,
+  ApiV1AttachmentsAbortRoute: ApiV1AttachmentsAbortRoute,
+  ApiV1AttachmentsChunkRoute: ApiV1AttachmentsChunkRoute,
+  ApiV1AttachmentsDownloadRoute: ApiV1AttachmentsDownloadRoute,
+  ApiV1AttachmentsFinalizeRoute: ApiV1AttachmentsFinalizeRoute,
+  ApiV1AttachmentsInitiateRoute: ApiV1AttachmentsInitiateRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1AuthLogoutRoute: ApiV1AuthLogoutRoute,
   ApiV1AuthLogoutAllRoute: ApiV1AuthLogoutAllRoute,
@@ -1799,12 +2152,15 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
   ApiV1ContactsMergeRoute: ApiV1ContactsMergeRoute,
   ApiV1DeliveryMessageIdRoute: ApiV1DeliveryMessageIdRoute,
+  ApiV1DraftsDraftIdRoute: ApiV1DraftsDraftIdRoute,
   ApiV1IdentityResolveRoute: ApiV1IdentityResolveRoute,
   ApiV1LifecycleMessageIdRoute: ApiV1LifecycleMessageIdRouteWithChildren,
   ApiV1MailboxMessageIdRoute: ApiV1MailboxMessageIdRoute,
   ApiV1MailboxCountsRoute: ApiV1MailboxCountsRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
   ApiV1MailboxSyncRoute: ApiV1MailboxSyncRoute,
+  ApiV1OnboardingCompleteRoute: ApiV1OnboardingCompleteRoute,
+  ApiV1OnboardingDraftRoute: ApiV1OnboardingDraftRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
   ApiV1PoliciesEvaluateRoute: ApiV1PoliciesEvaluateRoute,
   ApiV1PostageMessageIdRoute: ApiV1PostageMessageIdRouteWithChildren,
@@ -1819,9 +2175,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1WalletStatusRoute: ApiV1WalletStatusRoute,
   ApiV1AccountsIndexRoute: ApiV1AccountsIndexRoute,
   ApiV1ContactsIndexRoute: ApiV1ContactsIndexRoute,
+  ApiV1DraftsIndexRoute: ApiV1DraftsIndexRoute,
   ApiV1PostageIndexRoute: ApiV1PostageIndexRoute,
   ApiV1ReceiptsIndexRoute: ApiV1ReceiptsIndexRoute,
   ApiV1RequestsIndexRoute: ApiV1RequestsIndexRoute,
+  ApiV1SearchIndexRoute: ApiV1SearchIndexRoute,
   ApiV1AdminDlqIdRoute: ApiV1AdminDlqIdRouteWithChildren,
   ApiV1AdminJobsIdRoute: ApiV1AdminJobsIdRoute,
   ApiV1AuthPasswordResetCompleteRoute: ApiV1AuthPasswordResetCompleteRoute,

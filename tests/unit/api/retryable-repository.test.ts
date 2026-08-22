@@ -44,6 +44,21 @@ function sampleRecoveryCodeSet(
 }
 
 class FailingRepository implements ApiRepository {
+  async getAccountDeletionRequest() {
+    return null;
+  }
+
+  async setAccountDeletionRequest(request: any) {
+    return request;
+  }
+
+  async exportAccount(): Promise<any> {
+    throw new Error("not implemented in retry test double");
+  }
+
+  async deleteAccountData() {
+    return { deleted: [], retained: [] };
+  }
   public readonly inner = new MemoryApiRepository();
   private readonly failCounts = new Map<string, number>();
   private readonly callCounts = new Map<string, number>();
@@ -92,6 +107,22 @@ class FailingRepository implements ApiRepository {
   async setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     this.maybeFail("setSenderRule");
     return this.inner.setSenderRule(owner, sender, rule);
+  }
+  async getSenderRuleRecord(owner: string, sender: string) {
+    this.maybeFail("getSenderRuleRecord");
+    return this.inner.getSenderRuleRecord(owner, sender);
+  }
+  async setSenderRuleRecord(record: import("../../../src/server/api/domain").SenderRuleRecord) {
+    this.maybeFail("setSenderRuleRecord");
+    return this.inner.setSenderRuleRecord(record);
+  }
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    this.maybeFail("deleteSenderRuleRecord");
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+  async listSenderRuleRecords(owner: string, options?: { limit?: number; after?: string }) {
+    this.maybeFail("listSenderRuleRecords");
+    return this.inner.listSenderRuleRecords(owner, options);
   }
   async getPostage(messageId: string): Promise<Postage | null> {
     this.maybeFail("getPostage");
@@ -518,6 +549,32 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("deleteContact");
     return this.inner.deleteContact(owner, contactId);
   }
+  async listDrafts(
+    owner: string,
+    options?: import("../../../src/server/api/repository").DraftQueryOptions,
+  ) {
+    this.maybeFail("listDrafts");
+    return this.inner.listDrafts(owner, options);
+  }
+  async getDraft(owner: string, draftId: string) {
+    this.maybeFail("getDraft");
+    return this.inner.getDraft(owner, draftId);
+  }
+  async createDraft(draft: import("../../../src/server/api/domain").DraftRecord) {
+    this.maybeFail("createDraft");
+    return this.inner.createDraft(draft);
+  }
+  async updateDraft(
+    draft: import("../../../src/server/api/domain").DraftRecord,
+    expectedVersion: number,
+  ) {
+    this.maybeFail("updateDraft");
+    return this.inner.updateDraft(draft, expectedVersion);
+  }
+  async deleteDraft(owner: string, draftId: string) {
+    this.maybeFail("deleteDraft");
+    return this.inner.deleteDraft(owner, draftId);
+  }
   async enqueueJob(job: import("../../../src/server/api/domain").DurableJob) {
     this.maybeFail("enqueueJob");
     return this.inner.enqueueJob(job);
@@ -592,6 +649,23 @@ class FailingRepository implements ApiRepository {
   ) {
     this.maybeFail("createSendOperationIfAbsent");
     return this.inner.createSendOperationIfAbsent(state);
+  }
+  async getOnboardingDraft(userId: string) {
+    this.maybeFail("getOnboardingDraft");
+    return this.inner.getOnboardingDraft(userId);
+  }
+  async saveOnboardingDraft(
+    record: import("../../../src/server/api/domain").OnboardingDraftRecord,
+  ) {
+    this.maybeFail("saveOnboardingDraft");
+    return this.inner.saveOnboardingDraft(record);
+  }
+  async searchMailbox(
+    actor: string,
+    options?: import("../../../src/server/api/repository").SearchMailboxQueryOptions,
+  ) {
+    this.maybeFail("searchMailbox");
+    return this.inner.searchMailbox(actor, options);
   }
   reset(): void {
     this.inner.reset();

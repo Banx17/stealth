@@ -95,8 +95,8 @@ export enum LifecycleError {
   AlreadyRead = 12,
 }
 
-// Embedded XDR spec entries derived from spec.json
-const SPEC_ENTRIES: string[] = [
+/** Base64-encoded XDR contract spec entries used to initialize the contract Spec. */
+export const SPEC_ENTRIES: string[] = [
   "AAAAAQAAAAAAAAAAAAAAD0xpZmVjeWNsZUNvbmZpZwAAAAADAAAAAAAAAAhwb2xpY2llcwAAABMAAAAAAAAAB3Bvc3RhZ2UAAAAAEwAAAAAAAAAIcmVjZWlwdHMAAAAT",
   "AAAAAQAAAAAAAAAAAAAAB1Bvc3RhZ2UAAAAACAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAAAAAApjcmVhdGVkX2F0AAAAAAAGAAAAAAAAAA1kaXNwdXRlX3VudGlsAAAAAAAABgAAAAAAAAAKZXhwaXJlc19hdAAAAAAABgAAAAAAAAADZmVlAAAAAAsAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAABnNlbmRlcgAAAAAAEwAAAAAAAAAGc3RhdHVzAAAAAAfQAAAADVBvc3RhZ2VTdGF0dXMAAAA=",
   "AAAAAQAAAAAAAAAAAAAADFJlY2VpcHRTdGF0ZQAAAAcAAAAAAAAADGRlbGl2ZXJlZF9hdAAAAAYAAAAAAAAACm1lc3NhZ2VfaWQAAAAAA+4AAAAgAAAAAAAAAAxwYXlsb2FkX2hhc2gAAAPuAAAAIAAAAAAAAAAQcHJvdG9jb2xfdmVyc2lvbgAAAAQAAAAAAAAAB3JlYWRfYXQAAAAD6AAAAAYAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAABnNlbmRlcgAAAAAAEw==",
@@ -144,11 +144,15 @@ export function createLifecycleClient(opts: LifecycleClientOptions): contract.Cl
     ...(opts.publicKey ? { publicKey: opts.publicKey } : {}),
     ...(opts.signer
       ? {
-          signTransaction: async (xdr: string, signOpts?: { networkPassphrase?: string }) => {
-            const keypair = Keypair.fromSecret(opts.signer!);
-            const tx = new Transaction(xdr, signOpts?.networkPassphrase ?? opts.networkPassphrase);
-            tx.sign(keypair);
-            return { signedTxXdr: tx.toXDR(), signerAddress: keypair.publicKey() };
+          signTransaction: async (xdrString: string, signOpts?: { networkPassphrase?: string }) => {
+            const kp = Keypair.fromSecret(opts.signer!);
+            const networkPassphrase = signOpts?.networkPassphrase ?? opts.networkPassphrase;
+            const tx = new Transaction(xdrString, networkPassphrase);
+            tx.sign(kp);
+            return {
+              signedTxXdr: tx.toXDR(),
+              signerAddress: kp.publicKey(),
+            };
           },
         }
       : {}),
