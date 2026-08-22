@@ -26,7 +26,7 @@ test.describe("Workflow 3 — Accessibility Audits", () => {
     await openDemoMailbox(page);
 
     // Open compose modal
-    await page.getByRole("button", { name: "Compose Ctrl+N" }).click();
+    await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
     await expect(page.getByText("New message")).toBeVisible();
 
     // Verify accessible interactive elements

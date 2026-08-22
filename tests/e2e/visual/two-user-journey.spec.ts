@@ -12,28 +12,25 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
       await openDemoMailbox(page);
 
       // 1. Assert desktop navigation layout
-      await expect(page.getByRole("button", { name: "Compose Ctrl+N" })).toBeVisible();
+      await expect(
+        page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }),
+      ).toBeVisible();
       await expect(page.getByRole("navigation", { name: "Mail folders" })).toBeVisible();
 
       // 2. Open Composer & Validate Fields
-      await page.getByRole("button", { name: "Compose Ctrl+N" }).click();
+      await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
       await expect(page.getByText("New message")).toBeVisible();
 
-      const toInput = page.getByPlaceholder("Recipient Stellar address or name");
+      const toInput = page.getByPlaceholder("recipients@", { exact: false });
       await expect(toInput).toBeVisible();
       await toInput.fill("G" + "B".repeat(55));
 
       const subjectInput = page.getByPlaceholder("Subject");
       await subjectInput.fill("Confidential Settlement Proposal");
+      await expect(subjectInput).toHaveValue("Confidential Settlement Proposal");
 
-      // 3. Verify Policy & Postage Calculation Surface
-      await expect(page.locator("body")).toContainText("Confidential Settlement Proposal");
-
-      // 4. Test Proof Inspector Modal View
-      const closeBtn = page.getByRole("button", { name: "Close" }).first();
-      if (await closeBtn.isVisible()) {
-        await closeBtn.click();
-      }
+      // 4. Close composer and navigate folders
+      await page.keyboard.press("Escape");
 
       // Navigate to Proofs folder
       await page.getByRole("button", { name: "Proofs" }).first().click();
@@ -49,9 +46,9 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
       page,
     }) => {
       await openDemoMailbox(page);
-      await page.getByRole("button", { name: "Compose Ctrl+N" }).click();
+      await page.getByRole("complementary").getByRole("button", { name: "Compose Ctrl+N" }).click();
 
-      const toInput = page.getByPlaceholder("Recipient Stellar address or name");
+      const toInput = page.getByPlaceholder("recipients@", { exact: false });
       await toInput.fill("G" + "B".repeat(55));
 
       const subjectInput = page.getByPlaceholder("Subject");
@@ -77,6 +74,9 @@ test.describe("Workflow 3 — Visual & Responsive Experience", () => {
       // Tap Compose tab in bottom navigation
       await bottomNav.getByRole("button", { name: "Compose" }).click();
       await expect(page.getByText("New message")).toBeVisible();
+
+      // Close compose modal before clicking bottom navigation
+      await page.keyboard.press("Escape");
 
       // Tap Inbox tab
       await bottomNav.getByRole("button", { name: "Inbox" }).click();
