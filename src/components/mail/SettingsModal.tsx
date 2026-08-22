@@ -2001,53 +2001,70 @@ function SettingsField({
 }
 
 function SecuritySettings() {
+  const queryClient = useQueryClient();
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     description: string;
     onConfirm: () => void;
   } | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
-  const [editingDevice, setEditingDevice] = useState<string | null>(null);
-  const [deviceName, setDeviceName] = useState("");
 
-  const sessions = [
-    {
-      id: "1",
-      device: "Current session - MacBook Air",
-      location: "San Francisco, CA",
-      lastActive: "Just now",
-      isCurrent: true,
-    },
-    {
-      id: "2",
-      device: "iPhone 15 Pro",
-      location: "San Francisco, CA",
-      lastActive: "2 hours ago",
-      isCurrent: false,
-    },
-  ];
+  const { data: sessions = [], refetch: refetchSessions } = useQuery({
+    queryKey: queryKeys.auth.sessions,
+    queryFn: () => sharedTypedApi.auth.listSessions(),
+    refetchOnWindowFocus: true,
+  });
 
-  const devices = [
-    {
-      id: "1",
-      name: "MacBook Air",
-      type: "Desktop",
-      lastActive: "Just now",
-      trusted: true,
-    },
-    {
-      id: "2",
-      name: "iPhone 15 Pro",
-      type: "Mobile",
-      lastActive: "2 hours ago",
-      trusted: true,
-    },
-  ];
+  const { data: profileData } = useQuery({
+    queryKey: queryKeys.account.profile,
+    queryFn: ({ signal }) => sharedTypedApi.account.getProfile(signal),
+  });
+
+  const ownerAddress = profileData?.account.address;
+
+  const handleRevoke = async (id: string, isCurrent: boolean) => {
+    try {
+      await sharedTypedApi.auth.revokeSession(id);
+      if (isCurrent) {
+        queryClient.clear();
+        window.location.href = "/";
+      } else {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke session");
+    }
+  };
+
+  const handleRevokeOthers = async () => {
+    try {
+      await sharedTypedApi.auth.revokeOthers();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.sessions });
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke other sessions");
+    }
+  };
 
   const handleCopyKey = () => {
     navigator.clipboard.writeText("GDQJMSGKJGQ2X576L33OY4JFDZ7NJG5OJ3LJ44V33PUPU7D5Q5X4KJ");
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  const formatRelativeTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (seconds < 60) return "Just now";
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    } catch {
+      return "Unknown";
+    }
   };
 
   return (
@@ -2058,7 +2075,7 @@ function SecuritySettings() {
       </div>
 
       {/* External Wallet Linking */}
-      <ExternalWalletSettings />
+      <ExternalWalletSettings ownerAddress={ownerAddress} />
 
       {/* Active Sessions */}
       <div className="space-y-3">
@@ -2069,25 +2086,21 @@ function SecuritySettings() {
               Sessions currently signed in to your account
             </p>
           </div>
-          <button
-            onClick={() =>
-              setConfirmDialog({
-                title: "Revoke all sessions?",
-                description: "This will revoke all active sessions across all devices.",
-                onConfirm: async () => {
-                  try {
-                    await sharedTypedApi.auth.logoutAll();
-                  } catch {
-                    // Fallthrough safely
-                  }
-                  setConfirmDialog(null);
-                },
-              })
-            }
-            className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
-          >
-            Revoke all sessions
-          </button>
+          {sessions.length > 1 && (
+            <button
+              onClick={() =>
+                setConfirmDialog({
+                  title: "Revoke other sessions?",
+                  description:
+                    "This will sign out all other devices from your account. Your current session will remain active.",
+                  onConfirm: () => handleRevokeOthers(),
+                })
+              }
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
+            >
+              Revoke other sessions
+            </button>
+          )}
         </div>
         <div className="space-y-2">
           {sessions.map((session) => (
@@ -2107,89 +2120,25 @@ function SecuritySettings() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {session.location} • {session.lastActive}
+                    {session.region} • Active {formatRelativeTime(session.lastUsed)} • Created{" "}
+                    {new Date(session.created).toLocaleDateString()}
                   </p>
                 </div>
               </div>
-              {!session.isCurrent && (
-                <button
-                  onClick={() =>
-                    setConfirmDialog({
-                      title: "Revoke session?",
-                      description: "This will sign out this device from your account.",
-                      onConfirm: async () => {
-                        try {
-                          await sharedTypedApi.auth.logout();
-                        } catch {
-                          // Fallthrough safely
-                        }
-                        setConfirmDialog(null);
-                      },
-                    })
-                  }
-                  className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
-                >
-                  Revoke
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Trusted Devices */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Trusted devices</p>
-            <p className="text-xs text-muted-foreground">
-              Devices that can access your account without extra verification
-            </p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {devices.map((device) => (
-            <div
-              key={device.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3"
-            >
-              <div className="flex items-center gap-3">
-                <Laptop className="h-4 w-4 text-muted-foreground" />
-                {editingDevice === device.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={deviceName}
-                      onChange={(e) => setDeviceName(e.target.value)}
-                      className="rounded border border-white/10 bg-white/[0.04] px-2 py-1 text-sm text-foreground outline-none focus:border-white/20"
-                    />
-                    <button
-                      onClick={() => setEditingDevice(null)}
-                      className="rounded p-1 text-emerald-400 hover:bg-emerald-500/10"
-                    >
-                      <Check className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm text-foreground">{device.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {device.type} • {device.lastActive}
-                    </p>
-                  </div>
-                )}
-              </div>
-              {!editingDevice && (
-                <button
-                  onClick={() => {
-                    setDeviceName(device.name);
-                    setEditingDevice(device.id);
-                  }}
-                  aria-label={`Edit ${device.name}`}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition focus-visible:ring-2 focus-visible:ring-emerald-400"
-                >
-                  <Edit className="h-3.5 w-3.5" aria-hidden="true" />
-                </button>
-              )}
+              <button
+                onClick={() =>
+                  setConfirmDialog({
+                    title: session.isCurrent ? "Revoke current session?" : "Revoke session?",
+                    description: session.isCurrent
+                      ? "This will sign you out of your current session immediately."
+                      : "This will sign out this device from your account.",
+                    onConfirm: () => handleRevoke(session.id, session.isCurrent),
+                  })
+                }
+                className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition"
+              >
+                Revoke
+              </button>
             </div>
           ))}
         </div>
@@ -2256,10 +2205,20 @@ function SecuritySettings() {
 
       {/* Confirmation Dialog */}
       {confirmDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-desc"
+        >
           <div className="glass-strong w-full max-w-sm rounded-2xl p-5 space-y-4">
-            <h4 className="text-sm font-medium text-foreground">{confirmDialog.title}</h4>
-            <p className="text-xs text-muted-foreground">{confirmDialog.description}</p>
+            <h4 id="confirm-dialog-title" className="text-sm font-medium text-foreground">
+              {confirmDialog.title}
+            </h4>
+            <p id="confirm-dialog-desc" className="text-xs text-muted-foreground">
+              {confirmDialog.description}
+            </p>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setConfirmDialog(null)}

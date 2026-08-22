@@ -419,6 +419,14 @@ export class HybridApiRepository implements ApiRepository {
     return this.getStub().deleteUserSessions(userId);
   }
 
+  async listUserSessions(userId: string): Promise<Session[]> {
+    return this.getStub().listUserSessions(userId);
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    return this.getStub().deleteOtherUserSessions(userId, currentSessionId);
+  }
+
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     return this.getStub().getRetiredSession(sessionId);
   }

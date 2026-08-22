@@ -567,3 +567,12 @@ export interface SearchResponseDto {
   parsedFilters: Record<string, unknown>;
   indexLimitations: SearchIndexLimitationsDto;
 }
+
+export interface ActiveSessionDto {
+  id: string;
+  device: string;
+  region: string;
+  created: string;
+  lastUsed: string;
+  isCurrent: boolean;
+}
