@@ -6,6 +6,7 @@ import {
   validateSession,
   hashSessionId,
   logoutSession,
+  revokeSessionById,
 } from "@/server/api/auth/session-service";
 import { getApiContext } from "@/server/api/context";
 import { ApiError } from "@/server/api/errors";
@@ -76,7 +77,7 @@ export const Route = createFileRoute("/api/v1/auth/sessions/revoke")({
             return response;
           }
 
-          await repo.deleteSession(targetSessionId);
+          await revokeSessionById(apiContext, activeSession.user.userId, targetSessionId);
           return apiSuccess(request, { success: true });
         }),
     },

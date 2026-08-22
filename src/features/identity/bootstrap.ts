@@ -325,7 +325,12 @@ export async function fetchBootstrap(options?: {
       return successState;
     } catch (cause) {
       clearTimeout(timer);
-      const isAbort = cause instanceof Error && cause.name === "AbortError";
+      const isAbort =
+        (cause instanceof Error && cause.name === "AbortError") ||
+        (cause !== null &&
+          typeof cause === "object" &&
+          "name" in cause &&
+          cause.name === "AbortError");
       const errorState: BootstrapState = {
         data: null,
         branch: isAbort ? "outage" : "outage",

@@ -183,6 +183,10 @@ describe("BETA-022: Active Session Management and Repository Operations", () => 
       expect(getApproximateRegion("::1")).toBe("Local Network");
       expect(getApproximateRegion("192.168.1.1")).toBe("Local Network");
       expect(getApproximateRegion("10.0.0.1")).toBe("Local Network");
+      expect(getApproximateRegion("172.16.0.1")).toBe("Local Network");
+      expect(getApproximateRegion("172.24.12.8")).toBe("Local Network");
+      expect(getApproximateRegion("172.31.255.254")).toBe("Local Network");
+      expect(getApproximateRegion("172.32.0.1")).not.toBe("Local Network");
       expect(getApproximateRegion(null)).toBe("Unknown Region");
 
       const region1 = getApproximateRegion("8.8.8.8");
@@ -352,6 +356,33 @@ describe("BETA-022: Active Session Management and Repository Operations", () => 
       const sessions = await repo.listUserSessions(userId);
       expect(sessions).toHaveLength(1);
       expect(sessions[0].sessionId).toBe(currentSessionId);
+    });
+
+    it("GET /api/v1/auth/sessions returns 401 if no cookie is provided", async () => {
+      const handler = (ListSessionsRoute.options.server?.handlers as any).GET;
+      const request = new Request("https://stealth.mail/api/v1/auth/sessions", {
+        method: "GET",
+      });
+
+      const response = await handler({ request });
+      expect(response.status).toBe(401);
+    });
+
+    it("POST /api/v1/auth/sessions/revoke returns 404 if session hash is not found", async () => {
+      const cookie = await loginUserAndGetCookie();
+
+      const handler = (RevokeRoute.options.server?.handlers as any).POST;
+      const request = new Request("https://stealth.mail/api/v1/auth/sessions/revoke", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: cookie,
+        },
+        body: JSON.stringify({ id: "nonexistent_hash" }),
+      });
+
+      const response = await handler({ request });
+      expect(response.status).toBe(404);
     });
   });
 });

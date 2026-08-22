@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { parseSessionCookie, validateSession } from "@/server/api/auth/session-service";
+import {
+  parseSessionCookie,
+  validateSession,
+  revokeOtherSessions,
+} from "@/server/api/auth/session-service";
 import { getApiContext } from "@/server/api/context";
 import { ApiError } from "@/server/api/errors";
 import { apiSuccess, handleApiRequest } from "@/server/api/response";
@@ -35,8 +39,7 @@ export const Route = createFileRoute("/api/v1/auth/sessions/revoke-others")({
             );
           }
 
-          const repo = apiContext.repository;
-          await repo.deleteOtherUserSessions(activeSession.user.userId, currentSessionId);
+          await revokeOtherSessions(apiContext, activeSession.user.userId, currentSessionId);
 
           return apiSuccess(request, { success: true });
         }),

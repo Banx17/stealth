@@ -459,16 +459,23 @@ export function parseUserAgent(ua: string | null): string {
 
 export function getApproximateRegion(ip: string | null): string {
   if (!ip || ip === "unknown") return "Unknown Region";
-  if (
-    ip === "127.0.0.1" ||
-    ip === "::1" ||
-    ip.startsWith("192.168.") ||
-    ip.startsWith("10.") ||
-    ip.startsWith("172.16.") ||
-    ip.startsWith("172.31.")
-  ) {
+
+  // Anonymize loopback and private IPv4 / IPv6 addresses
+  if (ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.")) {
     return "Local Network";
   }
+
+  // Check for RFC 1918 172.16.0.0/12 range
+  if (ip.startsWith("172.")) {
+    const parts = ip.split(".");
+    if (parts.length >= 2) {
+      const second = parseInt(parts[1], 10);
+      if (!isNaN(second) && second >= 16 && second <= 31) {
+        return "Local Network";
+      }
+    }
+  }
+
   let hash = 0;
   for (let i = 0; i < ip.length; i++) {
     hash = (hash << 5) - hash + ip.charCodeAt(i);
@@ -483,4 +490,44 @@ export function getApproximateRegion(ip: string | null): string {
     "Sydney, AU",
   ];
   return regions[Math.abs(hash) % regions.length];
+}
+
+/**
+ * Revokes a specific session for a given user ID, recording an audit event.
+ */
+export async function revokeSessionById(
+  apiContext: ApiContext,
+  userId: string,
+  targetSessionId: string,
+): Promise<void> {
+  await apiContext.repository.deleteSession(targetSessionId);
+
+  recordAuditEvent({
+    actor: userId,
+    action: "auth.session_revoke",
+    targetType: "session",
+    safeTargetReference: `${targetSessionId.substring(0, 12)}...`,
+    result: "success",
+    requestId: apiContext.requestId ?? "unknown",
+  });
+}
+
+/**
+ * Revokes all other sessions for a given user ID except the current session, recording an audit event.
+ */
+export async function revokeOtherSessions(
+  apiContext: ApiContext,
+  userId: string,
+  currentSessionId: string,
+): Promise<void> {
+  await apiContext.repository.deleteOtherUserSessions(userId, currentSessionId);
+
+  recordAuditEvent({
+    actor: userId,
+    action: "auth.session_revoke_others",
+    targetType: "account_sessions",
+    safeTargetReference: userId,
+    result: "success",
+    requestId: apiContext.requestId ?? "unknown",
+  });
 }
