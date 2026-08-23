@@ -359,6 +359,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                   notifications={notificationCenter.notifications}
                   onMarkNotificationRead={notificationCenter.markRead}
                   onMarkAllNotificationsRead={notificationCenter.markAllRead}
+                  actor={source.actor}
+                  emails={source.emails}
+                  onSelectEmail={(emailId, folder) => {
+                    if (folder && folder !== "all") {
+                      navigation.selectFolder(folder as any);
+                    }
+                    navigation.setSelectedId(emailId);
+                    navigation.setSelectedIds([emailId]);
+                  }}
                 />
                 {source.connectivity.paused &&
                 source.sourceView.kind !== "error" &&
@@ -526,6 +535,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               onMarkNotificationRead={notificationCenter.markRead}
               onMarkAllNotificationsRead={notificationCenter.markAllRead}
               onBack={mobileView === "detail" ? () => setMobileView("list") : undefined}
+              actor={source.actor}
+              emails={source.emails}
+              onSelectEmail={(emailId, folder) => {
+                if (folder && folder !== "all") {
+                  navigation.selectFolder(folder as any);
+                }
+                navigation.setSelectedId(emailId);
+                navigation.setSelectedIds([emailId]);
+              }}
             />
             {source.connectivity.paused && source.sourceView.kind !== "error" && !blockingSource ? (
               <DegradedStateBanner
@@ -534,7 +552,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onRetry={() => void source.retry()}
               />
             ) : null}
-            <div className="flex min-h-0 min-w-0 flex-1 pb-[68px]">
+            <div className="flex min-h-0 min-w-0 flex-1 pb-[72px] md:pb-0">
               {blockingSource ? (
                 <MailMailboxStatus
                   view={source.sourceView}

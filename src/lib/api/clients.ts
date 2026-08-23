@@ -42,6 +42,9 @@ import type {
   AccountProfileResponse,
   ProfileUpdateInput,
   ProfileUpdateResponse,
+  SearchQueryInput,
+  SearchResponseDto,
+  ActiveSessionDto,
 } from "./types";
 
 export interface ApiContext {
@@ -62,6 +65,7 @@ export interface TypedApi {
   contacts: ContactsClient;
   settings: SettingsClient;
   wallet: WalletClient;
+  search: SearchClient;
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +112,18 @@ export class AuthClient {
 
   logoutAll(): Promise<{ success: boolean }> {
     return this.client.post<{ success: boolean }>("/auth/logout-all");
+  }
+
+  listSessions(signal?: AbortSignal): Promise<ActiveSessionDto[]> {
+    return this.client.get<ActiveSessionDto[]>("/auth/sessions", { signal });
+  }
+
+  revokeSession(id: string): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>("/auth/sessions/revoke", { id });
+  }
+
+  revokeOthers(): Promise<{ success: boolean }> {
+    return this.client.post<{ success: boolean }>("/auth/sessions/revoke-others");
   }
 }
 
@@ -482,6 +498,34 @@ export class WalletClient {
 }
 
 // ---------------------------------------------------------------------------
+// Search (Issue #1972 / BETA-065)
+// ---------------------------------------------------------------------------
+
+export class SearchClient {
+  constructor(private readonly client: ApiClient) {}
+
+  search(query: SearchQueryInput = {}, signal?: AbortSignal): Promise<SearchResponseDto> {
+    return this.client.get<SearchResponseDto>("/search", {
+      query: {
+        q: query.q,
+        folder: query.folder,
+        unread: query.unread,
+        starred: query.starred,
+        hasAttachments: query.hasAttachments,
+        sender: query.sender,
+        recipient: query.recipient,
+        afterDate: query.afterDate,
+        beforeDate: query.beforeDate,
+        includeDeleted: query.includeDeleted,
+        cursor: query.cursor,
+        limit: query.limit,
+      },
+      signal,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
@@ -507,6 +551,7 @@ export function createTypedApi(options: CreateTypedApiOptions = {}): TypedApi {
     contacts: new ContactsClient(client),
     settings: new SettingsClient(client, policies),
     wallet: new WalletClient(client),
+    search: new SearchClient(client),
   };
 }
 

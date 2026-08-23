@@ -245,6 +245,7 @@ function emitClient(spec, contractName, xdrBase64Entries) {
     `// AUTO-GENERATED — do not edit by hand.`,
     `// Source: contracts/soroban/${contractName}/spec.json`,
     `// Regenerate: npm run generate:bindings`,
+    ``,
     `import { contract, Keypair, Transaction } from "@stellar/stellar-sdk";`,
     ``,
   ];

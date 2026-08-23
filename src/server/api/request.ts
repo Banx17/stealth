@@ -55,6 +55,10 @@ export const ROUTE_BODY_LIMITS = {
   "POST /identity/keys/rotate": "compact",
   "POST /identity/keys/retire": "compact",
   "POST /identity/keys/revoke": "compact",
+  "POST /attachments/initiate": "compact",
+  "POST /attachments/chunk": "relay",
+  "POST /attachments/finalize": "compact",
+  "POST /attachments/abort": "minimal",
   "POST /contacts": "compact",
   "PUT /contacts/{contactId}": "compact",
   "POST /contacts/merge": "compact",
@@ -67,6 +71,9 @@ export const ROUTE_BODY_LIMITS = {
   "POST /send/coordinate": "standard",
   "PUT /api/v1/onboarding/draft": "standard",
   "POST /api/v1/onboarding/complete": "standard",
+  // BETA-037: sender rule chain status and retry
+  "POST /policies/{owner}/senders/{sender}/chain-status": "minimal",
+  "POST /policies/{owner}/senders/{sender}/retry": "minimal",
 } as const satisfies Record<string, BodyLimitCategory>;
 
 export type RouteBodyLimitKey = keyof typeof ROUTE_BODY_LIMITS;

@@ -288,7 +288,7 @@ export class PostageEscrowAdapter {
     addr: Address,
   ): Promise<string | undefined> {
     try {
-      const { result } = await server.queryContract<bigint>(assetContractId, "balance", {
+      const { result } = await (server as any).queryContract(assetContractId, "balance", {
         id: addr.toString(),
       });
       return result !== undefined && result !== null ? result.toString() : undefined;
@@ -304,7 +304,7 @@ export class PostageEscrowAdapter {
     spender: Address,
   ): Promise<string | undefined> {
     try {
-      const { result } = await server.queryContract<bigint>(assetContractId, "allowance", {
+      const { result } = await (server as any).queryContract(assetContractId, "allowance", {
         from: from.toString(),
         spender: spender.toString(),
       });

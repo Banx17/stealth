@@ -678,6 +678,37 @@ export class StealthCoordinator extends DurableObjectBase {
     }
   }
 
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const keys: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      keys.push(`session:${key.slice(prefix.length)}`);
+    }
+    if (keys.length === 0) return [];
+    const sessionsMap = (await this.ctx.storage.get(keys)) as Map<string, Session>;
+    const sessions: Session[] = [];
+    for (const s of sessionsMap.values()) {
+      if (s) sessions.push(s);
+    }
+    return sessions;
+  }
+
+  async deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    const prefix = `session:user:${userId}:`;
+    const sessionIndex = await this.ctx.storage.list({ prefix });
+    const deletes: string[] = [];
+    for (const key of sessionIndex.keys()) {
+      const sessionId = key.slice(prefix.length);
+      if (sessionId !== currentSessionId) {
+        deletes.push(key, `session:${sessionId}`);
+      }
+    }
+    if (deletes.length > 0) {
+      await this.ctx.storage.delete(deletes);
+    }
+  }
+
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     const retiredSession = (await this.ctx.storage.get(`retired-session:${sessionId}`)) as
       | RetiredSession
@@ -1080,6 +1111,35 @@ export class StealthCoordinator extends DurableObjectBase {
     return matches.slice(0, limit);
   }
 
+  // ---------------------------------------------------------------------------
+  // BETA-037 (Issue #1944): versioned sender rule records
+  // ---------------------------------------------------------------------------
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: import("./domain").SenderRuleRecord[]; nextCursor?: string }> {
+    const limit = options?.limit ?? 50;
+    const records: import("./domain").SenderRuleRecord[] = [];
+    const all = (await this.ctx.storage.list({
+      prefix: `sender-rule-record:${owner}:`,
+    })) as Map<string, import("./domain").SenderRuleRecord>;
+    for (const record of all.values()) {
+      if (record && record.owner === owner) {
+        records.push(record);
+      }
+    }
+    records.sort((a, b) => a.sender.localeCompare(b.sender));
+    let startIndex = 0;
+    if (options?.after) {
+      startIndex = records.findIndex((r) => r.sender === options.after) + 1;
+    }
+    const page = records.slice(startIndex, startIndex + limit);
+    const nextCursor =
+      startIndex + limit < records.length ? page[page.length - 1]?.sender : undefined;
+    return { records: page, nextCursor };
+  }
+
   async listRecipientEnvelopes(
     recipient: string,
     options: import("./repository").MailboxQueryOptions = {},
@@ -1183,6 +1243,96 @@ export class StealthCoordinator extends DurableObjectBase {
       await this.ctx.storage.put(`envelope:${messageId}`, updated);
       return updated;
     });
+  }
+
+  async searchMailbox(
+    actor: string,
+    options: import("./repository").SearchMailboxQueryOptions = {},
+  ): Promise<import("./repository").Page<StoredEnvelope>> {
+    const { paginate, PAGINATED_QUERY_ORDERINGS } = await import("./repository");
+    const { readMailboxFlags } = await import("./mailbox-live");
+    const normActor = actor.toUpperCase().trim();
+    const limit = options.limit ?? 25;
+    const folderFilter = options.folder;
+    const includeDeleted = options.includeDeleted ?? folderFilter === "trash";
+    const query = options.query?.trim().toLowerCase();
+
+    const envelopesMap = (await this.ctx.storage.list({
+      prefix: "envelope:",
+    })) as Map<string, StoredEnvelope>;
+
+    const filtered: StoredEnvelope[] = [];
+    for (const env of envelopesMap.values()) {
+      if (!env || !env.recipientId || !env.senderId) continue;
+      const isRecipient = env.recipientId.toUpperCase().trim() === normActor;
+      const isSender = env.senderId.toUpperCase().trim() === normActor;
+      if (!isRecipient && !isSender) continue;
+
+      const isDeleted = Boolean(env.deletedAt);
+      if (isDeleted && !includeDeleted) continue;
+
+      const flags = readMailboxFlags(env);
+      if (folderFilter && folderFilter !== "all" && flags.folder !== folderFilter) continue;
+
+      if (options.unread !== undefined && flags.unread !== options.unread) continue;
+      if (options.starred !== undefined && flags.starred !== options.starred) continue;
+
+      if (options.hasAttachments !== undefined) {
+        const metadata =
+          env.metadata && typeof env.metadata === "object"
+            ? (env.metadata as Record<string, unknown>)
+            : {};
+        const attachments = Array.isArray(metadata.attachments) ? metadata.attachments : [];
+        const has = attachments.length > 0;
+        if (has !== options.hasAttachments) continue;
+      }
+
+      if (options.sender) {
+        const normSender = options.sender.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const senderMatch =
+          env.senderId.toLowerCase().includes(normSender) ||
+          (typeof headers.from === "string" && headers.from.toLowerCase().includes(normSender));
+        if (!senderMatch) continue;
+      }
+
+      if (options.recipient) {
+        const normRecipient = options.recipient.toLowerCase().trim();
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const recipientMatch =
+          env.recipientId.toLowerCase().includes(normRecipient) ||
+          (typeof headers.to === "string" && headers.to.toLowerCase().includes(normRecipient));
+        if (!recipientMatch) continue;
+      }
+
+      if (options.afterDate && env.createdAt < options.afterDate) continue;
+      if (options.beforeDate && env.createdAt > options.beforeDate) continue;
+
+      if (query) {
+        const headers = (env.protectedHeaders ?? {}) as Record<string, unknown>;
+        const metadata = (env.metadata ?? {}) as Record<string, unknown>;
+        const mailboxMeta = (metadata.mailbox ?? {}) as Record<string, unknown>;
+        const labels = Array.isArray(mailboxMeta.labels) ? mailboxMeta.labels.join(" ") : "";
+        const haystack = [
+          env.senderId,
+          env.recipientId,
+          env.messageId,
+          typeof headers.subject === "string" ? headers.subject : "",
+          typeof headers.from === "string" ? headers.from : "",
+          typeof headers.to === "string" ? headers.to : "",
+          labels,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(query)) continue;
+      }
+
+      filtered.push(env);
+    }
+
+    const spec = PAGINATED_QUERY_ORDERINGS.searchMailbox;
+    return paginate(filtered, spec, { limit, after: options.after });
   }
 
   // ---------------------------------------------------------------------------

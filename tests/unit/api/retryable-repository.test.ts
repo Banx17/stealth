@@ -108,6 +108,22 @@ class FailingRepository implements ApiRepository {
     this.maybeFail("setSenderRule");
     return this.inner.setSenderRule(owner, sender, rule);
   }
+  async getSenderRuleRecord(owner: string, sender: string) {
+    this.maybeFail("getSenderRuleRecord");
+    return this.inner.getSenderRuleRecord(owner, sender);
+  }
+  async setSenderRuleRecord(record: import("../../../src/server/api/domain").SenderRuleRecord) {
+    this.maybeFail("setSenderRuleRecord");
+    return this.inner.setSenderRuleRecord(record);
+  }
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    this.maybeFail("deleteSenderRuleRecord");
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+  async listSenderRuleRecords(owner: string, options?: { limit?: number; after?: string }) {
+    this.maybeFail("listSenderRuleRecords");
+    return this.inner.listSenderRuleRecords(owner, options);
+  }
   async getPostage(messageId: string): Promise<Postage | null> {
     this.maybeFail("getPostage");
     return this.inner.getPostage(messageId);
@@ -314,6 +330,14 @@ class FailingRepository implements ApiRepository {
   async deleteUserSessions(userId: string) {
     this.maybeFail("deleteUserSessions");
     return this.inner.deleteUserSessions(userId);
+  }
+  async listUserSessions(userId: string) {
+    this.maybeFail("listUserSessions");
+    return this.inner.listUserSessions(userId);
+  }
+  async deleteOtherUserSessions(userId: string, currentSessionId: string) {
+    this.maybeFail("deleteOtherUserSessions");
+    return this.inner.deleteOtherUserSessions(userId, currentSessionId);
   }
   async getRetiredSession(sessionId: string) {
     this.maybeFail("getRetiredSession");
@@ -643,6 +667,13 @@ class FailingRepository implements ApiRepository {
   ) {
     this.maybeFail("saveOnboardingDraft");
     return this.inner.saveOnboardingDraft(record);
+  }
+  async searchMailbox(
+    actor: string,
+    options?: import("../../../src/server/api/repository").SearchMailboxQueryOptions,
+  ) {
+    this.maybeFail("searchMailbox");
+    return this.inner.searchMailbox(actor, options);
   }
   reset(): void {
     this.inner.reset();

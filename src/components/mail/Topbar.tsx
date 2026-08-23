@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "./NotificationsPanel";
-import type { MailFilters } from "./data";
+import { TopbarSearch } from "./TopbarSearch";
+import type { MailFilters, Email } from "./data";
 import type { InAppNotification } from "@/features/notifications";
 
 /**
@@ -85,6 +86,9 @@ type TopbarProps = {
   notifications: InAppNotification[];
   onMarkNotificationRead: (id: string) => void;
   onMarkAllNotificationsRead: () => void;
+  actor?: string | null;
+  emails?: Email[];
+  onSelectEmail?: (emailId: string, folder?: string) => void;
 };
 
 const quickActions: {
@@ -115,6 +119,9 @@ export function Topbar({
   notifications,
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
+  actor,
+  emails,
+  onSelectEmail,
 }: TopbarProps) {
   const [focused, setFocused] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -191,22 +198,12 @@ export function Topbar({
           <ArrowLeft className="h-5 w-5" />
         </motion.button>
       )}
-      <motion.div className="relative flex h-9 min-w-0 flex-[1_1_160px] items-center sm:min-w-[220px] sm:flex-[1_1_320px] lg:max-w-[430px]">
-        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
-        <input
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onClick={onOpenPalette}
-          placeholder="Search messages, people, proofs, attachments..."
-          className="glow-ring h-9 w-full min-w-0 rounded-md border border-white/[0.07] bg-white/[0.035] pl-9 pr-14 text-[13px] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] placeholder:text-muted-foreground/70 transition focus:bg-white/[0.06]"
-        />
-        <button
-          onClick={onOpenPalette}
-          className="absolute right-1.5 flex items-center gap-1 rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
-        >
-          <Command className="h-3 w-3" /> K
-        </button>
-      </motion.div>
+      <TopbarSearch
+        actor={actor}
+        emails={emails}
+        onOpenPalette={onOpenPalette}
+        onSelectEmail={onSelectEmail}
+      />
 
       <div className="hidden shrink-0 items-center gap-1.5 xl:flex">
         {quickActions.map((action) => (

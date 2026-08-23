@@ -24,6 +24,7 @@ import type {
   RecoveryCodeSet,
   RetiredSession,
   SenderRule,
+  SenderRuleRecord,
   Session,
   StoredEnvelope,
   MailboxFlagsPatch,
@@ -235,6 +236,25 @@ export interface MailboxQueryOptions {
 }
 
 /**
+ * Options for searching a user's mailbox across safe metadata.
+ * Issue #1972 (BETA-065).
+ */
+export interface SearchMailboxQueryOptions {
+  query?: string;
+  folder?: string;
+  unread?: boolean;
+  starred?: boolean;
+  hasAttachments?: boolean;
+  sender?: string;
+  recipient?: string;
+  afterDate?: string;
+  beforeDate?: string;
+  includeDeleted?: boolean;
+  limit?: number;
+  after?: string;
+}
+
+/**
  * Outcome of an atomic managed-wallet create.
  *
  * - "created": a new managed wallet record was stored for the user.
@@ -275,6 +295,14 @@ export interface ApiRepository {
   setLifecycleAnchor(anchor: LifecycleAnchor): Promise<LifecycleAnchor>;
   getSenderRule(owner: string, sender: string): Promise<SenderRule>;
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule>;
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null>;
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord>;
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean>;
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }>;
   getPostage(messageId: string): Promise<Postage | null>;
   setPostage(postage: Postage): Promise<Postage>;
   /**
@@ -430,6 +458,8 @@ export interface ApiRepository {
   updateSession(session: Session): Promise<Session>;
   deleteSession(sessionId: string): Promise<void>;
   deleteUserSessions(userId: string): Promise<void>;
+  listUserSessions(userId: string): Promise<Session[]>;
+  deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void>;
   getRetiredSession(sessionId: string): Promise<RetiredSession | null>;
   createRetiredSession(retiredSession: RetiredSession): Promise<RetiredSession>;
 
@@ -522,6 +552,7 @@ export interface ApiRepository {
     recipient: string,
     patch: MailboxFlagsPatch,
   ): Promise<StoredEnvelope>;
+  searchMailbox(actor: string, options?: SearchMailboxQueryOptions): Promise<Page<StoredEnvelope>>;
 
   // ---------------------------------------------------------------------------
   // Issue #1934 (BETA-027) — Versioned Public Encryption-Key Directory & Rotation
@@ -729,6 +760,32 @@ export class ValidatedApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.inner.setSenderRule(owner, sender, versionRecord("senderRule", rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records with chain reconciliation
+  async getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    const raw = await this.inner.getSenderRuleRecord(owner, sender);
+    return raw ? validateRecord<SenderRuleRecord>("senderRuleRecord", raw) : null;
+  }
+
+  async setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    const result = await this.inner.setSenderRuleRecord(versionRecord("senderRuleRecord", record));
+    return validateRecord<SenderRuleRecord>("senderRuleRecord", result);
+  }
+
+  async deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.inner.deleteSenderRuleRecord(owner, sender);
+  }
+
+  async listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    const result = await this.inner.listSenderRuleRecords(owner, options);
+    return {
+      ...result,
+      records: result.records.map((r) => validateRecord<SenderRuleRecord>("senderRuleRecord", r)),
+    };
   }
 
   async getPostage(messageId: string): Promise<Postage | null> {
@@ -1052,6 +1109,15 @@ export class ValidatedApiRepository implements ApiRepository {
     return this.inner.deleteUserSessions(userId);
   }
 
+  async listUserSessions(userId: string): Promise<Session[]> {
+    const raw = await this.inner.listUserSessions(userId);
+    return raw.map((s) => validateRecord<Session>("session", s));
+  }
+
+  deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    return this.inner.deleteOtherUserSessions(userId, currentSessionId);
+  }
+
   async getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     const raw = await this.inner.getRetiredSession(sessionId);
     return raw ? validateRecord<RetiredSession>("retiredSession", raw) : null;
@@ -1239,6 +1305,17 @@ export class ValidatedApiRepository implements ApiRepository {
   ): Promise<StoredEnvelope> {
     const result = await this.inner.patchMailboxFlags(messageId, recipient, patch);
     return validateRecord<StoredEnvelope>("storedEnvelope", result);
+  }
+
+  async searchMailbox(
+    actor: string,
+    options?: SearchMailboxQueryOptions,
+  ): Promise<Page<StoredEnvelope>> {
+    const page = await this.inner.searchMailbox(actor, options);
+    return {
+      ...page,
+      items: page.items.map((item) => validateRecord<StoredEnvelope>("storedEnvelope", item)),
+    };
   }
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
@@ -1501,6 +1578,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getPolicyWriteIntent",
   "getLifecycleAnchor",
   "getSenderRule",
+  "getSenderRuleRecord",
+  "listSenderRuleRecords",
   "getPostage",
   "getReceipt",
   "getIdempotencyRecord",
@@ -1514,6 +1593,8 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "setPolicyWriteIntent",
   "setLifecycleAnchor",
   "setSenderRule",
+  "setSenderRuleRecord",
+  "deleteSenderRuleRecord",
   "setPostage",
   "setReceipt",
   "createReceiptIfAbsent",
@@ -1541,6 +1622,7 @@ const RETRY_SAFE_OPERATIONS = new Set<string>([
   "getActiveVerificationToken",
   "invalidateActiveVerificationToken",
   "listRecipientEnvelopes",
+  "searchMailbox",
   "getExternalWallets",
   "findExternalWalletOwner",
   "getVerificationToken",
@@ -1654,6 +1736,32 @@ export class RetryableApiRepository implements ApiRepository {
 
   setSenderRule(owner: string, sender: string, rule: SenderRule): Promise<SenderRule> {
     return this.withRetry("setSenderRule", () => this.inner.setSenderRule(owner, sender, rule));
+  }
+
+  // BETA-037 (Issue #1944): versioned sender rule records
+  getSenderRuleRecord(owner: string, sender: string): Promise<SenderRuleRecord | null> {
+    return this.withRetry("getSenderRuleRecord", () =>
+      this.inner.getSenderRuleRecord(owner, sender),
+    );
+  }
+
+  setSenderRuleRecord(record: SenderRuleRecord): Promise<SenderRuleRecord> {
+    return this.withRetry("setSenderRuleRecord", () => this.inner.setSenderRuleRecord(record));
+  }
+
+  deleteSenderRuleRecord(owner: string, sender: string): Promise<boolean> {
+    return this.withRetry("deleteSenderRuleRecord", () =>
+      this.inner.deleteSenderRuleRecord(owner, sender),
+    );
+  }
+
+  listSenderRuleRecords(
+    owner: string,
+    options?: { limit?: number; after?: string },
+  ): Promise<{ records: SenderRuleRecord[]; nextCursor?: string }> {
+    return this.withRetry("listSenderRuleRecords", () =>
+      this.inner.listSenderRuleRecords(owner, options),
+    );
   }
 
   getPostage(messageId: string): Promise<Postage | null> {
@@ -1875,6 +1983,14 @@ export class RetryableApiRepository implements ApiRepository {
     return this.inner.deleteUserSessions(userId);
   }
 
+  listUserSessions(userId: string): Promise<Session[]> {
+    return this.withRetry("listUserSessions", () => this.inner.listUserSessions(userId));
+  }
+
+  deleteOtherUserSessions(userId: string, currentSessionId: string): Promise<void> {
+    return this.inner.deleteOtherUserSessions(userId, currentSessionId);
+  }
+
   getRetiredSession(sessionId: string): Promise<RetiredSession | null> {
     return this.withRetry("getRetiredSession", () => this.inner.getRetiredSession(sessionId));
   }
@@ -2032,6 +2148,10 @@ export class RetryableApiRepository implements ApiRepository {
     patch: MailboxFlagsPatch,
   ): Promise<StoredEnvelope> {
     return this.inner.patchMailboxFlags(messageId, recipient, patch);
+  }
+
+  searchMailbox(actor: string, options?: SearchMailboxQueryOptions): Promise<Page<StoredEnvelope>> {
+    return this.withRetry("searchMailbox", () => this.inner.searchMailbox(actor, options));
   }
 
   getExternalWallets(owner: string): Promise<ExternalWallet[]> {
@@ -2493,6 +2613,15 @@ export const PAGINATED_QUERY_ORDERINGS = {
    * unique tie-breaker so the walk is stable.
    */
   listDrafts: declareOrdering<DraftRecord>([{ field: "updatedAt", direction: "desc" }], "draftId"),
+  /**
+   * Issue #1972 (BETA-065): Actor-scoped mailbox search listing.
+   * Ordered by creation time descending (newest first); messageId is the
+   * unique tie-breaker so pagination is stable.
+   */
+  searchMailbox: declareOrdering<StoredEnvelope>(
+    [{ field: "createdAt", direction: "desc" }],
+    "messageId",
+  ),
 } as const;
 
 export type PaginatedQueryName = keyof typeof PAGINATED_QUERY_ORDERINGS;

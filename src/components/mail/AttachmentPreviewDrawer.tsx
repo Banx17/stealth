@@ -42,7 +42,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-
 import {
   useAttachmentDownload,
   isPreviewableType,
@@ -54,6 +53,19 @@ export type Attachment = {
   name: string;
   size: string;
   type: string;
+  messageId?: string;
+  contentHash?: string;
+  totalChunks?: number;
+  encryptionKey?: CryptoKey;
+  ownerAddress?: string;
+  manifest?: {
+    algorithm: string;
+    chunk_size: number;
+    chunk_count: number;
+    total_size_bytes: number;
+    base_nonce: string;
+    manifest_mac: string;
+  };
   /** Encrypted ciphertext (base64) from the sealed envelope. */
   encryptedCiphertext?: string;
   /** Hex-encoded 12-byte nonce from the attachment's encryption_metadata. */
@@ -306,6 +318,18 @@ export function AttachmentPreviewDrawer({
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [pdfPage, setPdfPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+
+  const hasRealMetadata = Boolean(
+    attachment?.messageId &&
+    attachment?.contentHash &&
+    attachment?.totalChunks &&
+    attachment?.encryptionKey &&
+    attachment?.manifest,
+  );
+
+  // Reset local state when attachment changes
   const contentRef = useRef<HTMLDivElement>(null);
 
   const ciphertext = encryptedCiphertext ?? attachment?.encryptedCiphertext;
@@ -314,7 +338,7 @@ export function AttachmentPreviewDrawer({
   const contentHash = expectedContentHash ?? attachment?.expectedContentHash;
   const key = contentKey ?? attachment?.contentKey;
 
-  const download = useAttachmentDownload({
+  const { startDownload, ...download } = useAttachmentDownload({
     attachment,
     encryptedCiphertext: ciphertext,
     encryptedNonce: nonce,
@@ -330,7 +354,56 @@ export function AttachmentPreviewDrawer({
     setZoom(1);
     setRotation(0);
     setPdfPage(1);
+    setSearchQuery("");
+    setDownloadProgress(null);
   }, [attachment?.name]);
+
+  const getMimeType = (ext: string) => {
+    if (ext === "json") return "application/json";
+    if (ext === "pdf") return "application/pdf";
+    if (ext === "txt") return "text/plain";
+    if (ext === "png") return "image/png";
+    if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+    return "application/octet-stream";
+  };
+
+  const handleDownload = useCallback(async () => {
+    if (!attachment) return;
+
+    const attachmentType = attachment.type.toLowerCase();
+
+    if (
+      hasRealMetadata &&
+      attachment.messageId &&
+      attachment.contentHash &&
+      attachment.totalChunks
+    ) {
+      startDownload();
+      return;
+    }
+
+    if (isImage || attachmentType === "pdf") {
+      const link = document.createElement("a");
+      link.href = `/${attachment.name}`;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      const text = `Content for ${attachment.name}`;
+      const blob = new Blob([text], {
+        type: getMimeType(attachmentType),
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+  }, [hasRealMetadata, attachment, startDownload]);
 
   const type = attachment?.type?.toLowerCase() ?? "";
   const isPDF = type === "pdf";
@@ -422,6 +495,19 @@ export function AttachmentPreviewDrawer({
                 )}
               </button>
             )}
+            <button
+              onClick={handleDownload}
+              disabled={download.state === "loading"}
+              title="Download file"
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 transition duration-150 disabled:opacity-50"
+            >
+              {download.state === "loading" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              <span>{download.state === "loading" ? "Downloading..." : "Download"}</span>
+            </button>
             {download.state === "ready" && (
               <button
                 onClick={handleDownloadFile}
@@ -717,6 +803,18 @@ export function AttachmentPreviewDrawer({
                 </div>
               </div>
 
+              <button
+                onClick={handleDownload}
+                disabled={download.state === "loading"}
+                className="mt-6 w-full flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-xs font-semibold text-background hover:opacity-90 transition disabled:opacity-50"
+              >
+                {download.state === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}{" "}
+                {download.state === "loading" ? "Downloading..." : "Download file locally"}
+              </button>
               {download.state === "ready" && download.result ? (
                 <button
                   onClick={handleForceDownload}

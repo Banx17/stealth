@@ -19,6 +19,8 @@ import { getVersionInfo } from "@/server/api/version";
 import { InProcessRelayWorker } from "./in-process-worker";
 import { KvRelayPersistence } from "./kv-persistence";
 import { MemoryRelayPersistence } from "./memory-persistence";
+import { createRelayObjectStore } from "./object-store";
+import { createConfiguredAdmissionEvaluator } from "./policy-chain";
 import { RELAY_SERVICE_NAME, RelayService, type RelayServiceConfig } from "./relay-service";
 
 const globalRelay = globalThis as typeof globalThis & {
@@ -38,6 +40,7 @@ function buildConfig(): RelayServiceConfig {
       sorobanRpcUrl: config.network.sorobanRpcUrl,
       networkPassphrase: config.network.networkPassphrase,
     },
+    policiesContractId: config.contract.policiesContractId,
   };
 }
 
@@ -82,13 +85,32 @@ export async function getRelayService(): Promise<RelayService> {
     return globalRelay.__stealthRelayService;
   }
 
+  const runtime = loadRuntimeConfig();
+  const relayConfig = buildConfig();
+  const { getApiContext } = await import("@/server/api/context");
+  const { repository } = await getApiContext();
+  const evaluator = createConfiguredAdmissionEvaluator({
+    repository,
+    policiesContractId: runtime.contract.policiesContractId,
+    networkPassphrase: runtime.network.networkPassphrase,
+    sorobanRpcUrl: runtime.network.sorobanRpcUrl,
+  });
+
   if (!import.meta.env.PROD) {
     const persistence = new MemoryRelayPersistence();
     const worker = new InProcessRelayWorker(persistence);
-    globalRelay.__stealthRelayService = new RelayService(persistence, worker, {
-      ...buildConfig(),
-      onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
-    });
+    globalRelay.__stealthRelayService = new RelayService(
+      persistence,
+      worker,
+      {
+        ...relayConfig,
+        onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+      },
+      {
+        evaluator,
+        mailbox: repository,
+      },
+    );
     return globalRelay.__stealthRelayService;
   }
 
@@ -101,9 +123,22 @@ export async function getRelayService(): Promise<RelayService> {
 
   const persistence = new KvRelayPersistence(env.STEALTH_KV);
   const worker = new InProcessRelayWorker(persistence);
-  globalRelay.__stealthRelayService = new RelayService(persistence, worker, {
-    ...buildConfig(),
-    onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
-  });
+  const objectStore = env.STEALTH_OBJECT_STORE
+    ? createRelayObjectStore(env.STEALTH_OBJECT_STORE)
+    : undefined;
+
+  globalRelay.__stealthRelayService = new RelayService(
+    persistence,
+    worker,
+    {
+      ...relayConfig,
+      onAccepted: buildOnAcceptedHook(await getLifecycleRepository()),
+    },
+    {
+      evaluator,
+      objectStore,
+      mailbox: repository,
+    },
+  );
   return globalRelay.__stealthRelayService;
 }
