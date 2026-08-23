@@ -193,7 +193,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   }
 
   return (
-    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
+    <MotionConfig transition={isTest ? { duration: 0 } : undefined} reducedMotion="user">
       <div
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
