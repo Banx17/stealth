@@ -45,17 +45,7 @@ export function RightPanel({
   onShowToast?: (message: string) => void;
   onOpenCalendar: (eventId?: string) => void;
   onCreateEvent: () => void;
-  onPreviewAttachment?: (attachment: {
-    name: string;
-    size: string;
-    type: string;
-    senderAddress?: string;
-    encryptedCiphertext?: string;
-    encryptedNonce?: string;
-    encryptedMac?: string;
-    expectedContentHash?: string;
-    contentKey?: CryptoKey;
-  }) => void;
+  onPreviewAttachment?: (attachment: { name: string; size: string; type: string }) => void;
 }) {
   const [prompt, setPrompt] = useState("");
   const [summary, setSummary] = useState<string | null>(null);
@@ -84,7 +74,7 @@ export function RightPanel({
   };
 
   return (
-    <aside className="scrollbar-thin m-3 ml-0 hidden h-[calc(100vh-1.5rem-3.5rem)] w-[292px] shrink-0 flex-col gap-3 overflow-y-auto 2xl:flex">
+    <aside className="scrollbar-thin m-3 ml-0 flex h-full min-w-0 flex-col gap-3 overflow-y-auto">
       <Card>
         <SectionHeader icon={Sparkles} title="AI assistant" badge="beta" />
         <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-foreground/80">
@@ -187,31 +177,7 @@ export function RightPanel({
             {email.attachments.map((attachment) => (
               <li
                 key={attachment.name}
-                onClick={() =>
-                  onPreviewAttachment?.({
-                    ...attachment,
-                    senderAddress: email?.email,
-                    ...(email?.attachmentCrypto?.attachments.find(
-                      (a) => a.filename === attachment.name,
-                    )
-                      ? {
-                          encryptedCiphertext: email!.attachmentCrypto!.attachments.find(
-                            (a) => a.filename === attachment.name,
-                          )!.ciphertext,
-                          encryptedNonce: email!.attachmentCrypto!.attachments.find(
-                            (a) => a.filename === attachment.name,
-                          )!.nonce,
-                          encryptedMac: email!.attachmentCrypto!.attachments.find(
-                            (a) => a.filename === attachment.name,
-                          )!.mac,
-                          expectedContentHash: email!.attachmentCrypto!.attachments.find(
-                            (a) => a.filename === attachment.name,
-                          )!.contentHash,
-                          contentKey: email!.attachmentCrypto!.contentKey,
-                        }
-                      : {}),
-                  })
-                }
+                onClick={() => onPreviewAttachment?.(attachment)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-2 py-1.5 transition duration-150",
                   onPreviewAttachment && "cursor-pointer hover:bg-white/[0.06]",
