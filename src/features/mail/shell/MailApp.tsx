@@ -19,7 +19,6 @@ import type { Email } from "@/components/mail/data";
 import { defaultMailFilters } from "@/components/mail/data";
 import { cn } from "@/lib/utils";
 import { useIsMobile, useMediaQuery } from "@/lib/use-media-query";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
@@ -89,7 +88,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
-  const showRightPanel = useMediaQuery("(min-width: 1536px)");
+  const showRightPanel = useMediaQuery("(min-width: 1800px)");
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
@@ -206,46 +205,27 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           </div>
         )}
 
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="flex h-full w-full"
-          onLayoutChanged={(sizes) => {
-            if (isMobile || !sizes.length) return;
-            const sidebarWidth = sizes[0];
-            if (sidebarWidth > 4) {
-              setLayout({ sidebarWidth });
-            }
-          }}
-        >
-          {!isMobile && (
-            <>
-              <ResizablePanel
-                defaultSize={layout.sidebarWidth}
-                minSize={4}
-                maxSize={20}
-                collapsible
-                onCollapse={() => setLayout({ sidebarCollapsed: true })}
-                onExpand={() => setLayout({ sidebarCollapsed: false })}
-                className={cn(
-                  layout.sidebarCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out",
-                )}
-              >
-                <Sidebar
-                  active={navigation.folder}
-                  counts={navigation.folderCounts}
-                  onSelect={navigation.selectFolder}
-                  collapsed={layout.sidebarCollapsed}
-                  onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
-                  onCompose={() => overlays.openCompose()}
-                  customFolder={navigation.customFolder}
-                  onSelectCustomFolder={navigation.setCustomFolder}
-                  onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
-                />
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-            </>
-          )}
-          {isMobile && (
+        <div className="flex h-full w-full">
+          {!isMobile ? (
+            <div
+              className={cn(
+                "shrink-0 transition-[width] duration-200 ease-out",
+                layout.sidebarCollapsed ? "w-[64px]" : "w-[240px]",
+              )}
+            >
+              <Sidebar
+                active={navigation.folder}
+                counts={navigation.folderCounts}
+                onSelect={navigation.selectFolder}
+                collapsed={layout.sidebarCollapsed}
+                onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
+                onCompose={() => overlays.openCompose()}
+                customFolder={navigation.customFolder}
+                onSelectCustomFolder={navigation.setCustomFolder}
+                onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
+              />
+            </div>
+          ) : (
             <Sidebar
               active={navigation.folder}
               counts={navigation.folderCounts}
@@ -258,7 +238,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
             />
           )}
 
-          <ResizablePanel defaultSize={isMobile ? 100 : 100 - layout.sidebarWidth}>
+          <div className="flex min-w-0 flex-1">
+
             <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
@@ -322,22 +303,17 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                     />
                   </Suspense>
                 ) : (
-                  <ResizablePanelGroup
-                    direction="horizontal"
-                    className="h-full w-full"
-                    onLayoutChanged={(sizes) => {
-                      if (isMobile || sizes.length < 2) return;
-                      const listWidth = sizes[0];
-                      const readerWidth = sizes[1];
-                      if (listWidth >= 20 && readerWidth >= 30) {
-                        setLayout({
-                          listWidth,
-                          readerWidth,
-                        });
-                      }
-                    }}
-                  >
-                    <ResizablePanel defaultSize={isMobile ? 100 : layout.listWidth} minSize={20}>
+                  <div className="flex h-full w-full min-w-0">
+                    <div
+                      className={cn(
+                        "min-w-0",
+                        isMobile
+                          ? "w-full"
+                          : layout.compactMode || preferences.compactMode
+                            ? "w-[320px] shrink-0"
+                            : "w-[360px] shrink-0",
+                      )}
+                    >
                       <EmailList
                         emails={source.emails}
                         selectedId={navigation.selectedId}
@@ -366,11 +342,10 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                         }}
                         isLoadingMore={source.isLoadingMore}
                       />
-                    </ResizablePanel>
+                    </div>
                     {!isMobile && (
                       <>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
+                        <div className="min-w-0 flex-1">
                           <EmailView
                             email={readerEmail}
                             thread={threadRead.thread}
@@ -380,56 +355,47 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                             }}
                             actions={actions.emailActions}
                           />
-                        </ResizablePanel>
+                        </div>
                         {showRightPanel && (
-                        <>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel
-                          defaultSize={100 - layout.listWidth - layout.readerWidth}
-                          minSize={15}
-                          collapsible
-                          collapsedSize={0}
-                          onCollapse={() => setLayout({ rightPanelCollapsed: true })}
-                          onExpand={() => setLayout({ rightPanelCollapsed: false })}
-                        >
-                          <RightPanel
-                            email={readerEmail}
-                            onAction={actions.handleContextAction}
-                            onConvertSender={openSenderConversion}
-                            onSnooze={(email) =>
-                              snooze.open({ emailId: email.id, subject: email.subject })
-                            }
-                            calendarEvents={calendar.visibleEvents}
-                            calendars={calendar.calendars}
-                            onShowToast={showToast}
-                            onOpenCalendar={overlays.openCalendar}
-                            onCreateEvent={overlays.requestCalendarCreate}
-                            onDraftReply={(email, prompt) =>
-                              overlays.openCompose({
-                                to: email.email,
-                                subject: email.subject.startsWith("Re: ")
-                                  ? email.subject
-                                  : `Re: ${email.subject}`,
-                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
-                                  email,
-                                )}`,
-                              })
-                            }
-                            onPreviewAttachment={(attachment) =>
-                              overlays.setPreviewAttachment(attachment)
-                            }
-                          />
-                        </ResizablePanel>
-                        </>
+                          <div className="w-[320px] shrink-0">
+                            <RightPanel
+                              email={readerEmail}
+                              onAction={actions.handleContextAction}
+                              onConvertSender={openSenderConversion}
+                              onSnooze={(email) =>
+                                snooze.open({ emailId: email.id, subject: email.subject })
+                              }
+                              calendarEvents={calendar.visibleEvents}
+                              calendars={calendar.calendars}
+                              onShowToast={showToast}
+                              onOpenCalendar={overlays.openCalendar}
+                              onCreateEvent={overlays.requestCalendarCreate}
+                              onDraftReply={(email, prompt) =>
+                                overlays.openCompose({
+                                  to: email.email,
+                                  subject: email.subject.startsWith("Re: ")
+                                    ? email.subject
+                                    : `Re: ${email.subject}`,
+                                  body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
+                                    email,
+                                  )}`,
+                                })
+                              }
+                              onPreviewAttachment={(attachment) =>
+                                overlays.setPreviewAttachment(attachment)
+                              }
+                            />
+                          </div>
                         )}
                       </>
                     )}
-                  </ResizablePanelGroup>
+                  </div>
                 )}
               </div>
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        </div>
+
 
         <MailOverlayStack
           overlays={overlays}
