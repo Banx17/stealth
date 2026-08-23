@@ -18,8 +18,7 @@ import { RightPanel } from "@/components/mail/RightPanel";
 import type { Email } from "@/components/mail/data";
 import { defaultMailFilters } from "@/components/mail/data";
 import { cn } from "@/lib/utils";
-import { useIsMobile, useIsTablet } from "@/lib/use-media-query";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useIsMobile, useMediaQuery } from "@/lib/use-media-query";
 import { useCalendar } from "@/features/calendar";
 import { FeedbackViewport } from "@/features/design-system/feedback/feedback-viewport";
 import { useFeedback } from "@/features/design-system/feedback/use-feedback";
@@ -42,15 +41,6 @@ import { useThreadRead } from "../useThreadRead";
 import { MailMailboxStatus } from "./MailMailboxStatus";
 import { MailOverlayStack } from "./MailOverlayStack";
 import { offlineAppFailure } from "@/lib/api";
-import {
-  useMarkReadReceipt,
-  useReceiptQueueReplay,
-  useReceiptBroadcastListener,
-  resolveReceiptPreference,
-  resolveSenderType,
-  getReceiptOverride,
-  type ReceiptSenderType,
-} from "../useReceipts";
 
 // BETA-074 (Issue #1981) — the requests triage board and the sender journey are
 // large feature surfaces only shown on demand. Loading them as async chunks
@@ -98,7 +88,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const senderConversion = useSenderConversion();
   const snooze = useSnooze();
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
+  const showRightPanel = useMediaQuery("(min-width: 1800px)");
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
@@ -120,10 +110,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
       setSidebarDrawerOpen(false);
     }
   }, [isMobile]);
-
-  const { mutateAsync: markReadReceipt } = useMarkReadReceipt(source.actor);
-  useReceiptQueueReplay(source.actor, source.connectivity.online);
-  useReceiptBroadcastListener(source.actor);
 
   const openSenderConversion = useCallback(
     (email: Email) =>
@@ -155,8 +141,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
     closeSnooze: snooze.close,
     isDemoMode,
     actor,
-    refreshOutbox: source.refreshOutbox,
-    markReadReceipt,
   });
 
   const bulk = useMailBulkActions({
@@ -189,33 +173,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   useEffect(() => {
     if (!navigation.selectedId) return;
     const current = source.emails.find((email) => email.id === navigation.selectedId);
-    if (!current?.unread) return;
-
-    source.mutateMailbox(current, { unread: false });
-
-    if (isDemoMode) return;
-
-    const senderType = resolveSenderType(current);
-    const override = getReceiptOverride(current.id);
-    const pref =
-      override ??
-      resolveReceiptPreference(senderType, {
-        receiptOnDelivery: preferences.receiptOnDelivery,
-        receipts: preferences.receipts,
-      });
-
-    if (pref === "auto") {
-      void markReadReceipt(current.id);
-    }
-  }, [
-    navigation.selectedId,
-    source.emails,
-    source.mutateMailbox,
-    preferences.receiptOnDelivery,
-    preferences.receipts,
-    isDemoMode,
-    markReadReceipt,
-  ]);
+    if (current?.unread) void source.mutateMailbox(current, { unread: false });
+  }, [navigation.selectedId, source.emails, source.mutateMailbox]);
 
   const handleImportSave = useCallback(
     (result: { writes: number; rows: Array<{ name: string; address: string }> }) => {
@@ -253,7 +212,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   }
 
   return (
-    <MotionConfig transition={isTest ? { duration: 0 } : undefined} reducedMotion="user">
+    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
       <div
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
@@ -271,49 +230,28 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           </div>
         )}
 
-        {/* Desktop / Tablet: Resizable panel layout */}
+        {/* Desktop / Tablet: fixed-width three-pane layout */}
         {!isMobile && (
-          <ResizablePanelGroup
-            direction="horizontal"
-            className="flex h-full w-full"
-            onLayoutChanged={(sizes) => {
-              if (!sizes.length) return;
-              const sidebarWidth = sizes[0];
-              if (sidebarWidth > 4) {
-                setLayout({ sidebarWidth });
-              }
-            }}
-          >
-            {!isTablet && (
-              <>
-                <ResizablePanel
-                  defaultSize={layout.sidebarWidth}
-                  minSize={4}
-                  maxSize={20}
-                  collapsible
-                  onCollapse={() => setLayout({ sidebarCollapsed: true })}
-                  onExpand={() => setLayout({ sidebarCollapsed: false })}
-                  className={cn(
-                    layout.sidebarCollapsed &&
-                      "min-w-[50px] transition-all duration-300 ease-in-out",
-                  )}
-                >
-                  <Sidebar
-                    active={navigation.folder}
-                    counts={navigation.folderCounts}
-                    onSelect={navigation.selectFolder}
-                    collapsed={layout.sidebarCollapsed}
-                    onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
-                    onCompose={() => overlays.openCompose()}
-                    customFolder={navigation.customFolder}
-                    onSelectCustomFolder={navigation.setCustomFolder}
-                    onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
-                  />
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-              </>
-            )}
-            {isTablet && (
+          <div className="flex h-full w-full">
+            <div
+              className={cn(
+                "shrink-0 transition-[width] duration-200 ease-out",
+                layout.sidebarCollapsed ? "w-[64px]" : "w-[240px]",
+              )}
+            >
+              <Sidebar
+                active={navigation.folder}
+                counts={navigation.folderCounts}
+                onSelect={navigation.selectFolder}
+                collapsed={layout.sidebarCollapsed}
+                onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
+                onCompose={() => overlays.openCompose()}
+                customFolder={navigation.customFolder}
+                onSelectCustomFolder={navigation.setCustomFolder}
+                onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
+              />
+            </div>
+
               <Sidebar
                 active={navigation.folder}
                 counts={navigation.folderCounts}
@@ -324,13 +262,12 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 customFolder={navigation.customFolder}
                 onSelectCustomFolder={navigation.setCustomFolder}
               />
-            )}
 
-            <ResizablePanel defaultSize={isTablet ? 100 : 100 - layout.sidebarWidth}>
+            <div className="flex min-w-0 flex-1">
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="flex h-full flex-col min-w-0 focus:outline-none"
+                className="flex h-full flex-col min-w-0 focus:outline-none pb-[72px] md:pb-0"
               >
                 <Topbar
                   onOpenPalette={() => overlays.setPaletteOpen(true)}
@@ -403,22 +340,15 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                       />
                     </Suspense>
                   ) : (
-                    <ResizablePanelGroup
-                      direction="horizontal"
-                      className="h-full w-full"
-                      onLayoutChanged={(sizes) => {
-                        if (sizes.length < 2) return;
-                        const listWidth = sizes[0];
-                        const readerWidth = sizes[1];
-                        if (listWidth >= 20 && readerWidth >= 30) {
-                          setLayout({
-                            listWidth,
-                            readerWidth,
-                          });
-                        }
-                      }}
-                    >
-                      <ResizablePanel defaultSize={layout.listWidth} minSize={20}>
+                    <div className="flex h-full w-full min-w-0">
+                      <div
+                        className={cn(
+                          "min-w-0",
+                          layout.compactMode || preferences.compactMode
+                            ? "w-[320px] shrink-0"
+                            : "w-[360px] shrink-0",
+                        )}
+                      >
                         <EmailList
                           emails={source.emails}
                           selectedId={navigation.selectedId}
@@ -446,9 +376,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           }}
                           isLoadingMore={source.isLoadingMore}
                         />
-                      </ResizablePanel>
-                      <ResizableHandle withHandle />
-                      <ResizablePanel defaultSize={layout.readerWidth} minSize={30}>
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <EmailView
                           email={readerEmail}
                           thread={threadRead.thread}
@@ -458,50 +387,44 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           }}
                           actions={actions.emailActions}
                         />
-                      </ResizablePanel>
-                      <ResizableHandle withHandle />
-                      <ResizablePanel
-                        defaultSize={100 - layout.listWidth - layout.readerWidth}
-                        minSize={15}
-                        collapsible
-                        collapsedSize={0}
-                        onCollapse={() => setLayout({ rightPanelCollapsed: true })}
-                        onExpand={() => setLayout({ rightPanelCollapsed: false })}
-                      >
-                        <RightPanel
-                          email={readerEmail}
-                          onAction={actions.handleContextAction}
-                          onConvertSender={openSenderConversion}
-                          onSnooze={(email) =>
-                            snooze.open({ emailId: email.id, subject: email.subject })
-                          }
-                          calendarEvents={calendar.visibleEvents}
-                          calendars={calendar.calendars}
-                          onShowToast={showToast}
-                          onOpenCalendar={overlays.openCalendar}
-                          onCreateEvent={overlays.requestCalendarCreate}
-                          onDraftReply={(email, prompt) =>
-                            overlays.openCompose({
-                              to: email.email,
-                              subject: email.subject.startsWith("Re: ")
-                                ? email.subject
-                                : `Re: ${email.subject}`,
-                              body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
-                                email,
-                              )}`,
-                            })
-                          }
-                          onPreviewAttachment={(attachment) =>
-                            overlays.setPreviewAttachment(attachment)
-                          }
-                        />
-                      </ResizablePanel>
-                    </ResizablePanelGroup>
+                      </div>
+                      {showRightPanel && (
+                        <div className="w-[320px] shrink-0">
+                          <RightPanel
+                            email={readerEmail}
+                            onAction={actions.handleContextAction}
+                            onConvertSender={openSenderConversion}
+                            onSnooze={(email) =>
+                              snooze.open({ emailId: email.id, subject: email.subject })
+                            }
+                            calendarEvents={calendar.visibleEvents}
+                            calendars={calendar.calendars}
+                            onShowToast={showToast}
+                            onOpenCalendar={overlays.openCalendar}
+                            onCreateEvent={overlays.requestCalendarCreate}
+                            onDraftReply={(email, prompt) =>
+                              overlays.openCompose({
+                                to: email.email,
+                                subject: email.subject.startsWith("Re: ")
+                                  ? email.subject
+                                  : `Re: ${email.subject}`,
+                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
+                                  email,
+                                )}`,
+                              })
+                            }
+                            onPreviewAttachment={(attachment) =>
+                              overlays.setPreviewAttachment(attachment)
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </main>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+            </div>
+          </div>
         )}
 
         {/* Mobile: single-panel view with list/detail switching */}
