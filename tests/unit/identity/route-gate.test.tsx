@@ -16,6 +16,9 @@ import { z } from "zod";
 import { RouteGate } from "@/features/identity/RouteGate";
 import { ONBOARDING_ROUTE, SIGN_IN_ROUTE } from "@/features/identity/route-guard";
 
+// Production-guard tests: mock DEV to false so the dev bypass does not fire.
+vi.stubEnv("DEV", false);
+
 const mock = vi.hoisted(() => {
   let branch: string = "active";
   let data: unknown = null;
