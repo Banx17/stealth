@@ -209,23 +209,23 @@ describe("resolveRouteGuard — five required states", () => {
       expect(decision).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/" } });
     });
 
-    it("allows anonymous visitors through in dev (the dev bypass renders the shell)", () => {
-      // In dev builds the backend bindings are absent, so bootstrap resolves
-      // anonymous. The isDev guard lets the shell render for editing.
+    it("renders the development inbox at the root for anonymous visitors", () => {
+      // Local development has no backend bindings, so the root entrypoint
+      // intentionally renders the demo shell instead of redirecting to auth.
       const decision = resolveRouteGuard({
         state: "anonymous",
         pathname: "/",
         isDev: true,
-        demoFlag: true,
+        demoFlag: false,
       });
       expect(decision).toEqual({ kind: "render" });
     });
   });
 
-  describe("demo mode is isolated behind a dev flag and its own route", () => {
-    it("allows demo only on /demo with the dev flag set", () => {
+  describe("development inbox bypass", () => {
+    it("allows the demo route in development without a separate storage flag", () => {
       expect(
-        resolveRouteGuard({ state: "anonymous", pathname: "/demo", isDev: true, demoFlag: true }),
+        resolveRouteGuard({ state: "anonymous", pathname: "/demo", isDev: true, demoFlag: false }),
       ).toEqual({ kind: "render" });
     });
 
@@ -235,16 +235,19 @@ describe("resolveRouteGuard — five required states", () => {
       ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/demo" } });
     });
 
-    it("allows /demo in dev via the dev bypass (even without the explicit flag)", () => {
+    it("renders other protected routes in development without the explicit flag", () => {
       expect(
-        resolveRouteGuard({ state: "anonymous", pathname: "/demo", isDev: true, demoFlag: false }),
+        resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: true, demoFlag: false }),
       ).toEqual({ kind: "render" });
     });
 
-    it("allows any path through in dev (the dev bypass renders the shell)", () => {
+    it("keeps the same route protected in production", () => {
       expect(
         resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: true, demoFlag: true }),
       ).toEqual({ kind: "render" });
+      expect(
+        resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: false, demoFlag: true }),
+      ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/inbox" } });
     });
   });
 
