@@ -199,18 +199,12 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
         className="relative h-screen overflow-hidden text-foreground"
       >
         <AmbientBackground />
-        {isDemoMode && (
-          <div className="absolute top-0 inset-x-0 z-50 bg-primary/20 backdrop-blur-md border-b border-primary/30 py-1 text-center text-xs font-medium text-primary shadow-sm pointer-events-none">
-            Demo Mode: Showing placeholder data.
-          </div>
-        )}
-
         <div className="flex h-full w-full">
           {!isMobile ? (
             <div
               className={cn(
                 "shrink-0 transition-[width] duration-200 ease-out",
-                layout.sidebarCollapsed ? "w-[64px]" : "w-[240px]",
+                layout.sidebarCollapsed ? "w-[76px]" : "w-[264px]",
               )}
             >
               <Sidebar
@@ -222,7 +216,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onCompose={() => overlays.openCompose()}
                 customFolder={navigation.customFolder}
                 onSelectCustomFolder={navigation.setCustomFolder}
-                onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
               />
             </div>
           ) : (
@@ -327,7 +320,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                         filters={navigation.filters}
                         customFolder={navigation.customFolder}
                         compact={layout.compactMode || preferences.compactMode}
-                        showAvatars={preferences.showAvatars}
+                        showAvatars
                         useMobile={isMobile}
                         onArchive={actions.handleArchive}
                         onStar={actions.handleStar}

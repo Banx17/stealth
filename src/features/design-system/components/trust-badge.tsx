@@ -37,8 +37,8 @@ export const TRUST_STATE_META: Record<TrustState, TrustStateMeta> = {
   verified: {
     label: "Verified",
     tooltip: "This sender's Stellar identity has been cryptographically verified.",
-    icon: ShieldCheck,
-    className: "border-sky-300/25 bg-sky-300/10 text-sky-200",
+    icon: BadgeCheck,
+    className: "border-zinc-300/25 bg-zinc-300/10 text-zinc-200",
   },
   allowed: {
     label: "Allowed",
