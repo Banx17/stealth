@@ -16,8 +16,8 @@ import { z } from "zod";
 import { RouteGate } from "@/features/identity/RouteGate";
 import { ONBOARDING_ROUTE, SIGN_IN_ROUTE } from "@/features/identity/route-guard";
 
-// Production-guard tests: mock DEV to false so the dev bypass does not fire.
-vi.stubEnv("DEV", false);
+// Default to production mode. Individual tests that need the dev bypass
+// will stub DEV back to true before rendering.
 
 const mock = vi.hoisted(() => {
   let branch: string = "active";
@@ -94,6 +94,7 @@ async function renderAt(initialUrl: string) {
 
 describe("RouteGate — component-level navigation coverage", () => {
   it("renders the development demo shell for an anonymous visitor", async () => {
+    vi.stubEnv("DEV", true);
     mock.setBranch("unauthorized");
     mock.setData(null);
     const router = await renderAt("/");
@@ -103,6 +104,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("lets an anonymous visitor stay on the public sign-in page (no redirect loop)", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("unauthorized");
     mock.setData(null);
     const router = await renderAt("/auth/sign-in");
@@ -113,6 +115,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("renders the development demo shell for an onboarding visitor", async () => {
+    vi.stubEnv("DEV", true);
     mock.setBranch("onboarding");
     mock.setData(null);
     const router = await renderAt("/");
@@ -122,6 +125,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("renders the development demo shell for incomplete provisioning", async () => {
+    vi.stubEnv("DEV", true);
     mock.setBranch("active");
     mock.setData({
       provisioning: { status: "pending", currentStep: "wallet" },
@@ -133,6 +137,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("shows the distinct suspended state view instead of the app or sign-in", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("suspended");
     mock.setData({ user: { userId: "user_blocked" } } as never);
     const router = await renderAt("/inbox");
@@ -145,6 +150,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("admits an active authenticated visitor into the protected app", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("active");
     mock.setData(null);
     const router = await renderAt("/");
@@ -154,6 +160,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("sends an authenticated visitor away from the sign-in page back home", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("active");
     mock.setData(null);
     const router = await renderAt("/auth/sign-in");
@@ -163,6 +170,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("is repeat-safe: a duplicated development bootstrap resolution settles instead of thrashing", async () => {
+    vi.stubEnv("DEV", true);
     mock.setBranch("unauthorized");
     mock.setData(null);
     const router = await renderAt("/mail/7");
@@ -179,6 +187,7 @@ describe("RouteGate — component-level navigation coverage", () => {
   });
 
   it("moves a suspended visitor to the state view even when they open the sign-in page", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("suspended");
     mock.setData({ user: { userId: "user_blocked" } } as never);
     await renderAt("/auth/sign-in");
