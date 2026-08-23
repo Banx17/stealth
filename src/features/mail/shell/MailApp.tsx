@@ -252,16 +252,16 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               />
             </div>
 
-              <Sidebar
-                active={navigation.folder}
-                counts={navigation.folderCounts}
-                onSelect={navigation.selectFolder}
-                collapsed={layout.sidebarCollapsed}
-                onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
-                onCompose={() => overlays.openCompose()}
-                customFolder={navigation.customFolder}
-                onSelectCustomFolder={navigation.setCustomFolder}
-              />
+            <Sidebar
+              active={navigation.folder}
+              counts={navigation.folderCounts}
+              onSelect={navigation.selectFolder}
+              collapsed={layout.sidebarCollapsed}
+              onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
+              onCompose={() => overlays.openCompose()}
+              customFolder={navigation.customFolder}
+              onSelectCustomFolder={navigation.setCustomFolder}
+            />
 
             <div className="flex min-w-0 flex-1">
               <main
