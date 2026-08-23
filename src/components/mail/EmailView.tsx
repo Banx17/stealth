@@ -834,7 +834,7 @@ function ProtocolStatus({
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.08] bg-black/15 px-3 py-2">
-      <BadgeCheck className={cn("h-4 w-4", verified ? "text-emerald-300" : "text-amber-200")} />
+      <BadgeCheck className={cn("h-4 w-4", verified ? "text-zinc-300" : "text-amber-200")} />
       <span className="text-xs font-medium text-foreground">{label}</span>
       <span className="font-mono text-[10px] text-muted-foreground">{proof}</span>
       <div className="ml-auto flex items-center gap-2">

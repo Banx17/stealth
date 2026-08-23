@@ -92,22 +92,17 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const calendar = useCalendar();
   const { dismiss: dismissFeedback, items: feedbackItems, notify: showToast } = useFeedback();
 
-  // Mobile view state: "list" or "detail" — tracks which panel is visible
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
-  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
 
-  // When a message is selected on mobile, switch to detail view
   useEffect(() => {
     if (isMobile && navigation.selectedId) {
       setMobileView("detail");
     }
   }, [isMobile, navigation.selectedId]);
 
-  // When switching from mobile to desktop, reset mobile view state
   useEffect(() => {
     if (!isMobile) {
       setMobileView("list");
-      setSidebarDrawerOpen(false);
     }
   }, [isMobile]);
 
@@ -229,14 +224,12 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
             Demo Mode: Showing placeholder data.
           </div>
         )}
-
-        {/* Desktop / Tablet: fixed-width three-pane layout */}
-        {!isMobile && (
-          <div className="flex h-full w-full">
+        <div className="flex h-full w-full">
+          {!isMobile ? (
             <div
               className={cn(
                 "shrink-0 transition-[width] duration-200 ease-out",
-                layout.sidebarCollapsed ? "w-[64px]" : "w-[240px]",
+                layout.sidebarCollapsed ? "w-[76px]" : "w-[264px]",
               )}
             >
               <Sidebar
@@ -251,98 +244,125 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
               />
             </div>
+          ) : (
+            <Sidebar
+              active={navigation.folder}
+              counts={navigation.folderCounts}
+              onSelect={navigation.selectFolder}
+              collapsed={layout.sidebarCollapsed}
+              onToggle={() => setLayout({ sidebarCollapsed: !layout.sidebarCollapsed })}
+              onCompose={() => overlays.openCompose()}
+              customFolder={navigation.customFolder}
+              onSelectCustomFolder={navigation.setCustomFolder}
+            />
+          )}
 
-            <div className="flex min-w-0 flex-1">
-              <main
-                id="main-content"
-                tabIndex={-1}
-                className="flex h-full flex-col min-w-0 focus:outline-none pb-[72px] md:pb-0"
-              >
-                <Topbar
-                  onOpenPalette={() => overlays.setPaletteOpen(true)}
-                  onOpenSettings={() => overlays.openSettings(preferences)}
-                  onOpenProofInspector={() => runCommand("open-proof-inspector")}
-                  onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
-                  onImportContacts={() => overlays.setImportOpen(true)}
-                  onShowToast={showToast}
-                  filters={navigation.filters}
-                  onFiltersChange={navigation.setFilters}
-                  onQuickAction={(action) => {
-                    navigation.setCustomFolder(null);
-                    if (action === "proofs") navigation.setFolder("pending");
-                    if (action === "later") navigation.setFolder("snoozed");
-                    if (action === "files") {
-                      navigation.setFolder("all");
-                      navigation.setFilters({ ...defaultMailFilters, hasAttachments: true });
-                    }
-                  }}
-                  onViewNotifications={() => {
-                    navigation.setCustomFolder(null);
-                    navigation.setFolder("inbox");
-                    navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
-                  }}
-                  onOpenLogin={() => overlays.setAuthModalOpen(true)}
-                  notifications={notificationCenter.notifications}
-                  onMarkNotificationRead={notificationCenter.markRead}
-                  onMarkAllNotificationsRead={notificationCenter.markAllRead}
-                  actor={source.actor}
-                  emails={source.emails}
-                  onSelectEmail={(emailId, folder) => {
-                    if (folder && folder !== "all") {
-                      navigation.selectFolder(folder as any);
-                    }
-                    navigation.setSelectedId(emailId);
-                    navigation.setSelectedIds([emailId]);
-                  }}
+          <div className="flex min-w-0 flex-1">
+            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
+              <Topbar
+                onOpenPalette={() => overlays.setPaletteOpen(true)}
+                onOpenSettings={() => overlays.openSettings(preferences)}
+                onOpenProofInspector={() => runCommand("open-proof-inspector")}
+                onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
+                onImportContacts={() => overlays.setImportOpen(true)}
+                onShowToast={showToast}
+                filters={navigation.filters}
+                onFiltersChange={navigation.setFilters}
+                onQuickAction={(action) => {
+                  navigation.setCustomFolder(null);
+                  if (action === "proofs") navigation.setFolder("pending");
+                  if (action === "later") navigation.setFolder("snoozed");
+                  if (action === "files") {
+                    navigation.setFolder("all");
+                    navigation.setFilters({ ...defaultMailFilters, hasAttachments: true });
+                  }
+                }}
+                onViewNotifications={() => {
+                  navigation.setCustomFolder(null);
+                  navigation.setFolder("inbox");
+                  navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
+                }}
+                onOpenLogin={() => overlays.setAuthModalOpen(true)}
+                notifications={notificationCenter.notifications}
+                onMarkNotificationRead={notificationCenter.markRead}
+                onMarkAllNotificationsRead={notificationCenter.markAllRead}
+                onBack={
+                  isMobile && mobileView === "detail" ? () => setMobileView("list") : undefined
+                }
+                actor={source.actor}
+                emails={source.emails}
+                onSelectEmail={(emailId, folder) => {
+                  if (folder && folder !== "all") {
+                    navigation.selectFolder(folder as any);
+                  }
+                  navigation.setSelectedId(emailId);
+                  navigation.setSelectedIds([emailId]);
+                }}
+              />
+              {source.connectivity.paused &&
+              source.sourceView.kind !== "error" &&
+              !blockingSource ? (
+                <DegradedStateBanner
+                  failure={offlineAppFailure()}
+                  compact
+                  onRetry={() => void source.retry()}
                 />
-                {source.connectivity.paused &&
-                source.sourceView.kind !== "error" &&
-                !blockingSource ? (
-                  <DegradedStateBanner
-                    failure={offlineAppFailure()}
-                    compact
-                    onRetry={() => void source.retry()}
-                  />
-                ) : null}
-                {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
+              ) : null}
+              {source.sourceView.kind === "error" && source.sourceView.hasCachedData ? (
+                <MailMailboxStatus
+                  view={source.sourceView}
+                  compact
+                  onRetry={() => void source.retry()}
+                  onSignIn={() => overlays.setAuthModalOpen(true)}
+                />
+              ) : null}
+              <div className="flex min-h-0 min-w-0 flex-1">
+                {blockingSource ? (
                   <MailMailboxStatus
                     view={source.sourceView}
-                    compact
                     onRetry={() => void source.retry()}
                     onSignIn={() => overlays.setAuthModalOpen(true)}
                   />
-                ) : null}
-                <div className="flex min-h-0 min-w-0 flex-1">
-                  {blockingSource ? (
-                    <MailMailboxStatus
-                      view={source.sourceView}
-                      onRetry={() => void source.retry()}
-                      onSignIn={() => overlays.setAuthModalOpen(true)}
+                ) : navigation.folder === "requests" ? (
+                  <Suspense fallback={null}>
+                    <RequestsTriageBoard
+                      emails={source.emails}
+                      onUpdateEmail={source.updateEmail}
+                      onShowToast={showToast}
+                      isDemoMode={isDemoMode}
                     />
-                  ) : navigation.folder === "requests" ? (
-                    <Suspense fallback={null}>
-                      <RequestsTriageBoard
-                        emails={source.emails}
-                        onUpdateEmail={source.updateEmail}
-                        onShowToast={showToast}
-                        isDemoMode={isDemoMode}
-                      />
-                    </Suspense>
-                  ) : (
-                    <div className="flex h-full w-full min-w-0">
-                      <div
-                        className={cn(
-                          "min-w-0",
-                          layout.compactMode || preferences.compactMode
+                  </Suspense>
+                ) : (
+                  <div className="flex h-full w-full min-w-0">
+                    <div
+                      className={cn(
+                        "min-w-0",
+                        isMobile
+                          ? "w-full"
+                          : layout.compactMode || preferences.compactMode
                             ? "w-[320px] shrink-0"
                             : "w-[360px] shrink-0",
-                        )}
-                      >
+                      )}
+                    >
+                      {isMobile && mobileView === "detail" ? (
+                        <EmailView
+                          email={readerEmail}
+                          thread={threadRead.thread}
+                          threadView={threadRead.view}
+                          onRetryThread={() => {
+                            void threadRead.retry();
+                          }}
+                          actions={actions.emailActions}
+                        />
+                      ) : (
                         <EmailList
                           emails={source.emails}
                           selectedId={navigation.selectedId}
                           selectedIds={navigation.selectedIds}
-                          onSelect={navigation.setSelectedId}
+                          onSelect={(id) => {
+                            navigation.setSelectedId(id);
+                            if (isMobile) setMobileView("detail");
+                          }}
                           onSelectionChange={navigation.setSelectedIds}
                           onBulkAction={bulk.handleBulkActionRequest}
                           bulkProgress={bulk.bulkProgress}
@@ -352,7 +372,8 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           filters={navigation.filters}
                           customFolder={navigation.customFolder}
                           compact={layout.compactMode || preferences.compactMode}
-                          showAvatars={preferences.showAvatars}
+                          showAvatars
+                          useMobile={isMobile}
                           onArchive={actions.handleArchive}
                           onStar={actions.handleStar}
                           onSnooze={(email) =>
@@ -365,204 +386,60 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                           }}
                           isLoadingMore={source.isLoadingMore}
                         />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <EmailView
-                          email={readerEmail}
-                          thread={threadRead.thread}
-                          threadView={threadRead.view}
-                          onRetryThread={() => {
-                            void threadRead.retry();
-                          }}
-                          actions={actions.emailActions}
-                        />
-                      </div>
-                      {showRightPanel && (
-                        <div className="w-[320px] shrink-0">
-                          <RightPanel
-                            email={readerEmail}
-                            onAction={actions.handleContextAction}
-                            onConvertSender={openSenderConversion}
-                            onSnooze={(email) =>
-                              snooze.open({ emailId: email.id, subject: email.subject })
-                            }
-                            calendarEvents={calendar.visibleEvents}
-                            calendars={calendar.calendars}
-                            onShowToast={showToast}
-                            onOpenCalendar={overlays.openCalendar}
-                            onCreateEvent={overlays.requestCalendarCreate}
-                            onDraftReply={(email, prompt) =>
-                              overlays.openCompose({
-                                to: email.email,
-                                subject: email.subject.startsWith("Re: ")
-                                  ? email.subject
-                                  : `Re: ${email.subject}`,
-                                body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
-                                  email,
-                                )}`,
-                              })
-                            }
-                            onPreviewAttachment={(attachment) =>
-                              overlays.setPreviewAttachment(attachment)
-                            }
-                          />
-                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              </main>
+                    {!isMobile && (
+                      <>
+                        <div className="min-w-0 flex-1">
+                          <EmailView
+                            email={readerEmail}
+                            thread={threadRead.thread}
+                            threadView={threadRead.view}
+                            onRetryThread={() => {
+                              void threadRead.retry();
+                            }}
+                            actions={actions.emailActions}
+                          />
+                        </div>
+                        {showRightPanel && (
+                          <div className="w-[320px] shrink-0">
+                            <RightPanel
+                              email={readerEmail}
+                              onAction={actions.handleContextAction}
+                              onConvertSender={openSenderConversion}
+                              onSnooze={(email) =>
+                                snooze.open({ emailId: email.id, subject: email.subject })
+                              }
+                              calendarEvents={calendar.visibleEvents}
+                              calendars={calendar.calendars}
+                              onShowToast={showToast}
+                              onOpenCalendar={overlays.openCalendar}
+                              onCreateEvent={overlays.requestCalendarCreate}
+                              onDraftReply={(email, prompt) =>
+                                overlays.openCompose({
+                                  to: email.email,
+                                  subject: email.subject.startsWith("Re: ")
+                                    ? email.subject
+                                    : `Re: ${email.subject}`,
+                                  body: `${prompt}\n\nDrafted response:\nThanks for the note. I reviewed the context and will follow up with the next step shortly.${quoteBody(
+                                    email,
+                                  )}`,
+                                })
+                              }
+                              onPreviewAttachment={(attachment) =>
+                                overlays.setPreviewAttachment(attachment)
+                              }
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
-
-        {/* Mobile: single-panel view with list/detail switching */}
-        {isMobile && (
-          <div className="flex h-full flex-col">
-            <Topbar
-              onOpenPalette={() => overlays.setPaletteOpen(true)}
-              onOpenSettings={() => overlays.openSettings(preferences)}
-              onOpenProofInspector={() => runCommand("open-proof-inspector")}
-              onOpenShortcuts={() => overlays.setShortcutOverlayOpen(true)}
-              onImportContacts={() => overlays.setImportOpen(true)}
-              onShowToast={showToast}
-              filters={navigation.filters}
-              onFiltersChange={navigation.setFilters}
-              onQuickAction={(action) => {
-                navigation.setCustomFolder(null);
-                if (action === "proofs") navigation.setFolder("pending");
-                if (action === "later") navigation.setFolder("snoozed");
-                if (action === "files") {
-                  navigation.setFolder("all");
-                  navigation.setFilters({ ...defaultMailFilters, hasAttachments: true });
-                }
-              }}
-              onViewNotifications={() => {
-                navigation.setCustomFolder(null);
-                navigation.setFolder("inbox");
-                navigation.setFilters({ ...defaultMailFilters, unreadOnly: true });
-              }}
-              onOpenLogin={() => overlays.setAuthModalOpen(true)}
-              notifications={notificationCenter.notifications}
-              onMarkNotificationRead={notificationCenter.markRead}
-              onMarkAllNotificationsRead={notificationCenter.markAllRead}
-              onBack={mobileView === "detail" ? () => setMobileView("list") : undefined}
-              actor={source.actor}
-              emails={source.emails}
-              onSelectEmail={(emailId, folder) => {
-                if (folder && folder !== "all") {
-                  navigation.selectFolder(folder as any);
-                }
-                navigation.setSelectedId(emailId);
-                navigation.setSelectedIds([emailId]);
-              }}
-            />
-            {source.connectivity.paused && source.sourceView.kind !== "error" && !blockingSource ? (
-              <DegradedStateBanner
-                failure={offlineAppFailure()}
-                compact
-                onRetry={() => void source.retry()}
-              />
-            ) : null}
-            <div className="flex min-h-0 min-w-0 flex-1 pb-[72px] md:pb-0">
-              {blockingSource ? (
-                <MailMailboxStatus
-                  view={source.sourceView}
-                  onRetry={() => void source.retry()}
-                  onSignIn={() => overlays.setAuthModalOpen(true)}
-                />
-              ) : navigation.folder === "requests" ? (
-                <Suspense fallback={null}>
-                  <RequestsTriageBoard
-                    emails={source.emails}
-                    onUpdateEmail={source.updateEmail}
-                    onShowToast={showToast}
-                    isDemoMode={isDemoMode}
-                  />
-                </Suspense>
-              ) : mobileView === "list" ? (
-                <EmailList
-                  emails={source.emails}
-                  selectedId={navigation.selectedId}
-                  selectedIds={navigation.selectedIds}
-                  onSelect={(id) => {
-                    navigation.setSelectedId(id);
-                    setMobileView("detail");
-                  }}
-                  onSelectionChange={navigation.setSelectedIds}
-                  onBulkAction={bulk.handleBulkActionRequest}
-                  bulkProgress={bulk.bulkProgress}
-                  bulkFailures={bulk.bulkFailures}
-                  onConvertSender={openSenderConversion}
-                  folder={navigation.folder}
-                  filters={navigation.filters}
-                  customFolder={navigation.customFolder}
-                  compact={layout.compactMode || preferences.compactMode}
-                  showAvatars={preferences.showAvatars}
-                  useMobile
-                  onArchive={actions.handleArchive}
-                  onStar={actions.handleStar}
-                  onSnooze={(email) => snooze.open({ emailId: email.id, subject: email.subject })}
-                  onMove={actions.handleMove}
-                  hasMore={source.hasMore}
-                  onLoadMore={() => {
-                    void source.loadMore();
-                  }}
-                  isLoadingMore={source.isLoadingMore}
-                />
-              ) : (
-                <EmailView
-                  email={readerEmail}
-                  thread={threadRead.thread}
-                  threadView={threadRead.view}
-                  onRetryThread={() => {
-                    void threadRead.retry();
-                  }}
-                  actions={actions.emailActions}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Mobile sidebar drawer */}
-        <AnimatePresence>
-          {isMobile && sidebarDrawerOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSidebarDrawerOpen(false)}
-                className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
-              />
-              <motion.div
-                initial={{ x: -280 }}
-                animate={{ x: 0 }}
-                exit={{ x: -280 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed inset-y-0 left-0 z-[70] w-[280px]"
-              >
-                <Sidebar
-                  active={navigation.folder}
-                  counts={navigation.folderCounts}
-                  onSelect={(f) => {
-                    navigation.selectFolder(f);
-                    setSidebarDrawerOpen(false);
-                  }}
-                  collapsed={false}
-                  onToggle={() => setSidebarDrawerOpen(false)}
-                  onCompose={() => {
-                    setSidebarDrawerOpen(false);
-                    overlays.openCompose();
-                  }}
-                  customFolder={navigation.customFolder}
-                  onSelectCustomFolder={navigation.setCustomFolder}
-                />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        </div>
 
         <MailOverlayStack
           overlays={overlays}

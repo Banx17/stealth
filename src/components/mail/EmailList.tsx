@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { ConvertSenderButton } from "@/features/sender-conversion";
 import { MobileMailCard } from "./MobileMailCard";
 import { EmailTrustBadges } from "./EmailTrustBadges";
+import { SenderAvatar } from "./SenderAvatar";
 import { BulkActionBar } from "./BulkActionBar";
 import type { BulkActionRequest, BulkFailure, BulkProgressState } from "./bulk-actions";
 import { DROP_TARGET_FOLDERS, getDropRejectionReason } from "./useDragDrop";
@@ -464,24 +465,7 @@ export function EmailList({
                     />
                   )}
                   {showAvatars && (
-                    <div
-                      className={cn(
-                        "relative shrink-0 overflow-hidden rounded-full ring-1 ring-white/15 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.9)]",
-                        active ? "h-[30px] w-[30px]" : "h-7 w-7",
-                      )}
-                    >
-                      <img
-                        src={`https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
-                          e.from,
-                        )}&backgroundColor=1a1a1d`}
-                        alt={e.from}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                      {e.unread && (
-                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[oklch(0.9_0.005_270)] ring-2 ring-[oklch(0.18_0.005_270)]" />
-                      )}
-                    </div>
+                    <SenderAvatar email={e} size={active ? "md" : "sm"} unread={e.unread} />
                   )}
                   <div className="relative min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
