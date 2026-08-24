@@ -77,10 +77,10 @@ export interface RouteGuardInput {
   search?: string;
   /** Statically false in production builds; explicit demo gate. */
   isDev?: boolean;
+  /** True when running under end-to-end automation (VITE_E2E or a WebDriver session). */
+  isE2E?: boolean;
   /** Explicit development-only demo flag (`STEALTH_DEMO_BYPASS_FETCH`). */
   demoFlag?: boolean;
-  /** Browser-test server mode; keeps mocked bootstrap branches observable. */
-  isE2E?: boolean;
 }
 
 /**
@@ -93,7 +93,6 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
   const search = input.search ?? "";
   const isDev = input.isDev ?? false;
   const demoFlag = input.demoFlag ?? false;
-  const isE2E = input.isE2E ?? false;
 
   switch (state) {
     case "loading":
@@ -101,12 +100,10 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
 
     case "anonymous": {
       if (isPublicAuthPath(pathname)) return { kind: "render" };
-      // Development bypass: in dev builds the backend bindings are absent, so
-      // bootstrap always resolves anonymous. Render the app shell instead of
-      // bouncing to sign-in — the auth routes stay reachable by URL for testing.
-      if (isDev && !isE2E) return { kind: "render" };
-      // Demo mode is reachable only on its isolated route, only in dev,
-      // only when the explicit demo flag is present.
+      // Demo mode is reachable only on its isolated route, only when the
+      // explicit demo flag is present. The demo flag forces the bootstrap
+      // response to resolve as `active`, so this branch is only reached for
+      // the bare `/demo` entry when the flag is absent (e.g. production).
       if (isDev && demoFlag && pathname === DEMO_ROUTE) return { kind: "render" };
       const next = validateReturnTo(pathname + (search.length ? `?${search}` : ""));
       return next
@@ -116,7 +113,6 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
 
     case "onboarding":
     case "verified": {
-      if (isDev && !isE2E) return { kind: "render" };
       if (pathname === ONBOARDING_ROUTE || pathname === "/auth/verify") {
         return { kind: "render" };
       }
@@ -127,7 +123,6 @@ export function resolveRouteGuard(input: RouteGuardInput): GuardDecision {
       return { kind: "state-view", view: "suspended" };
 
     case "outage":
-      if (isDev && !isE2E) return { kind: "render" };
       return { kind: "state-view", view: "outage" };
 
     case "active": {
