@@ -116,7 +116,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}
                   transition={{ duration: 0.18 }}
-                  className="px-6 pb-6 pt-4"
+                  className="flex-1 overflow-y-auto px-6 pb-6 pt-4"
                 >
                   <p className="mb-3 text-xs leading-5 text-muted-foreground">
                     This sender isn't in your trusted list yet. Choose how their mail should be
@@ -204,7 +204,7 @@ export function SenderConversionDialog({ target, onConfirm, onClose }: Props) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}
                   transition={{ duration: 0.18 }}
-                  className="px-6 pb-6 pt-4"
+                  className="flex-1 overflow-y-auto px-6 pb-6 pt-4"
                 >
                   <div className="mb-4 flex items-center gap-2">
                     <span className="grid h-8 w-8 place-items-center rounded-full border border-emerald-300/30 bg-emerald-300/10 text-emerald-200">

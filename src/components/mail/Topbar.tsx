@@ -187,7 +187,7 @@ export function Topbar({
   }, [filterOpen, accountOpen, helpOpen, notificationsOpen]);
 
   return (
-    <header className="glass relative z-50 m-0 flex h-14 items-center gap-2 overflow-hidden rounded-none border-t-0 px-3 safe-area-inset-top">
+    <header className="glass relative z-50 m-0 flex min-h-[calc(3.5rem+env(safe-area-inset-top,0px))] items-center gap-2 overflow-hidden rounded-none border-t-0 px-3 safe-area-inset-top">
       {onBack && (
         <motion.button
           whileTap={{ scale: 0.92 }}

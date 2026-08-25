@@ -192,7 +192,7 @@ export function SettingsModal({
 
             <div
               className={cn(
-                "flex flex-1 overflow-hidden",
+                "flex flex-1 overflow-hidden flex-col sm:flex-row",
                 activeTab === "audit" || activeTab === "changelog" ? "h-[520px]" : "min-h-[400px]",
               )}
             >

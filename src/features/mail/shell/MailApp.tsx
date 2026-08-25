@@ -95,12 +95,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
 
   useEffect(() => {
-    if (isMobile && navigation.selectedId) {
-      setMobileView("detail");
-    }
-  }, [isMobile, navigation.selectedId]);
-
-  useEffect(() => {
     if (!isMobile) {
       setMobileView("list");
     }
