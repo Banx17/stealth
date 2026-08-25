@@ -207,14 +207,14 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
   }
 
   return (
-    <MotionConfig transition={isTest ? { duration: 0 } : undefined}>
+    <MotionConfig transition={isTest ? { duration: 0 } : undefined} reducedMotion="user">
       <div
         data-hydrated={layoutHydrated && prefHydrated}
         className="relative h-screen overflow-hidden text-foreground"
       >
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[300] focus:rounded-lg focus:border focus:border-white/10 focus:bg-black/90 focus:px-4 focus:py-2 focus:text-sm focus:text-foreground"
+          className="sr-only absolute left-4 top-4 z-[100] rounded-md bg-foreground px-3 py-2 text-sm font-semibold text-background focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-emerald-400"
         >
           Skip to mailbox
         </a>
@@ -224,7 +224,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
             Demo Mode: Showing placeholder data.
           </div>
         )}
-        <div className="flex h-full w-full">
+        <main id="main-content" tabIndex={-1} className="flex h-full w-full">
           {!isMobile ? (
             <div
               className={cn(
@@ -241,7 +241,6 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                 onCompose={() => overlays.openCompose()}
                 customFolder={navigation.customFolder}
                 onSelectCustomFolder={navigation.setCustomFolder}
-                onOpenSenderJourney={() => overlays.setShowSenderJourney(true)}
               />
             </div>
           ) : (
@@ -258,7 +257,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
           )}
 
           <div className="flex min-w-0 flex-1">
-            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0">
+            <div className="flex h-full flex-col min-w-0 pb-[72px] md:pb-0 focus:outline-none flex-1">
               <Topbar
                 onOpenPalette={() => overlays.setPaletteOpen(true)}
                 onOpenSettings={() => overlays.openSettings(preferences)}
@@ -439,7 +438,7 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
               </div>
             </div>
           </div>
-        </div>
+        </main>
 
         <MailOverlayStack
           overlays={overlays}

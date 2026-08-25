@@ -248,6 +248,9 @@ describe("resolveRouteGuard — five required states", () => {
       expect(
         resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: false, demoFlag: true }),
       ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/inbox" } });
+      expect(
+        resolveRouteGuard({ state: "anonymous", pathname: "/inbox", isDev: false, demoFlag: true }),
+      ).toEqual({ kind: "redirect", to: SIGN_IN_ROUTE, search: { next: "/inbox" } });
     });
   });
 
