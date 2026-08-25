@@ -351,20 +351,13 @@ export function MailApp({ isDemoMode = false }: MailAppProps) {
                         <EmailList
                           emails={source.emails}
                           selectedId={navigation.selectedId}
-                          selectedIds={navigation.selectedIds}
                           onSelect={(id) => {
                             navigation.setSelectedId(id);
                             if (isMobile) setMobileView("detail");
                           }}
-                          onSelectionChange={navigation.setSelectedIds}
-                          onBulkAction={bulk.handleBulkActionRequest}
-                          bulkProgress={bulk.bulkProgress}
-                          bulkFailures={bulk.bulkFailures}
-                          onConvertSender={openSenderConversion}
                           folder={navigation.folder}
                           filters={navigation.filters}
                           customFolder={navigation.customFolder}
-                          compact={layout.compactMode || preferences.compactMode}
                           showAvatars
                           useMobile={isMobile}
                           onArchive={actions.handleArchive}

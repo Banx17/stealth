@@ -547,57 +547,6 @@ const ApiV1IdentityKeysRevokeRoute = ApiV1IdentityKeysRevokeRouteImport.update({
   path: '/api/v1/identity/keys/revoke',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1PoliciesOwnerSyncRoute = ApiV1PoliciesOwnerSyncRouteImport.update({
-  id: '/sync',
-  path: '/sync',
-  getParentRoute: () => ApiV1PoliciesOwnerRoute,
-} as any)
-const ApiV1PoliciesOwnerReconciliationRoute =
-  ApiV1PoliciesOwnerReconciliationRouteImport.update({
-    id: '/reconciliation',
-    path: '/reconciliation',
-    getParentRoute: () => ApiV1PoliciesOwnerRoute,
-  } as any)
-const ApiV1PoliciesOwnerProvisionRoute =
-  ApiV1PoliciesOwnerProvisionRouteImport.update({
-    id: '/provision',
-    path: '/provision',
-    getParentRoute: () => ApiV1PoliciesOwnerRoute,
-  } as any)
-const ApiV1LifecycleMessageIdReconcileRoute =
-  ApiV1LifecycleMessageIdReconcileRouteImport.update({
-    id: '/reconcile',
-    path: '/reconcile',
-    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
-  } as any)
-const ApiV1LifecycleMessageIdAnchorRoute =
-  ApiV1LifecycleMessageIdAnchorRouteImport.update({
-    id: '/anchor',
-    path: '/anchor',
-    getParentRoute: () => ApiV1LifecycleMessageIdRoute,
-  } as any)
-const ApiV1IdentityUsernameReserveRoute =
-  ApiV1IdentityUsernameReserveRouteImport.update({
-    id: '/api/v1/identity/username/reserve',
-    path: '/api/v1/identity/username/reserve',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1IdentityUsernameCheckRoute =
-  ApiV1IdentityUsernameCheckRouteImport.update({
-    id: '/api/v1/identity/username/check',
-    path: '/api/v1/identity/username/check',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1IdentityKeysRotateRoute = ApiV1IdentityKeysRotateRouteImport.update({
-  id: '/api/v1/identity/keys/rotate',
-  path: '/api/v1/identity/keys/rotate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1IdentityKeysRevokeRoute = ApiV1IdentityKeysRevokeRouteImport.update({
-  id: '/api/v1/identity/keys/revoke',
-  path: '/api/v1/identity/keys/revoke',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1IdentityKeysRetireRoute = ApiV1IdentityKeysRetireRouteImport.update({
   id: '/api/v1/identity/keys/retire',
   path: '/api/v1/identity/keys/retire',
@@ -1962,6 +1911,10 @@ declare module '@tanstack/react-router' {
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
     '/api/v1/postage/$messageId/refund': {
+      id: '/api/v1/postage/$messageId/refund'
+      path: '/refund'
+      fullPath: '/api/v1/postage/$messageId/refund'
+      preLoaderRoute: typeof ApiV1PostageMessageIdRefundRouteImport
       parentRoute: typeof ApiV1PostageMessageIdRoute
     }
     '/api/v1/policies/$owner/sync': {

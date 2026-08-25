@@ -93,14 +93,15 @@ async function renderAt(initialUrl: string) {
 }
 
 describe("RouteGate — component-level navigation coverage", () => {
-  it("renders the development demo shell for an anonymous visitor", async () => {
+  it("redirects an anonymous visitor to sign-in", async () => {
     vi.stubEnv("DEV", true);
     mock.setBranch("unauthorized");
     mock.setData(null);
     const router = await renderAt("/");
 
-    expect(await screen.findByText("Protected App Page")).toBeTruthy();
-    expect(router.state.location.pathname).toBe("/");
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe(SIGN_IN_ROUTE));
+    expect(router.state.location.search.next).toBe("/");
+    expect(await screen.findByText("Sign In Page")).toBeTruthy();
   });
 
   it("lets an anonymous visitor stay on the public sign-in page (no redirect loop)", async () => {
@@ -114,17 +115,16 @@ describe("RouteGate — component-level navigation coverage", () => {
     expect(await screen.findByText("Sign In Page")).toBeTruthy();
   });
 
-  it("renders the development demo shell for an onboarding visitor", async () => {
+  it("redirects an onboarding visitor to the onboarding wizard", async () => {
     vi.stubEnv("DEV", true);
     mock.setBranch("onboarding");
     mock.setData(null);
     const router = await renderAt("/");
 
-    expect(await screen.findByText("Protected App Page")).toBeTruthy();
-    expect(router.state.location.pathname).toBe("/");
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe(ONBOARDING_ROUTE));
   });
 
-  it("renders the development demo shell for incomplete provisioning", async () => {
+  it("redirects incomplete provisioning to the onboarding wizard", async () => {
     vi.stubEnv("DEV", true);
     mock.setBranch("active");
     mock.setData({
@@ -132,8 +132,7 @@ describe("RouteGate — component-level navigation coverage", () => {
     } as never);
     const router = await renderAt("/");
 
-    expect(await screen.findByText("Protected App Page")).toBeTruthy();
-    expect(router.state.location.pathname).toBe("/");
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe(ONBOARDING_ROUTE));
   });
 
   it("shows the distinct suspended state view instead of the app or sign-in", async () => {
@@ -169,13 +168,13 @@ describe("RouteGate — component-level navigation coverage", () => {
     expect(await screen.findByText("Protected App Page")).toBeTruthy();
   });
 
-  it("is repeat-safe: a duplicated development bootstrap resolution settles instead of thrashing", async () => {
-    vi.stubEnv("DEV", true);
+  it("is repeat-safe: a duplicated bootstrap resolution settles instead of thrashing", async () => {
+    vi.stubEnv("DEV", false);
     mock.setBranch("unauthorized");
     mock.setData(null);
     const router = await renderAt("/mail/7");
 
-    await vi.waitFor(() => expect(router.state.location.pathname).toBe("/mail/7"));
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe(SIGN_IN_ROUTE));
     const settledUrl = router.state.location.href;
 
     // A second bootstrap repoll resolving to the same state must not re-navigate.
@@ -183,7 +182,7 @@ describe("RouteGate — component-level navigation coverage", () => {
       router.invalidate();
     });
     await vi.waitFor(() => expect(router.state.location.href).toBe(settledUrl));
-    expect(router.state.location.pathname).toBe("/mail/7");
+    expect(router.state.location.pathname).toBe(SIGN_IN_ROUTE);
   });
 
   it("moves a suspended visitor to the state view even when they open the sign-in page", async () => {
