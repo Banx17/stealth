@@ -46,6 +46,7 @@ import { Route as ApiV1PoliciesEvaluateRouteImport } from './routes/api/v1/polic
 import { Route as ApiV1PoliciesOwnerRouteImport } from './routes/api/v1/policies/$owner'
 import { Route as ApiV1OnboardingDraftRouteImport } from './routes/api/v1/onboarding/draft'
 import { Route as ApiV1OnboardingCompleteRouteImport } from './routes/api/v1/onboarding/complete'
+import { Route as ApiV1NotificationsDeliveryEventsRouteImport } from './routes/api/v1/notifications/delivery-events'
 import { Route as ApiV1MailboxSyncRouteImport } from './routes/api/v1/mailbox/sync'
 import { Route as ApiV1MailboxQueueRouteImport } from './routes/api/v1/mailbox/queue'
 import { Route as ApiV1MailboxCountsRouteImport } from './routes/api/v1/mailbox/counts'
@@ -310,6 +311,12 @@ const ApiV1OnboardingCompleteRoute = ApiV1OnboardingCompleteRouteImport.update({
   path: '/api/v1/onboarding/complete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1NotificationsDeliveryEventsRoute =
+  ApiV1NotificationsDeliveryEventsRouteImport.update({
+    id: '/api/v1/notifications/delivery-events',
+    path: '/api/v1/notifications/delivery-events',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1MailboxSyncRoute = ApiV1MailboxSyncRouteImport.update({
   id: '/api/v1/mailbox/sync',
   path: '/api/v1/mailbox/sync',
@@ -780,6 +787,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/notifications/delivery-events': typeof ApiV1NotificationsDeliveryEventsRoute
   '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
   '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -896,6 +904,7 @@ export interface FileRoutesByTo {
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/notifications/delivery-events': typeof ApiV1NotificationsDeliveryEventsRoute
   '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
   '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -1014,6 +1023,7 @@ export interface FileRoutesById {
   '/api/v1/mailbox/counts': typeof ApiV1MailboxCountsRoute
   '/api/v1/mailbox/queue': typeof ApiV1MailboxQueueRoute
   '/api/v1/mailbox/sync': typeof ApiV1MailboxSyncRoute
+  '/api/v1/notifications/delivery-events': typeof ApiV1NotificationsDeliveryEventsRoute
   '/api/v1/onboarding/complete': typeof ApiV1OnboardingCompleteRoute
   '/api/v1/onboarding/draft': typeof ApiV1OnboardingDraftRoute
   '/api/v1/policies/$owner': typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -1133,6 +1143,7 @@ export interface FileRouteTypes {
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/notifications/delivery-events'
     | '/api/v1/onboarding/complete'
     | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
@@ -1249,6 +1260,7 @@ export interface FileRouteTypes {
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/notifications/delivery-events'
     | '/api/v1/onboarding/complete'
     | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
@@ -1366,6 +1378,7 @@ export interface FileRouteTypes {
     | '/api/v1/mailbox/counts'
     | '/api/v1/mailbox/queue'
     | '/api/v1/mailbox/sync'
+    | '/api/v1/notifications/delivery-events'
     | '/api/v1/onboarding/complete'
     | '/api/v1/onboarding/draft'
     | '/api/v1/policies/$owner'
@@ -1481,6 +1494,7 @@ export interface RootRouteChildren {
   ApiV1MailboxCountsRoute: typeof ApiV1MailboxCountsRoute
   ApiV1MailboxQueueRoute: typeof ApiV1MailboxQueueRoute
   ApiV1MailboxSyncRoute: typeof ApiV1MailboxSyncRoute
+  ApiV1NotificationsDeliveryEventsRoute: typeof ApiV1NotificationsDeliveryEventsRoute
   ApiV1OnboardingCompleteRoute: typeof ApiV1OnboardingCompleteRoute
   ApiV1OnboardingDraftRoute: typeof ApiV1OnboardingDraftRoute
   ApiV1PoliciesOwnerRoute: typeof ApiV1PoliciesOwnerRouteWithChildren
@@ -1797,6 +1811,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/onboarding/complete'
       fullPath: '/api/v1/onboarding/complete'
       preLoaderRoute: typeof ApiV1OnboardingCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/notifications/delivery-events': {
+      id: '/api/v1/notifications/delivery-events'
+      path: '/api/v1/notifications/delivery-events'
+      fullPath: '/api/v1/notifications/delivery-events'
+      preLoaderRoute: typeof ApiV1NotificationsDeliveryEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/mailbox/sync': {
@@ -2517,6 +2538,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1MailboxCountsRoute: ApiV1MailboxCountsRoute,
   ApiV1MailboxQueueRoute: ApiV1MailboxQueueRoute,
   ApiV1MailboxSyncRoute: ApiV1MailboxSyncRoute,
+  ApiV1NotificationsDeliveryEventsRoute: ApiV1NotificationsDeliveryEventsRoute,
   ApiV1OnboardingCompleteRoute: ApiV1OnboardingCompleteRoute,
   ApiV1OnboardingDraftRoute: ApiV1OnboardingDraftRoute,
   ApiV1PoliciesOwnerRoute: ApiV1PoliciesOwnerRouteWithChildren,
