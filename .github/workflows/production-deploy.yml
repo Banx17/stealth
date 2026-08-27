@@ -551,7 +551,7 @@ jobs:
   post-deployment-verification:
     name: Post-Deployment Verification
     runs-on: ubuntu-latest
-    needs: production-deploy
+    needs: [validate-release, production-deploy]
     if: success()
     environment: production
     steps:

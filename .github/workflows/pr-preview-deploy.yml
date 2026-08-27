@@ -127,7 +127,7 @@ jobs:
   preview-teardown:
     name: Teardown Preview
     runs-on: ubuntu-latest
-    if: github.event.action == 'closed' && env.IS_FORK != 'true' && env.CLOUDFLARE_API_TOKEN != ''
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
