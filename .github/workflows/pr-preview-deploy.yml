@@ -96,12 +96,18 @@ jobs:
               const previewUrl = `https://stealth-mail-pr-${{ github.event.pull_request.number }}.${process.env.CLOUDFLARE_SUBDOMAIN || 'workers.dev'}`;
               body = `🚀 **Preview Deployment**\n\n✅ Preview environment deployed successfully!\n\n**URL:** ${previewUrl}\n\n**Commit:** \`${context.sha.slice(0, 7)}\`\n\n> ⚠️ This preview runs WITHOUT production secrets. Some features may be limited.`;
             }
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (err) {
+              // Fork PRs get a read-only token for the base repo, so commenting is
+              // not always permitted. This is best-effort and must not fail the job.
+              console.log(`Skipping preview comment (not permitted): ${err.message}`);
+            }
 
       - name: Write deployment gate result
         if: always()
@@ -156,9 +162,15 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🗑️ **Preview Teardown**\n\nPreview environment has been removed.`
-            });
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🗑️ **Preview Teardown**\n\nPreview environment has been removed.`
+              });
+            } catch (err) {
+              // Fork PRs get a read-only token for the base repo, so commenting is
+              // not always permitted. This is best-effort and must not fail the job.
+              console.log(`Skipping teardown comment (not permitted): ${err.message}`);
+            };
