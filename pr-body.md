@@ -7,6 +7,7 @@ Implement staging and production deployment workflows from GitHub (BETA-089). Th
 3. **Production Deployments** — Deploy to production only from approved release commits with comprehensive validation and automatic rollback
 
 The workflows include:
+
 - Health checks and smoke tests that block promotion on failure
 - Automatic rollback to the last known-good deployment if health checks fail
 - Deployment record-keeping with commit SHA, artifact hashes, configuration version, actor, and URL
@@ -20,19 +21,22 @@ Closes #1996
 ## Changes
 
 ### New Files
+
 - `.github/workflows/pr-preview-deploy.yml` — PR preview deployment workflow
-- `.github/workflows/staging-deploy.yml` — Staging deployment workflow  
+- `.github/workflows/staging-deploy.yml` — Staging deployment workflow
 - `.github/workflows/production-deploy.yml` — Production deployment workflow
 - `docs/deployment/DEPLOYMENT_WORKFLOWS.md` — Documentation for deployment workflows
 - `docs/deployment/BETA_089_EVIDENCE.md` — Release acceptance evidence
 - `docs/deployment/deployment-log.txt` — Deployment log file
 
 ### Modified Files
+
 - `docs/deployment/README.md` — Added reference to new deployment workflows documentation
 
 ### Key Implementation Details
 
 **PR Preview Deployments (`pr-preview-deploy.yml`):**
+
 - Triggered on pull requests to `main` or `develop`
 - Uses the `preview` GitHub Environment (no production secrets)
 - Verifies no production secrets are available
@@ -40,6 +44,7 @@ Closes #1996
 - Comments PR with preview URL
 
 **Staging Deployments (`staging-deploy.yml`):**
+
 - Triggered on push to `main` branch
 - Checks release gate status before deployment
 - Runs migrations with approval
@@ -49,6 +54,7 @@ Closes #1996
 - Deployment recording
 
 **Production Deployments (`production-deploy.yml`):**
+
 - Triggered from release tags (`v*`, `release-*`) or manual workflow dispatch
 - Validates release gates
 - Verifies no plaintext secrets
@@ -60,16 +66,19 @@ Closes #1996
 - Post-deployment verification
 
 **Gate System Integration:**
+
 - Uses existing `write-gate-result.mjs` script
 - Integrates with `release-gate-lib.mjs` semantics
 - Missing or failed gates = deployment blocked
 
 **Deployment Record-Keeping:**
+
 - Every deployment records: commit SHA, artifact hashes, configuration version, actor, URL
 - Deployment log in `docs/deployment/deployment-log.txt`
 - JSON records uploaded as GitHub Actions artifacts
 
 **Security:**
+
 - Preview deployments run WITHOUT production secrets
 - Production secrets only available in `production` environment
 - Secret verification at deployment start
@@ -131,16 +140,19 @@ if (allValid) console.log('All workflow files passed basic validation');
 ## Security And Privacy
 
 **Secret Management:**
+
 - PR Preview deployments: No production secrets available (verified in workflow)
 - Staging deployments: Uses staging-specific secrets from GitHub Environment
 - Production deployments: Uses production secrets from GitHub Environment
 
 **Secret Verification:**
+
 - Each workflow verifies required secrets are present
 - No plaintext secrets in workflow files
 - No secrets in documentation (all redacted)
 
 **Audit Trail:**
+
 - All deployments logged with actor, timestamp, commit SHA
 - Gate results recorded as JSON artifacts
 - Deployment records uploaded for review
@@ -148,20 +160,24 @@ if (allValid) console.log('All workflow files passed basic validation');
 ## Deployment And Rollback
 
 **Deployment Process:**
+
 1. PR Preview: Automatic on PR creation/update
 2. Staging: Automatic on merge to main (after CI gates pass)
 3. Production: Manual trigger via tag or workflow dispatch
 
 **Rollback Process:**
+
 - Automatic: If health checks fail during deployment
 - Manual: Via workflow dispatch with previous commit SHA
 
 **Migration Handling:**
+
 - Forward migrations with approval during deployment
 - Rollback migrations if deployment fails
 - Migration integrity checks before deployment
 
 **Monitoring:**
+
 - Health checks at `/health` endpoint
 - API contract checks at `/openapi.json`
 - Authentication endpoint verification
@@ -170,22 +186,26 @@ if (allValid) console.log('All workflow files passed basic validation');
 ## Evidence
 
 **Release Acceptance Scenario 1: Failed Health Gate Blocks Production**
+
 - Gate system prevents deployment if any gate fails
 - Health checks during deployment trigger rollback on failure
 - Evidence in `docs/deployment/BETA_089_EVIDENCE.md`
 
 **Release Acceptance Scenario 2: Reproducible Production Deployments**
+
 - Deployment records contain commit SHA, artifact hashes, configuration version
 - Re-deployment from recorded commit produces identical result
 - Evidence in `docs/deployment/BETA_089_EVIDENCE.md`
 
 **Release Acceptance Scenario 3: Rollback Without Replaying Side Effects**
+
 - Automatic rollback on failure
 - Migrations are rolled back, not replayed
 - No duplicate external calls or transactions
 - Evidence in `docs/deployment/BETA_089_EVIDENCE.md`
 
 **Documentation:**
+
 - `docs/deployment/DEPLOYMENT_WORKFLOWS.md` — Complete workflow documentation
 - `docs/deployment/BETA_089_EVIDENCE.md` — Detailed evidence for all acceptance scenarios
 - `docs/deployment/deployment-log.txt` — Deployment log file
@@ -200,12 +220,12 @@ if (allValid) console.log('All workflow files passed basic validation');
 
 ## Dependency Status
 
-| Dependency | Issue | PR | Status | Impact on BETA-089 |
-|-----------|-------|-----|--------|-------------------|
-| BETA-077 | #1984 | #2024 | ✅ COMPLETE | Secrets management available |
-| BETA-081 | #1988 | #2045 | ✅ COMPLETE | Backup/restore available |
-| BETA-087 | #1994 | #2101 | ✅ COMPLETE | Browser compatibility available |
-| BETA-088 | #1995 | #2142 | ✅ COMPLETE | CI gates available |
+| Dependency | Issue | PR    | Status      | Impact on BETA-089              |
+| ---------- | ----- | ----- | ----------- | ------------------------------- |
+| BETA-077   | #1984 | #2024 | ✅ COMPLETE | Secrets management available    |
+| BETA-081   | #1988 | #2045 | ✅ COMPLETE | Backup/restore available        |
+| BETA-087   | #1994 | #2101 | ✅ COMPLETE | Browser compatibility available |
+| BETA-088   | #1995 | #2142 | ✅ COMPLETE | CI gates available              |
 
 **All four dependencies are complete and merged. Full implementation proceeds.**
 
@@ -214,6 +234,7 @@ if (allValid) console.log('All workflow files passed basic validation');
 **No plaintext message, token, password, seed, private key, or production credential appears anywhere in this PR's artifacts, logs, or committed files.**
 
 Verification:
+
 ```bash
 # Check for secrets in new files
 grep -r "password\|secret\|token\|key\|credential" .github/workflows/*.yml docs/deployment/*.md
@@ -226,10 +247,10 @@ grep -r "=\s*['\"][^'\"${}]\{20,\}['\"]" .github/workflows/*.yml
 
 ## Deployment Workflow Summary
 
-| Workflow | Trigger | Environment | Secrets | Rollback |
-|----------|---------|-------------|---------|----------|
-| PR Preview | Pull Request | preview | None | Automatic teardown |
-| Staging | Push to main | staging | Staging | Automatic |
-| Production | Tag or manual | production | Production | Automatic + Manual |
+| Workflow   | Trigger       | Environment | Secrets    | Rollback           |
+| ---------- | ------------- | ----------- | ---------- | ------------------ |
+| PR Preview | Pull Request  | preview     | None       | Automatic teardown |
+| Staging    | Push to main  | staging     | Staging    | Automatic          |
+| Production | Tag or manual | production  | Production | Automatic + Manual |
 
 **BETA-089 is complete and meets all release acceptance criteria.**
